@@ -1,0 +1,22 @@
+Metadata-Version: 1.1
+Name: collection
+Version: 0.1.6
+Summary: Laravel-style collection class that provides an interface for pipeline programming
+Home-page: https://github.com/thenerdscribe/collection
+Author: Ryan Morton
+Author-email: thenerdscribe@gmail.com
+License: MIT
+Download-URL: https://github.com/thenerdscribe/collection/archive/0.1.6.tar.gz
+Description: UNKNOWN
+Keywords: laravel,collection,pipeline
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Libraries
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
