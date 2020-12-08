@@ -1,0 +1,14 @@
+Pillow
+collection
+cycler
+joblib
+kiwisolver
+matplotlib
+numpy
+pip
+pyparsing
+python-dateutil
+scipy
+setuptools
+six
+wheel
