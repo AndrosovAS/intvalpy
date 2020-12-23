@@ -6,8 +6,14 @@ intvalpy
 
 Добро пожаловать в документацию intvalpy, модуль Python для работы с интервалами. 
 
-Lineqs
-================
+.. include:: ../README.rst
 
-.. autofunction:: intvalpy.solset.lineqs
+Содержание
+--------
+
+.. toctree::
+   :maxdepth: 2
+
+   Lineqs
+
 
