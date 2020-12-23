@@ -1,35 +1,23 @@
-Installation
+Установка
 ============
 
 .. highlight: shell
 
-The most convenient way to install this library is with pip_::
+Наиболее удобный способ установки этой библиотеки - с помощью pip_::
 
     pip install --upgrade pip
-    pip install pyinterval
-
-Note that this project depends on crlibm_.
-
-.. _pip: https://pip.pypa.io
-.. _crlibm: https://pypi.python.org/pypi/crlibm
+    pip install intvalpy
 
 
-Installing from sources
+Установка из источников
 -----------------------
 
-You can either download the sources from PyPI_ or clone the repository
-hosted on GitHub_::
+Вы можете либо скачать исходные тексты из PyPI_ либо клонировать репозиторий
+размещённый на GitHub_::
 
-    git clone https://github.com/taschini/pyinterval.git
-    cd pyinterval
+    git clone https://github.com/Maestross/intvalpy.git
+    cd intvalpy
     python setup.py install
 
-.. _github: https://github.com/taschini/pyinterval
-.. _pypi: http://pypi.python.org/pypi/pyinterval/
-
-
-Semantic Versioning
--------------------
-
-Starting with version 1.0.0, this project follows a `semantic
-versioning <http://semver.org/>`_ scheme.
+.. _github: https://github.com/Maestross/intvalpy
+.. _pypi: http://pypi.python.org/pypi/intvalpy/
