@@ -14,6 +14,6 @@ intvalpy
 .. toctree::
    :maxdepth: 2
 
-   Lineqs
+   install
 
 
