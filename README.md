@@ -77,3 +77,9 @@ print('Многомерная нелинейная задача: ', res)
 # +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+ #
 ```
 
+## Ссылки
+
+* `Домашняя страница <https://github.com/Maestross/intvalpy>`_
+* `Онлайн документация <https://intvalpy.readthedocs.io/ru/latest/#>`_
+* `Пакет на PyPI <https://pypi.org/project/intvalpy/>`_
+* `Теория <http://www.nsc.ru/interval/Library/InteBooks/SharyBook.pdf>`_
