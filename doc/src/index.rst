@@ -1,4 +1,13 @@
 .. include:: ../README.rst
+.. title:: Table of Contents
+
+*******
+intvalpy
+*******
+
+Добро пожаловать в документацию intvalpy, модуль Python для работы с интервалами. 
+
+
 
 Содержание
 --------
@@ -7,14 +16,6 @@
    :maxdepth: 2
 
    install
-
-.. title:: Table of Contents
-
-*******
-intvalpy
-*******
-
-Добро пожаловать в документацию intvalpy, модуль Python для работы с интервалами. 
 
 
 
