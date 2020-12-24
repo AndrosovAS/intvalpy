@@ -16,7 +16,7 @@ intvalpy
 
    install
    guide
-   general
+   
 
 
 
