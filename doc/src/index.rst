@@ -15,6 +15,7 @@ intvalpy
    :maxdepth: 2
 
    install
+   guide
 
 
 
