@@ -27,12 +27,28 @@ import intvalpy as ip
 import numpy as np
 import matplotlib.pyplot as plt
 
-A = ip.Interval([[-1, -1],[-1, -1]], [[1,1], [-1,1]])
-b = ip.Interval([1,-2], [1,2])
+A1 = ip.Interval([[-1, -1],[-1, -1]], [[1,1], [-1,1]])
+b1 = ip.Interval([1,-2], [1,2])
 
+vertices = ip.IntLinIncR2(A1, b1)
 
-vertices = ip.IntLinIncR2(A, b)
+A2 = -np.array([[-3, -1],
+                [-2, -2],
+                [-1, -3],
+                [1, -3],
+                [2, -2],
+                [3, -1],
+                [3, 1],
+                [2, 2],
+                [1, 3],
+                [-1, 3],
+                [-2, 2],
+                [-3, 1]])
+b2 = -np.array([18,16,18,18,16,18,18,16,18,18,16,18])
+
+vertices = ip.lineqs(A2, b2, color='blue', alpha=0.2, size=(12,12))
 ```
+![alt text](examples/SolSet.png "Solution Set")
 
 ### Интервальная система линейных алгебраических уравнений:
 
