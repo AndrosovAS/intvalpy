@@ -15,7 +15,7 @@ INSTALL_REQUIRES = [
 
 setup(
     name='intvalpy',
-    version='1.4.4',
+    version='1.4.6',
     description='Interval library in Python',
     author='Андросов Артем Станиславович, Шарый Сергей Петрович',
     author_email='artem.androsov@gmail.com, shary@ict.nsc.ru',
