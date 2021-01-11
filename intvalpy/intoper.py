@@ -73,7 +73,7 @@ def asinterval(a):
             if isinstance(a[index], Interval):
                 result[index] = a[index]
             else:
-                result[index] = Interval(a[index], a[index])
+                result[index] = Interval(a[index], a[index], sortQ=False)
         return result
 
     else:
@@ -103,32 +103,32 @@ def intersection(A, B):
     if wA.shape == wB.shape:
         result = zeros(wA.shape)
         for index in itertools.product(*wA.ranges):
-            tmp1 = max(wA.a[index], wB.a[index])
-            tmp2 = min(wA.b[index], wB.b[index])
-            if tmp1 <= tmp2:
-                result[index] = Interval(tmp1, tmp2)
+            _max = wB[index].a if wA[index].a < wB[index].a else wA[index].a
+            _min = wA[index].b if wA[index].b < wB[index].b else wB[index].b
+            if _max <= _min:
+                result[index] = Interval(_max, _min, sortQ=False)
             else:
-                result[index] = Interval(float('-inf'), float('-inf'))
+                result[index] = Interval(float('-inf'), float('-inf'), sortQ=False)
 
     elif wA.shape == ():
         result = zeros(wB.shape)
         for index in itertools.product(*wB.ranges):
-            tmp1 = max(wA.a, wB.a[index])
-            tmp2 = min(wA.b, wB.b[index])
-            if tmp1 <= tmp2:
-                result[index] = Interval(tmp1, tmp2)
+            _max = wB[index].a if wA.a < wB[index].a else wA.a
+            _min = wA.b if wA.b < wB[index].b else wB[index].b
+            if _max <= _min:
+                result[index] = Interval(_max, _min, sortQ=False)
             else:
-                result[index] = Interval(float('-inf'), float('-inf'))
+                result[index] = Interval(float('-inf'), float('-inf'), sortQ=False)
 
     elif wB.shape == ():
         result = zeros(wA.shape)
         for index in itertools.product(*wA.ranges):
-            tmp1 = max(wA.a[index], wB.a)
-            tmp2 = min(wA.b[index], wB.b)
-            if tmp1 <= tmp2:
-                result[index] = Interval(tmp1, tmp2)
+            _max = wB.a if wA[index].a < wB.a else wA[index].a
+            _min = wA[index].b if wA[index].b < wB.b else wB.b
+            if _max <= _min:
+                result[index] = Interval(_max, _min, sortQ=False)
             else:
-                result[index] = Interval(float('-inf'), float('-inf'))
+                result[index] = Interval(float('-inf'), float('-inf'), sortQ=False)
 
     else:
         raise Exception('Не совпадают размерности входных массивов!')
@@ -183,7 +183,8 @@ def dist(a, b, order=float('inf')):
 
 def zeros(shape):
     """Функция создаёт массив размерности shape."""
-    return Interval(np.zeros(shape, dtype='float64'), np.zeros(shape, dtype='float64'), sortQ=False)
+    return Interval(np.zeros(shape, dtype='float64'), \
+                    np.zeros(shape, dtype='float64'), sortQ=False)
 
 
 def diag(mat):
@@ -199,6 +200,7 @@ def diag(mat):
     return result
 
 
+# @njit(fastmath=True)
 def create_data(shape, distribution='normal'):
     if distribution is 'normal':
         rand = lambda shape: np.random.normal(0, 1, shape)
