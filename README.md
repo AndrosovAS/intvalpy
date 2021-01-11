@@ -6,11 +6,7 @@
 
 ## Установка
 
-Убедитесь, что у вас есть все общесистемные зависимости:
-```
-sudo apt-get install cython libglpk-dev python python-dev python-pip python-scipy
-```
-Затем установите сам модуль:
+Убедитесь, что у вас есть все общесистемные зависимости, затем установите сам модуль:
 ```
 pip install intvalpy
 ```
