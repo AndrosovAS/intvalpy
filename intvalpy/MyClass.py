@@ -61,18 +61,18 @@ class Interval:
         result = 'interval('
 
         if self.shape == ():
-            return '[%.6f, %.6f]' % (self._a, self._b)
+            return '[%.7g, %.7g]' % (self._a, self._b)
 
         elif self.ndim == 1:
             try:
-                result += str(['[%.6f, %.6f]' % (self._a[k], self._b[k]) for k in range(self.shape[0])]) + ')'
+                result += str(['[%.7g, %.7g]' % (self._a[k], self._b[k]) for k in range(self.shape[0])]) + ')'
             except:
-                result += str(['[%.6f, %.6f]' % (self._a, self._b)]) + ')'
+                result += str(['[%.7g, %.7g]' % (self._a, self._b)]) + ')'
         else:
             for l in range(self.shape[0]-1):
-                result += str(['[%.6f, %.6f]' % (self._a[l, k], self._b[l, k]) for k in range(self.shape[1])]) + '\n      '
+                result += str(['[%.7g, %.7g]' % (self._a[l, k], self._b[l, k]) for k in range(self.shape[1])]) + '\n      '
 
-            result += str(['[%.6f, %.6f]' % (self._a[self.shape[0]-1, k], self._b[self.shape[0]-1, k]) \
+            result += str(['[%.7g, %.7g]' % (self._a[self.shape[0]-1, k], self._b[self.shape[0]-1, k]) \
                            for k in range(self.shape[1])]) + ')\n'
 
         return result
@@ -418,9 +418,7 @@ class Interval:
 
     #     Копирование объекта
     def __deepcopy__(self, memo):
-        my_copy = Interval(np.zeros(self.shape), np.zeros(self.shape), sortQ=False)
-        my_copy += Interval(self._a, self._b, sortQ=False)
-        return my_copy
+        return Interval(np.copy(self._a), np.copy(self._b), sortQ=False)
 
     # Преобразование в массив типа ndarray
     def asnumpy(self):
@@ -585,18 +583,12 @@ class Interval:
 
     @property
     def copy(self):
-        tmp = Interval(np.zeros(self.shape), np.zeros(self.shape), sortQ=False)
-        tmp += Interval(self._a, self._b, sortQ=False)
-        return tmp
+        return Interval(np.copy(self._a), np.copy(self._b), sortQ=False)
 
     @property
     def invbar(self):
-        tmp = Interval(np.zeros(self.shape), np.zeros(self.shape), sortQ=False)
-        tmp += Interval(self._b, self._a, sortQ=False)
-        return tmp
+        return Interval(np.copy(self._b), np.copy(self._a), sortQ=False)
 
     @property
     def opp(self):
-        tmp = Interval(np.zeros(self.shape), np.zeros(self.shape), sortQ=False)
-        tmp += Interval(-self._a, -self._b, sortQ=False)
-        return tmp
+        return Interval(-np.copy(self._a), -np.copy(self._b), sortQ=False)
