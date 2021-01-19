@@ -1,8 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .MyClass import Interval
-from .intoper import *
+from intvalpy.MyClass import Interval
 
 
 def non_repeat(a, decimals=12):
@@ -122,7 +121,7 @@ def Intervals2Path(S):
 
 __center_rm = []
 def lineqs(A, b, show=True, title="Solution Set", color='gray', \
-           bounds=None, alpha=0.5, s=10, size=(15,15)):
+           bounds=None, alpha=0.5, s=10, size=(15,15), save=False):
     """
     Функция визуализирует множество решений системы линейных алгебраических
     неравенств A x >= b с двумя переменными методом граничных интервалов, а
@@ -156,6 +155,9 @@ def lineqs(A, b, show=True, title="Solution Set", color='gray', \
 
                 size: tuple
                     Размер отрисовочного окна.
+
+                save: bool
+                    Если значение True, то график сохраняется.
 
     Returns:
                 out: list
@@ -204,11 +206,13 @@ def lineqs(A, b, show=True, title="Solution Set", color='gray', \
         ax.fill(x, y, linestyle = '-', linewidth = 1, color=color, alpha=alpha)
         ax.scatter(x, y, s=s, color='black', alpha=1)
 
+    if save:
+        fig.savefig(title + ".png")
     return non_repeat(vertices)
 
 
 def IntLinIncR2(A, b, show=True, title="Solution Set", consistency='uni', \
-                bounds=None, color='gray', alpha=0.5, s=10, size=(15,15)):
+                bounds=None, color='gray', alpha=0.5, s=10, size=(15,15), save=False):
     """
     Функция визуализирует множество решений интервальной системы линейных
     алгебраических уравнений A x = b с двумя переменными методом граничных
@@ -247,6 +251,9 @@ def IntLinIncR2(A, b, show=True, title="Solution Set", consistency='uni', \
                 size: tuple
                     Размер отрисовочного окна.
 
+                save: bool
+                    Если значение True, то график сохраняется.
+
     Returns:
                 out: list
                     Возвращается список упорядоченных вершин в каждом ортанте
@@ -256,7 +263,7 @@ def IntLinIncR2(A, b, show=True, title="Solution Set", consistency='uni', \
 
     if not isinstance(A, Interval):
         return lineqs(A, b, show=show, title=title, color=color, bounds=bounds, \
-                      alpha=alpha, s=s, size=size)
+                      alpha=alpha, s=s, size=size, save=save)
 
     ortant = [(1, 1), (-1, 1), (-1, -1), (1, -1)]
     vertices = []
@@ -309,4 +316,7 @@ def IntLinIncR2(A, b, show=True, title="Solution Set", consistency='uni', \
                 x, y = vertices[k][:,0], vertices[k][:,1]
                 ax.fill(x, y, linestyle = '-', linewidth = 1, color=color, alpha=alpha)
                 ax.scatter(x, y, s=s, color='black', alpha=1)
+    if save:
+        fig.savefig(title + ".png")
+
     return vertices

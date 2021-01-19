@@ -1,5 +1,5 @@
-from .MyClass import Interval
-from .intoper import zeros
+from intvalpy.MyClass import Interval
+from intvalpy.intoper import zeros
 
 
 def miranda(func, x):
