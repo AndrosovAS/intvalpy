@@ -3,14 +3,14 @@ import numpy as np
 from bisect import bisect_left
 from joblib import Parallel, delayed
 
-from .MyClass import Interval
-from .intoper import *
-from .recfunc import Tol
+from intvalpy.MyClass import Interval
+from intvalpy.intoper import zeros, intersection
 
 
-def ive(A, b, N=40):
+
+def Rohn(A, b, tol=1e-8, maxiter=10**3):
     """
-    Вычисление меры вариабельности оценки параметров.
+    Метод Дж. Рона для переопределённых ИСЛАУ.
 
     Parameters:
                 A: Interval
@@ -20,92 +20,6 @@ def ive(A, b, N=40):
                     Вектор правой части ИСЛАУ.
 
     Optional Parameters:
-                N: int
-                    Количество угловых матриц для которых вычисляется обусловленность.
-
-    Returns:
-                out: float
-                    Возвращается мера вариабельности IVE.
-    """
-
-    success, _arg_max, _max = Tol(A, b, maxQ=True)
-    if not success:
-        print('Оптимизация функционала Tol завершена некорректно!')
-
-    _inf = A.a
-    _sup = A.b
-    cond = float('inf')
-    angle_A = np.zeros(A.shape, dtype='float64')
-    for _ in range(N):
-        for k in range(A.shape[0]):
-            for l in range(A.shape[1]):
-                angle_A[k, l] = np.random.choice([_inf[k,l], _sup[k,l]])
-        tmp = np.linalg.cond(angle_A)
-        cond = tmp if tmp<cond else cond
-
-    return np.sqrt(A.shape[1]) * _max * cond * \
-           (np.linalg.norm(_arg_max, ord=2)/np.sqrt(sum(abs(b)**2)))
-
-
-def Gauss(A, b):
-    """
-    Метод Гаусса для решения ИСЛАУ.
-
-    Parameters:
-                A: Interval
-                    Матрица ИСЛАУ.
-
-                b: Interval
-                    Вектор правой части ИСЛАУ.
-
-    Returns:
-                out: Interval
-                    Возвращается интервальный вектор решений.
-    """
-
-    WorkListA = asinterval(A).copy
-    WorkListb = asinterval(b).copy
-
-    n, _ = WorkListA.shape
-    mignitude = diag(A).mig
-    _abs_A = abs(A)
-    for k in range(n):
-        if mignitude[k] < sum(_abs_A[k]) - _abs_A[k, k]:
-            raise Exception('Матрица А не является H матрицей!')
-
-    r = zeros((n, n))
-    x = zeros(n)
-
-    for j in range(n-1):
-        r[j+1:, j] = WorkListA[j+1:, j]/WorkListA[j, j]
-        WorkListA[j+1:, j+1:] -= r[j+1:, j] * WorkListA[j, j+1:]
-        WorkListb[j+1:] -= r[j+1:, j] * WorkListb[j]
-
-    for i in range(n-1, -1, -1):
-        x[i] = (WorkListb[i] - sum(WorkListA[i, i:] * x[i:])) / WorkListA[i, i]
-
-    return x
-
-
-def Gauss_Seidel(A, b, x0=Interval(-10**3, 10**3), P=True, tol=1e-8, maxiter=10**3):
-    """
-    Итерационный метод Гаусса-Зейделя для решения ИСЛАУ.
-
-    Parameters:
-                A: Interval
-                    Матрица ИСЛАУ.
-
-                b: Interval
-                    Вектор правой части ИСЛАУ.
-
-    Optional Parameters:
-                x0: Interval
-                    Начальный брус, в котором ищется решение.
-
-                P: Interval
-                    Матрица предобуславливания.
-                    В случае, если параметр не задан, то берётся обратное среднее.
-
                 tol: float
                     Погрешность для остановки итерационного процесса.
 
@@ -117,49 +31,6 @@ def Gauss_Seidel(A, b, x0=Interval(-10**3, 10**3), P=True, tol=1e-8, maxiter=10*
                     Возвращается интервальный вектор решений.
     """
 
-    A = asinterval(A).copy
-    b = asinterval(b).copy
-
-    if A.shape == () or A.shape == (1, 1):
-        if 0 in A:
-            raise Exception('Диагональный элемент матрицы содержит нуль!')
-        return b/A
-
-    if P:
-        P = np.linalg.inv(A.mid)
-        A = P @ A
-        b = P @ b
-
-    n, _ = A.shape
-    mignitude = diag(A).mig
-    _abs_A = abs(A)
-    for k in range(n):
-        if mignitude[k] < sum(_abs_A[k]) - _abs_A[k, k]:
-            raise Exception('Матрица А не является H матрицей!')
-
-    error = float("inf")
-    result = zeros(n)
-    pre_result = zeros(n) + x0
-
-    nit = 0
-    while error >= tol and nit <= maxiter:
-        for k in range(n):
-            tmp = 0
-            for l in range(n):
-                if l != k:
-                    tmp += A[k, l] * pre_result[l]
-            result[k] = intersection(pre_result[k], (b[k]-tmp)/A[k, k])
-
-            if float('-inf') in result[k]:
-                raise Exception("Интервалы не пересекаются!")
-
-        error = dist(result, pre_result)
-        pre_result = result.copy
-        nit += 1
-    return result
-
-
-def overdetermined(A, b, tol=1e-8, maxiter=10**3):
     n, m = A.shape
     assert m <= n, 'Количество строк должно быть не меньше, чем количество столбцов!'
 
@@ -249,33 +120,6 @@ def PSS(A, b, V=None, tol=1e-12, maxiter=10**3):
         else:
             raise Exception('Деление не определено!')
 
-    # def kdiv(a, b):
-    #     """
-    #     Деление в арифметике Кахана.
-    #     """
-    #
-    #     if 0 in a:
-    #         return Interval(float('-inf'), float('inf'), sortQ=False)
-    #
-    #     elif a.b<0:
-    #         if not b.a:
-    #             return Interval(float('-inf'), a.b/b.b, sortQ=False)
-    #         elif not b.b:
-    #             return Interval(a.b/b.a, float('inf'), sortQ=False)
-    #         else:
-    #             return Interval([float('-inf'), a.b/b.a],
-    #                             [a.b/b.b, float('inf')], sortQ=False)
-    #     elif 0<a.a:
-    #         if not b.a:
-    #             return Interval(a.a/b.b, float('inf'), sortQ=False)
-    #         elif not b.b:
-    #             return Interval(float('-inf'), a.a/b.a, sortQ=False)
-    #         else:
-    #             return Interval([float('-inf'), a.a/b.b],
-    #                             [a.a/b.a, float('inf')], sortQ=False)
-    #     else:
-    #         raise Exception('Деление не определено!')
-
 
     def Omega(bAr, nu, Anu, index_classic_div, index_kahan_div, num_func):
         div = bAr[index_classic_div]/Anu[index_classic_div]
@@ -354,15 +198,8 @@ def PSS(A, b, V=None, tol=1e-12, maxiter=10**3):
 
         return -L[0][1] if endint == -1 else L[0][1]
 
-    inf=[]
-    sup=[]
-    for endint in [1, -1]:
-        # for nu in range(A.shape[1]):
-        #     if endint==1:
-        #         inf.append(algo(nu))
-        #     else:
-        #         sup.append(algo(nu))
 
+    for endint in [1, -1]:
         res = Parallel(n_jobs=-1)(delayed(algo)(nu) for nu in range(A.shape[1]))
         if endint == -1:
             sup = res

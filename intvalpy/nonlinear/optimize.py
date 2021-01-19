@@ -1,8 +1,7 @@
 from bisect import bisect_left
 import numpy as np
-from copy import deepcopy
 
-from .MyClass import Interval
+from intvalpy.MyClass import Interval
 
 
 class KeyWrapper:
@@ -18,15 +17,15 @@ class KeyWrapper:
 
 
 def globopt(func, x0, tol=1e-12, maxiter=10**3):
-    Y = deepcopy(x0)
+    Y = x0.copy
     y = func(Y).a
     L = [(Y, y)]
 
     nit = 0
     while func(Y).wid >= tol and nit <= maxiter:
         l = np.argmax(Y.wid)
-        Y1 = deepcopy(L[0][0])
-        Y2 = deepcopy(L[0][0])
+        Y1 = L[0][0].copy
+        Y2 = L[0][0].copy
         Y1[l], Y2[l] = Interval(Y[l].a, Y[l].mid, sortQ=False), Interval(Y[l].mid, Y[l].b, sortQ=False)
 
         v1, v2 = func(Y1).a, func(Y2).a
