@@ -18,7 +18,6 @@ INSTALL_REQUIRES = [
 setup(
     name='intvalpy',
     version='1.4.6',
-<<<<<<< HEAD
     description='Interval library in Python using classical interval ' + \
                 'arithmetic + Kahan division in some functions',
     long_description=README,
@@ -29,9 +28,6 @@ setup(
         'inequality visualization',
         'optimal solutions'
     ],
-=======
-    description='Interval library in Python',
->>>>>>> 9c702db78dead9612ff7b18dac2f1ae9b8ba2ac2
     author='Андросов Артем Станиславович, Шарый Сергей Петрович',
     author_email='artem.androsov@gmail.com, shary@ict.nsc.ru',
     url='https://github.com/AndrosovAS/intvalpy',
