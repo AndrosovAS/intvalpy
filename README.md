@@ -44,7 +44,7 @@ b2 = -np.array([18,16,18,18,16,18,18,16,18,18,16,18])
 
 vertices = ip.lineqs(A2, b2, color='blue', alpha=0.2, size=(12,12))
 ```
-![alt text](examples/SolSet.png "Solution Set")
+![SolSet](https://raw.githubusercontent.com/AndrosovAS/intvalpy/master/examples/SolSet.png)
 
 ### Интервальная система линейных алгебраических уравнений:
 
