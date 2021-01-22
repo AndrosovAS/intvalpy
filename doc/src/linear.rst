@@ -420,7 +420,7 @@ Returns:
 >>> A[:, 1] -= data
 >>> b = t * (data - 1)
 >>>
->>> ip.linear.Gauss_Seidel(A, b, P=False)
+>>> ip.linear.Rohn(A, b)
 interval(['[-396.621157, 575.293503]', '[-418.434473, 687.961243]'])
 
 
