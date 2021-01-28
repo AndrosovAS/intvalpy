@@ -64,8 +64,6 @@ def BoundaryIntervals(A, b):
                     if np.dot(A[k], A[i]) > 0:
                         si = False
                         break
-                    else:
-                        raise Exception('В системе есть пара противоречивых неравенств!')
 
         if q[0] > q[1]:
             si = False
@@ -320,3 +318,29 @@ def IntLinIncR2(A, b, show=True, title="Solution Set", consistency='uni', \
         fig.savefig(title + ".png")
 
     return vertices
+
+
+def ChangeVariable(A, b, k):
+
+    y1 = np.zeros(3)
+    xi = (A[k] * b[k]) / (A[k] @ A[k])
+
+    v0 = abs(A[k])
+    l = np.argmin(v0)
+    c = v0[l]
+
+    l1 = (l % 3) + 1
+    l2 = (l1 % 3) + 1
+    v0 = A[k, l2]
+    y1[l1], y1[l2] = A[k, l2], -A[k, l1]
+
+    y2 = np.cross(A[k], y1)
+
+    index = np.array([n for n in range(len(A)) if n != k])
+    A, b = A[index], b[index]
+
+
+    At = np.array([A @ y1, A @ y2]).T
+    bt = b - A @ xi
+
+    return xi, At, bt, y1, y2

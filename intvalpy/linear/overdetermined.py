@@ -52,7 +52,7 @@ def Rohn(A, b, tol=1e-8, maxiter=10**3):
 
 
 
-def PSS(A, b, V=None, tol=1e-12, maxiter=10**3):
+def PSS(A, b, tol=1e-12, maxiter=10**3):
     """
     Метод дробления решений для оптимального внешнего оценивания
     объединённого множества решений.
@@ -65,9 +65,6 @@ def PSS(A, b, V=None, tol=1e-12, maxiter=10**3):
                     Вектор правой части ИСЛАУ.
 
     Optional Parameters:
-                V: Interval
-                    Начальный брус, в котором ищется решение.
-
                 tol: float
                     Погрешность для остановки процесса дробления решений.
 
@@ -79,8 +76,10 @@ def PSS(A, b, V=None, tol=1e-12, maxiter=10**3):
                     Возвращается интервальный вектор решений.
     """
 
-    if V is None:
-        V = zeros(A.shape[1]) + Interval(-1e3, 1e3)
+    try:
+        V = Rohn(A, b)
+    except:
+        V = ip.Interval([-1e15]*len(A), [1e15]*len(A), sortQ=False)
 
     class KeyWrapper:
         def __init__(self, iterable, key):
@@ -128,25 +127,31 @@ def PSS(A, b, V=None, tol=1e-12, maxiter=10**3):
         for k in index_kahan_div:
             pdiv.append(kdiv(bAr[k], Anu[k], num_func[k]))
 
-        result = intersection(div[0], V[nu])
+        result = intersection(div[0], (V*endint)[nu])
         for el in div[1:]:
             result = intersection(result, el)
         for el in pdiv:
             result = intersection(result, el)
 
-        if float('-inf') in result._b:
-            return float('inf')
-        elif result.shape == ():
-            return result.a
+        if 2 in num_func:
+            if (float('-inf') == result._b).all():
+                return float('inf')
+            elif (float('-inf') == result._b).any():
+                return np.max(result.a)
+            else:
+                return np.min(result.a)
         else:
-            return min(result.a)
+            if float('-inf') in result._b:
+                return float('inf')
+            else:
+                return result.a
 
 
     def algo(nu):
         WorkListA = A.copy; del(WorkListA[:, nu])
         WorkListb = (b*endint).copy
-        Q = V.copy; del(Q[nu])
-        q = V[nu].a
+        Q = (V*endint).copy; del(Q[nu])
+        q = (V*endint)[nu].a
 
         Anu = A[:, nu]
         index_classic_div = np.where(Anu.a*Anu.b > 0)[0]
@@ -196,10 +201,20 @@ def PSS(A, b, V=None, tol=1e-12, maxiter=10**3):
             Q, q, Ar = L[0]
             nit += 1
 
+        print('nit = ', nit)
         return -L[0][1] if endint == -1 else L[0][1]
 
+    inf = []
+    sup = []
 
     for endint in [1, -1]:
+        # for nu in range(A.shape[1]):
+        #     if endint == -1:
+        #         sup.append(algo(nu))
+        #     else:
+        #         inf.append(algo(nu))
+
+
         res = Parallel(n_jobs=-1)(delayed(algo)(nu) for nu in range(A.shape[1]))
         if endint == -1:
             sup = res
