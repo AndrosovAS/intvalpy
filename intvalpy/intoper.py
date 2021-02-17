@@ -110,7 +110,7 @@ def intersection(A, B):
             else:
                 result[index] = Interval(float('-inf'), float('-inf'), sortQ=False)
 
-    elif wA.shape == ():
+    elif wA.shape == () or wA.shape == (1, ):
         result = zeros(wB.shape)
         for index in itertools.product(*wB.ranges):
             _max = wB[index].a if wA.a < wB[index].a else wA.a
@@ -120,7 +120,7 @@ def intersection(A, B):
             else:
                 result[index] = Interval(float('-inf'), float('-inf'), sortQ=False)
 
-    elif wB.shape == ():
+    elif wB.shape == () or wB.shape == (1, ):
         result = zeros(wA.shape)
         for index in itertools.product(*wA.ranges):
             _max = wB.a if wA[index].a < wB.a else wA[index].a
@@ -200,13 +200,107 @@ def diag(mat):
     return result
 
 
-# @njit(fastmath=True)
-def create_data(shape, distribution='normal'):
-    if distribution is 'normal':
-        rand = lambda shape: np.random.normal(0, 1, shape)
-    elif distribution is 'randint':
-        rand = lambda shape: np.random.randint(-8, 8, shape)
-    else:
-        raise Exception('Неверно задано распределение.')
+def eye(n):
+    A = zeros((n, n))
+    for k in range(n):
+        A[k, k] = Interval(1, 1, sortQ=False)
+    return A
 
-    return Interval(rand(shape), rand(shape))
+
+def Neumeier(n, theta, infb=None, supb=None):
+    b = zeros(n)
+    if infb is None:
+        b._a = -np.ones(n)
+    else:
+        b._a += np.array([infb]*n)
+    if supb is None:
+        b._b = np.ones(n)
+    else:
+        b._b += np.array([supb]*n)
+
+    A = zeros((n,n)) + Interval(0, 2, sortQ=False)
+    for k in range(n):
+        A[k, k] = Interval(theta, theta, sortQ=False)
+
+    return A, b
+
+
+def Shary(n, N=None, alpha=0.23, beta=0.35):
+    if N is None:
+        N = n
+    else:
+        assert N>=n-1, "Параметры заданы неверно!"
+
+    if alpha < 0 or beta < alpha or beta > 1:
+        raise Exception('Параметры заданы неверно!')
+
+    A = zeros((n,n)) + Interval(alpha-1, 1-beta, sortQ=False)
+    b = zeros(n) + Interval(1-n, n-1, sortQ=False)
+
+    for k in range(n):
+        A[k, k] = Interval(n-1, N, sortQ=False)
+
+    return A, b
+
+
+def create_data(x=None, N=3, model=None):
+
+    def T(n, x):
+        if n == 0:
+            return 1
+        elif n == 1:
+            return x
+        else:
+            return 2 * x * T(n-1, x) - T(n-2, x)
+
+    if x is None:
+        x = uniform(-1, 1, 10)
+
+    if model is None:
+        model = lambda x: x ** 2
+
+    b = model(x)
+    A = []
+    for k in range(len(x)):
+        A.append([T(l, x[k]) for l in range(N)])
+    A = asinterval(A)
+
+    return A, b
+
+
+def randint(inf, sup, shape=1):
+    return Interval(np.random.randint(inf, sup, shape), \
+                    np.random.randint(inf, sup, shape))
+
+
+def uniform(inf, sup, shape=1):
+    return Interval(np.random.uniform(inf, sup, shape), \
+                    np.random.uniform(inf, sup, shape))
+
+
+def normal(mu, sigma, shape=1):
+    return Interval(np.random.normal(mu, sigma, shape), \
+                    np.random.normal(mu, sigma, shape))
+
+
+def dot(a, b, aspotQ=False, bspotQ=False):
+    if aspotQ:
+        midb = b.mid
+        radb = b.rad
+
+        tmp1 = np.dot(a, midb)
+        tmp2 = np.dot(abs(a), radb)
+
+        return Interval(tmp1 - tmp2, tmp1 + tmp2, sortQ=False)
+
+    elif bspotQ:
+        mida = a.mid
+        rada = a.rad
+
+        tmp1 = np.dot(mida, b)
+        tmp2 = np.dot(rada, abs(b))
+
+        return Interval(tmp1 - tmp2, tmp1 + tmp2, sortQ=False)
+
+    else:
+        return a @ b

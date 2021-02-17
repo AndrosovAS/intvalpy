@@ -9,15 +9,15 @@ with io.open(readme_file, mode='r', encoding='utf-8') as f:
     README = f.read()
 
 INSTALL_REQUIRES = [
-    'joblib',
     'matplotlib',
     'numpy',
-    'scipy'
+    'scipy',
+    'lpsolvers'
 ]
 
 setup(
     name='intvalpy',
-    version='1.4.6',
+    version='1.4.7',
     description='Interval library in Python using classical interval ' + \
                 'arithmetic + Kahan division in some functions',
     long_description=README,
