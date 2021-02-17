@@ -1,14 +1,14 @@
 import numpy as np
 
 from bisect import bisect_left
-from joblib import Parallel, delayed
+from lpsolvers import solve_lp
 
 from intvalpy.MyClass import Interval
 from intvalpy.intoper import zeros, intersection
 
 
 
-def Rohn(A, b, tol=1e-8, maxiter=10**3):
+def Rohn(A, b, tol=1e-12, maxiter=2000):
     """
     Метод Дж. Рона для переопределённых ИСЛАУ.
 
@@ -52,7 +52,7 @@ def Rohn(A, b, tol=1e-8, maxiter=10**3):
 
 
 
-def PSS(A, b, tol=1e-12, maxiter=10**3):
+def PSS(A, b, tol=1e-12, maxiter=2000):
     """
     Метод дробления решений для оптимального внешнего оценивания
     объединённого множества решений.
@@ -78,8 +78,11 @@ def PSS(A, b, tol=1e-12, maxiter=10**3):
 
     try:
         V = Rohn(A, b)
+        if float('inf') in V:
+            V = Interval([-10**15]*len(A), [10**15]*len(A), sortQ=False)
     except:
-        V = ip.Interval([-1e15]*len(A), [1e15]*len(A), sortQ=False)
+        V = Interval([-10**15]*len(A), [10**15]*len(A), sortQ=False)
+
 
     class KeyWrapper:
         def __init__(self, iterable, key):
@@ -91,7 +94,6 @@ def PSS(A, b, tol=1e-12, maxiter=10**3):
 
         def __len__(self):
             return len(self.it)
-
 
 
     def kdiv(a, b, num_func):
@@ -147,11 +149,64 @@ def PSS(A, b, tol=1e-12, maxiter=10**3):
                 return result.a
 
 
+    n, m = A.shape
+    midA = A.mid
+    radA = A.rad
+
+    A_ub = np.zeros((2*(n+m)+m, m))
+    A_ub[2*(n+m) : ] = -np.eye(m)
+
+    b_ub = np.zeros(2*(n+m)+m)
+    p = np.zeros(2*m)
+
+    def ExactOmega(midA, radA, b, Q):
+        S = np.eye(m) * np.insert(np.sign(Q.a), nu, np.sign(V[nu].a))
+        midAS = midA @ S
+
+        p[:m] = np.insert(-Q.a, nu, 1e15)
+        p[m:] = np.insert(Q.b, nu, 1e15)
+
+        c = np.zeros(m, dtype='float64')
+        c[nu] = S[nu, nu]
+
+        A_ub[ : n] = midAS - radA
+        A_ub[n : 2*n] = -midAS - radA
+        A_ub[2*n : 2*n+m] = -S
+        A_ub[2*n+m : 2*(n+m)] = S
+
+        b_ub[ : n] = b.b
+        b_ub[n : 2*n] = -b.a
+        b_ub[2*n : 2*(n+m)] = p
+
+        try:
+            result = solve_lp(c, A_ub, b_ub)
+            return result @ c
+        except:
+            pass
+
+        S[nu, nu] = np.sign(V[nu].b)
+        midAS = midA @ S
+
+        c[nu] = S[nu, nu]
+        A_ub[ : n] = midAS - radA
+        A_ub[n : 2*n] = -midAS - radA
+        A_ub[2*n : 2*n+m] = -S
+        A_ub[2*n+m : 2*(n+m)] = S
+
+        try:
+            result = solve_lp(c, A_ub, b_ub)
+            return result @ c
+        except:
+            return 10**15
+
+
     def algo(nu):
         WorkListA = A.copy; del(WorkListA[:, nu])
         WorkListb = (b*endint).copy
         Q = (V*endint).copy; del(Q[nu])
+
         q = (V*endint)[nu].a
+        omega = (V*endint)[nu].b
 
         Anu = A[:, nu]
         index_classic_div = np.where(Anu.a*Anu.b > 0)[0]
@@ -169,56 +224,107 @@ def PSS(A, b, tol=1e-12, maxiter=10**3):
         L = [(Q, q)]
         Ar = WorkListA @ Q
 
+        item = 0
         nit = 0
         while np.amax(Q.wid) >= tol and nit <= maxiter:
             k = np.argmax(Q.wid)
-            Q1 = L[0][0].copy
-            Q2 = L[0][0].copy
-            Q1[k], Q2[k] = Interval(Q[k].a, Q[k].mid, sortQ=False), Interval(Q[k].mid, Q[k].b, sortQ=False)
+            Q1 = L[item][0].copy
+            Q2 = L[item][0].copy
 
-            QA = Q[k] * WorkListA[:, k]
-            Ar._a -= QA._a
-            Ar._b -= QA._b
+            if -2 < Q[k].b / (Q[k].a + 1e15) < -1/2:
+                Q1[k], Q2[k] = Interval(Q[k].a, 0, sortQ=False), Interval(0, Q[k].b, sortQ=False)
+            else:
+                Q1[k], Q2[k] = Interval(Q[k].a, Q[k].mid, sortQ=False), Interval(Q[k].mid, Q[k].b, sortQ=False)
 
-            Ar1 = Ar + Q1[k] * WorkListA[:, k]
-            bAr = WorkListb - Ar1
-            q1 = Omega(bAr, nu, Anu, index_classic_div, index_kahan_div, num_func)
+            del L[item]
 
-            Ar2 = Ar + Q2[k] * WorkListA[:, k]
-            bAr = WorkListb - Ar2
-            q2 = Omega(bAr, nu, Anu, index_classic_div, index_kahan_div, num_func)
+            matmul = True
+            if 0 in Q1:
+                QA = Q[k] * WorkListA[:, k]
+                Ar._a -= QA._a
+                Ar._b -= QA._b
+                matmul = False
 
-            del L[0]
+                Ar1 = Ar + Q1[k] * WorkListA[:, k]
+                bAr = WorkListb - Ar1
+                q1 = Omega(bAr, nu, Anu, index_classic_div, index_kahan_div, num_func)
 
-            newcol = (Q1, q1, Ar1)
-            bslindex = bisect_left(KeyWrapper(L, key=lambda c: c[1]), newcol[1])
-            L.insert(bslindex, newcol)
+                if q1 < omega:
+                    newcol = (Q1, q1, Ar1)
+                    bslindex = bisect_left(KeyWrapper(L, key=lambda c: c[1]), newcol[1])
+                    L.insert(bslindex, newcol)
+                    eta1 = float('inf')
+                else:
+                    eta1 = float('inf')
+            else:
+                q1 = ExactOmega(midA*endint, radA, b, Q1)
 
-            newcol = (Q2, q2, Ar2)
-            bslindex = bisect_left(KeyWrapper(L, key=lambda c: c[1]), newcol[1])
-            L.insert(bslindex, newcol)
+                if q1 < omega:
+                    newcol = (Q1, q1)
+                    bslindex = bisect_left(KeyWrapper(L, key=lambda c: c[1]), newcol[1])
+                    L.insert(bslindex, newcol)
+                    eta1 = q1
+                else:
+                    eta1 = float('inf')
 
-            Q, q, Ar = L[0]
+
+            if 0 in Q2:
+                if matmul:
+                    QA = Q[k] * WorkListA[:, k]
+                    Ar._a -= QA._a
+                    Ar._b -= QA._b
+
+                Ar2 = Ar + Q2[k] * WorkListA[:, k]
+                bAr = WorkListb - Ar2
+                q2 = Omega(bAr, nu, Anu, index_classic_div, index_kahan_div, num_func)
+
+                if q2 < omega:
+                    newcol = (Q2, q2, Ar2)
+                    bslindex = bisect_left(KeyWrapper(L, key=lambda c: c[1]), newcol[1])
+                    L.insert(bslindex, newcol)
+                    eta2 = float('inf')
+                else:
+                    eta2 = float('inf')
+            else:
+                q2 = ExactOmega(midA*endint, radA, b, Q2)
+
+                if q2 < omega:
+                    newcol = (Q2, q2)
+                    bslindex = bisect_left(KeyWrapper(L, key=lambda c: c[1]), newcol[1])
+                    L.insert(bslindex, newcol)
+                    eta2 = q2
+                else:
+                    eta2 = float('inf')
+
+
+            eta = eta1 if eta1 <= eta2 else eta2
+            if omega > eta:
+                omega = eta
+                L = [l for l in L if l[1]<=omega]
+
+            item=0
+            while True:
+                try:
+                    Q, q, Ar = L[item]
+                    break
+                except IndexError:
+                    return -L[0][1] if endint == -1 else L[0][1]
+                except:
+                    item += 1
+
             nit += 1
 
-        print('nit = ', nit)
+        # print('nit = ', nit)
         return -L[0][1] if endint == -1 else L[0][1]
+
 
     inf = []
     sup = []
-
     for endint in [1, -1]:
-        # for nu in range(A.shape[1]):
-        #     if endint == -1:
-        #         sup.append(algo(nu))
-        #     else:
-        #         inf.append(algo(nu))
-
-
-        res = Parallel(n_jobs=-1)(delayed(algo)(nu) for nu in range(A.shape[1]))
-        if endint == -1:
-            sup = res
-        else:
-            inf = res
+        for nu in range(A.shape[1]):
+            if endint == -1:
+                sup.append(algo(nu))
+            else:
+                inf.append(algo(nu))
 
     return Interval(inf, sup, sortQ=False)
