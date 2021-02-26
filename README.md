@@ -63,7 +63,7 @@ ip.PSS(A, b)
 
 ### Interval system of nonlinear equations:
 
-This library also implements a multivariate interval Kravchik and Hansen-Sengupta methods for solving nonlinear systems:
+This library also implements a multivariate interval Krawczyk and Hansen-Sengupta methods for solving nonlinear systems:
 
 ```python
 import intvalpy as ip
