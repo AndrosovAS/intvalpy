@@ -1,10 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 from intvalpy.MyClass import Interval
 
 
-def non_repeat(a, decimals=12):
+def Unique(a, decimals=12):
     """
     Функция возвращает матрицу А с различными строками.
     """
@@ -17,25 +18,125 @@ def non_repeat(a, decimals=12):
     return a[index]
 
 
-def clear_zero_rows(a, b, decimals=12):
-    """
-    Функция возвращает матрицу А без строк равных нуль, а также вектор b
-    соответствующий этим строкам.
+# def clear_zero_rows(a, b, decimals=12):
+#     """
+#     Функция возвращает матрицу А без строк равных нуль, а также вектор b
+#     соответствующий этим строкам.
+#
+#
+#     В случае если система заведома несовместна (строка матрицы нулевая, но
+#     при этом компонента вектора правой части, соответствующей данной строке,
+#     не нулевая), то возвращается ошибка.
+#     """
+#
+#     a, b = np.ascontiguousarray(a), np.ascontiguousarray(b)
+#     a, b = np.around(a, decimals = int(decimals)), np.around(b, decimals = int(decimals+4))
+#
+#     if np.sum((np.sum(a==0, axis=1)==2) & (b!=0))>0:
+#         raise Exception('Система несовместна!')
+#     else:
+#         index = np.where(np.sum(a==0, axis=1)!=2)
+#         return a[index], b[index]
+#
+#
+# def BoundaryIntervals(A, b):
+#     m, n = A.shape
+#     S = []
+#
+#     for i in range(m):
+#         q = [float('-inf'), float('inf')]
+#         si = True
+#         dotx = (A[i]*b[i])/np.dot(A[i], A[i])
+#
+#         p = np.array([-A[i,1], A[i,0]])
+#
+#         for k in range(m):
+#             if k==i:
+#                 continue
+#             Akx = np.dot(A[k], dotx)
+#             c = np.dot(A[k], p)
+#
+#             if np.sign(c) == -1:
+#                 q[1] = min(q[1], (b[k]-Akx)/c)
+#             elif np.sign(c) == 1:
+#                 q[0] = max(q[0], (b[k]-Akx)/c)
+#             else:
+#                 if Akx < b[k]:
+#                     if np.dot(A[k], A[i]) > 0:
+#                         si = False
+#                         break
+#
+#         if q[0] > q[1]:
+#             si = False
+#
+#         # избавление от неопределённости inf * 0
+#         p = p + 1e-301
+#         if si:
+#             S.append(list(dotx+p*q[0]) + list(dotx+p*q[1]) + [i])
+#
+#     return np.array(S)
+#
+#
+# def ParticularPoints(S, A, b):
+#     PP = []
+#     V = S[:,:2]
+#
+#     binf = ~((abs(V[:, 0]) < float("inf")) & (abs(V[:, 1]) < float("inf")))
+#
+#     if len(V[binf]) != 0:
+#         nV = 1
+#         for k in S[:, 4]:
+#             k = int(k)
+#             PP.append((A[k]*b[k])/np.dot(A[k], A[k]))
+#     else:
+#         nV = 0
+#         PP = V
+#
+#     return PP, nV, binf
+#
+#
+# def Intervals2Path(S):
+#     bp = np.array([S[0, 0], S[0, 1]])
+#     P = [bp]
+#     bs = bp
+#
+#     while len(S) > 0:
+#         for k in range(len(S)):
+#             if max(abs(bs - np.array([S[k, 0], S[k, 1]]))) < 1e-8:
+#                 i=k
+#                 break
+#
+#         es = np.array([S[i, 2], S[i, 3]])
+#
+#         if max(abs(bs-es)) > 1e-8:
+#             P.append(es)
+#
+#             if max(abs(bs-es)) < 1e-8:
+#                 return np.array(P)
+#             bs = es
+#         S = np.delete(S, i, axis=0)
+#     return np.array(P)
+
+def non_repeat(a, b):
+    a = np.copy(np.ascontiguousarray(a))
+    a = np.around(a, decimals = 15)
+    a1 = (a.T - b).T
+    _, index = np.unique(a1.view([('', a1.dtype)]*a1.shape[1]), return_index=True)
+    index = sorted(index)
+
+    return a[index], b[index]
 
 
-    В случае если система заведома несовместна (строка матрицы нулевая, но
-    при этом компонента вектора правой части, соответствующей данной строке,
-    не нулевая), то возвращается ошибка.
-    """
-
+def clear_zero_rows(a, b, ndim=2):
     a, b = np.ascontiguousarray(a), np.ascontiguousarray(b)
-    a, b = np.around(a, decimals = int(decimals)), np.around(b, decimals = int(decimals+4))
+    a, b = np.around(a, decimals = 15), np.around(b, decimals = 15)
 
-    if np.sum((np.sum(a==0, axis=1)==2) & (b!=0))>0:
-        raise Exception('Система несовместна!')
-    else:
-        index = np.where(np.sum(a==0, axis=1)!=2)
-        return a[index], b[index]
+    cnmty = True
+    if np.sum((np.sum(abs(a)<=1e-15, axis=1)==ndim) & (b > 0))>0:
+        cnmty = False
+
+    index = np.where(np.sum(abs(a)<=1e-15, axis=1)!=ndim)
+    return a[index], b[index], cnmty
 
 
 def BoundaryIntervals(A, b):
@@ -56,14 +157,18 @@ def BoundaryIntervals(A, b):
             c = np.dot(A[k], p)
 
             if np.sign(c) == -1:
-                q[1] = min(q[1], (b[k]-Akx)/c)
+                tmp = (b[k] - Akx) / c
+                q[1] = q[1] if q[1] <= tmp else tmp
             elif np.sign(c) == 1:
-                q[0] = max(q[0], (b[k]-Akx)/c)
+                tmp = (b[k] - Akx) / c
+                q[0] = q[0] if tmp < q[0] else tmp
             else:
                 if Akx < b[k]:
                     if np.dot(A[k], A[i]) > 0:
                         si = False
                         break
+                    else:
+                        return []
 
         if q[0] > q[1]:
             si = False
@@ -91,30 +196,49 @@ def ParticularPoints(S, A, b):
         nV = 0
         PP = V
 
-    return PP, nV, binf
+    return np.array(PP), nV, binf
 
 
 def Intervals2Path(S):
-    bp = np.array([S[0, 0], S[0, 1]])
+    bs, bp = S[0, :2], S[0, :2]
     P = [bp]
-    bs = bp
 
     while len(S) > 0:
         for k in range(len(S)):
-            if max(abs(bs - np.array([S[k, 0], S[k, 1]]))) < 1e-8:
-                i=k
+            if np.max(np.abs(bs - S[k, :2])) < 1e-8:
+                index=k
                 break
+        es = S[index, 2:4]
 
-        es = np.array([S[i, 2], S[i, 3]])
-
-        if max(abs(bs-es)) > 1e-8:
+        if np.max(np.abs(bs-es)) > 1e-8:
             P.append(es)
 
-            if max(abs(bs-es)) < 1e-8:
+            if np.max(np.abs(bp-es)) < 1e-8:
                 return np.array(P)
             bs = es
-        S = np.delete(S, i, axis=0)
+        S = np.delete(S, index, axis=0)
     return np.array(P)
+
+
+def ChangeVariable(A, b, k):
+    y1 = np.zeros(3)
+    xi = (A[k] * b[k]) / (A[k] @ A[k])
+
+    l = np.argmin(np.abs(A[k]))
+    l1 = ((l + 1) % 3)
+    l2 = ((l1 + 1) % 3)
+
+    v0 = A[k, l2]
+    y1[l1], y1[l2] = A[k, l2], -A[k, l1]
+    y2 = np.cross(A[k], y1)
+
+    index = np.array([l for l in range(len(A)) if l != k])
+    A, b = A[index], b[index]
+
+    At = np.array([A @ y1, A @ y2]).T
+    bt = b - A @ xi
+
+    return xi, At, bt, y1, y2
 
 
 __center_rm = []
@@ -170,7 +294,7 @@ def lineqs(A, b, show=True, title="Solution Set", color='gray', \
     assert m<=2, "В матрице A должно быть два столбца!"
     assert b.shape[0]==n, "Матрица A и правая часть b должны иметь одинаковое число строк!"
 
-    A, b = clear_zero_rows(A, b)
+    A, b, cnmty = clear_zero_rows(A, b)
 
     S = BoundaryIntervals(A, b)
     if len(S)==0:
@@ -206,7 +330,7 @@ def lineqs(A, b, show=True, title="Solution Set", color='gray', \
 
     if save:
         fig.savefig(title + ".png")
-    return non_repeat(vertices)
+    return Unique(vertices)
 
 
 def IntLinIncR2(A, b, show=True, title="Solution Set", consistency='uni', \
@@ -320,27 +444,200 @@ def IntLinIncR2(A, b, show=True, title="Solution Set", consistency='uni', \
     return vertices
 
 
-def ChangeVariable(A, b, k):
+def lineqs3D(A, b, show=True, color='C0', alpha=0.5, s=10, size=(8,8)):
 
-    y1 = np.zeros(3)
-    xi = (A[k] * b[k]) / (A[k] @ A[k])
+    A = np.asarray(A)
+    b = np.asarray(b)
 
-    v0 = abs(A[k])
-    l = np.argmin(v0)
-    c = v0[l]
+    A, b, cnmty = clear_zero_rows(A, b, ndim=3)
+    A, b = non_repeat(A, b)
 
-    l1 = (l % 3) + 1
-    l2 = (l1 % 3) + 1
-    v0 = A[k, l2]
-    y1[l1], y1[l2] = A[k, l2], -A[k, l1]
+    n, m = A.shape
+    assert m == 3, "В матрице A должно быть три столбца!"
+    assert b.shape[0]==n, "Матрица A и правая часть b должны иметь одинаковое число строк!"
 
-    y2 = np.cross(A[k], y1)
+    V = []
+    PP = []
+    cfinite = True;
 
-    index = np.array([n for n in range(len(A)) if n != k])
-    A, b = A[index], b[index]
+    for k in range(n):
+        xi, At, bt, y1, y2 = ChangeVariable(A, b, k)
+        At, bt, cnmtyt = clear_zero_rows(At, bt)
+
+        if not cnmtyt:
+            continue
+
+        if len(bt) == 0:
+            PP.append(xi)
+            cfinite = False
+            continue
+
+        St = BoundaryIntervals(At, bt)
+        if len(St) == 0:
+            continue
+
+        PPt, nV, binf = ParticularPoints(St, At, bt)
+
+        PPtt = []
+        for l in range(len(PPt)):
+            PPtt.append((xi + y1*PPt[l,0]) + y2*PPt[l,1])
+
+        PP.append(PPtt)
+
+        if (np.asarray([binf])==True).any():
+            cfinite = False
+        if not nV:
+            V.append(PPtt)
+
+    if len(PP) == 0:
+        raise Exception('Система несовместна - множество решений пусто')
 
 
-    At = np.array([A @ y1, A @ y2]).T
-    bt = b - A @ xi
+    if not cfinite:
+        x, y, z = [], [], []
+        for pp in PP:
+            for el in pp:
+                x.append(el[0])
+                y.append(el[1])
+                z.append(el[2])
 
-    return xi, At, bt, y1, y2
+        x = np.array(x)
+        y = np.array(y)
+        z = np.array(z)
+
+        xmin, ymin, zmin = np.min(x), np.min(y), np.min(z)
+        xmax, ymax, zmax = np.max(x), np.max(y), np.max(z)
+
+        center = np.array([0, 0, 0]) + (x + y + z).mean()
+        rm = (xmax-xmin) + (ymax-ymin) + (zmax-zmin)
+
+        if rm == 0:
+            rm = rm + 1
+
+        A = np.append(np.append(A, np.eye(3)), -np.eye(3)).reshape((len(A)+6,3))
+        b = np.append(np.append(b, center-rm), -(center+rm))
+
+
+    vertices = []
+    mn = len(b)
+    for i in range(mn):
+        xi, At, bt, y1, y2 = ChangeVariable(A, b, i)
+        At, bt, cnmtyt = clear_zero_rows(At, bt)
+
+        if not cnmtyt:
+            continue
+
+        St = BoundaryIntervals(At, bt)
+        if len(St) > 0:
+            Pt = Intervals2Path(St)
+            P = []
+            for l in range(len(Pt)):
+                P.append((xi + y1*Pt[l,0]) + y2*Pt[l,1])
+
+            P = np.array(P)
+            vertices.append(P)
+
+
+    if show:
+        fig = plt.figure(figsize=size)
+        ax = fig.add_subplot(111, projection='3d')
+    #     ax.grid(False)
+
+        l = 0
+        sccolor = 'black'
+        for v in vertices:
+            if l >= n:
+                color = 'red'
+#                 sccolor = 'greenyellow'
+
+            x, y, z = v[:,0], v[:,1], v[:,2]
+
+            poly3d = [list(zip(x, y, z))]
+            PC = Poly3DCollection(poly3d, linewidths=1)
+            PC.set_alpha(alpha)
+            PC.set_facecolor(color)
+            ax.add_collection3d(PC)
+
+            ax.plot(x, y, z, color='gray', alpha=1)
+            ax.scatter(x, y, z, s=s, color=sccolor)
+            l += 1
+
+    return vertices
+
+
+def IntLinIncR3(A, b, show=True, consistency='uni', color='C0', alpha=0.5, s=10, size=(8, 8)):
+
+    if not isinstance(A, Interval):
+        return lineqs3D(A, b, show=False, color=color, \
+                        alpha=alpha, s=s, size=size)
+
+    ortant = [(1, 1, 1), (-1, 1, 1), (-1, -1, 1), (1, -1, 1), \
+              (1, 1, -1), (-1, 1, -1), (-1, -1, -1), (1, -1, -1)]
+    vertices = []
+    n, m = A.shape
+
+    assert m<=3, "В матрице A должно быть два столбца!"
+    assert b.shape[0]==n, "Матрица A и правая часть b должны иметь одинаковое число строк!"
+
+    for ort in range(8):
+        tmp = A.copy
+        WorkListA = np.zeros((2*n+m, m))
+        WorkListb = np.zeros(2*n+m)
+
+        for k in range(m):
+            if ortant[ort][k] == -1:
+                tmp[:, k] = tmp[:, k].invbar
+            WorkListA[2*n+k, k] = -ortant[ort][k]
+
+        if consistency == 'uni':
+            WorkListA[:n], WorkListA[n:2*n] = tmp.a, -tmp.b
+            WorkListb[:n], WorkListb[n:2*n] = b.b, -b.a
+        elif consistency == 'tol':
+            WorkListA[:n], WorkListA[n:2*n] = -tmp.a, tmp.b
+            WorkListb[:n], WorkListb[n:2*n] = -b.a, b.b
+        else:
+            msg = "Неверно указан тип согласования системы! Используйте 'uni' или 'tol'."
+            raise Exception(msg)
+
+        vertices.append(lineqs3D(-WorkListA, -WorkListb, show=False, color=color, \
+                                 alpha=alpha, s=s, size=size))
+
+    if show:
+        fig = plt.figure(figsize=size)
+        ax = fig.add_subplot(111, projection='3d')
+    #     ax.grid(False)
+
+        color1 = color
+        for el in vertices:
+            first = 0
+
+            color = color1
+            l = 0
+            sccolor = 'black'
+            for v in el:
+                x, y, z = v[:,0], v[:,1], v[:,2]
+
+                if l >= n:
+                    color = 'red'
+    #                 sccolor = 'greenyellow'
+
+                xmin, ymin, zmin = np.min(x), np.min(y), np.min(z)
+                if not (xmin and ymin and zmin):
+                    if first < 3:
+                        color = color1
+                        first += 1
+                    else:
+                        continue
+
+                poly3d = [list(zip(x, y, z))]
+                PC = Poly3DCollection(poly3d, linewidths=1)
+                PC.set_alpha(alpha)
+                PC.set_facecolor(color)
+                ax.add_collection3d(PC)
+
+                ax.plot(x, y, z, color='black', alpha=1)
+                ax.scatter(x, y, z, s=s, color=sccolor)
+                l += 1
+
+
+    return vertices

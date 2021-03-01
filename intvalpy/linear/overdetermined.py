@@ -7,7 +7,6 @@ from intvalpy.MyClass import Interval
 from intvalpy.intoper import zeros, intersection
 
 
-
 def Rohn(A, b, tol=1e-12, maxiter=2000):
     """
     Метод Дж. Рона для переопределённых ИСЛАУ.
@@ -30,6 +29,9 @@ def Rohn(A, b, tol=1e-12, maxiter=2000):
                 out: Interval
                     Возвращается интервальный вектор решений.
     """
+    Ac_plus = np.linalg.inv(A.mid.T @ A.mid) @ A.mid.T
+    A = Ac_plus @ A.copy
+    b = Ac_plus @ b.copy
 
     n, m = A.shape
     assert m <= n, 'Количество строк должно быть не меньше, чем количество столбцов!'
@@ -78,11 +80,10 @@ def PSS(A, b, tol=1e-12, maxiter=2000):
 
     try:
         V = Rohn(A, b)
-        if float('inf') in V:
-            V = Interval([-10**15]*len(A), [10**15]*len(A), sortQ=False)
+        if 10**15 < max(abs(V)):
+            V = Interval([-10**15]*len(A[0]), [10**15]*len(A[0]), sortQ=False)
     except:
-        V = Interval([-10**15]*len(A), [10**15]*len(A), sortQ=False)
-
+        V = Interval([-10**15]*len(A[0]), [10**15]*len(A[0]), sortQ=False)
 
     class KeyWrapper:
         def __init__(self, iterable, key):
@@ -231,8 +232,11 @@ def PSS(A, b, tol=1e-12, maxiter=2000):
             Q1 = L[item][0].copy
             Q2 = L[item][0].copy
 
-            if -2 < Q[k].b / (Q[k].a + 1e15) < -1/2:
-                Q1[k], Q2[k] = Interval(Q[k].a, 0, sortQ=False), Interval(0, Q[k].b, sortQ=False)
+            if Q[k].a:
+                if -2 < Q[k].b / Q[k].a < -1/2:
+                    Q1[k], Q2[k] = Interval(Q[k].a, 0, sortQ=False), Interval(0, Q[k].b, sortQ=False)
+                else:
+                    Q1[k], Q2[k] = Interval(Q[k].a, Q[k].mid, sortQ=False), Interval(Q[k].mid, Q[k].b, sortQ=False)
             else:
                 Q1[k], Q2[k] = Interval(Q[k].a, Q[k].mid, sortQ=False), Interval(Q[k].mid, Q[k].b, sortQ=False)
 
@@ -314,7 +318,7 @@ def PSS(A, b, tol=1e-12, maxiter=2000):
 
             nit += 1
 
-        # print('nit = ', nit)
+        print('nit = ', nit)
         return -L[0][1] if endint == -1 else L[0][1]
 
 
