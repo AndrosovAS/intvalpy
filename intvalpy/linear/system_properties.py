@@ -5,6 +5,120 @@ from intvalpy.MyClass import Interval
 from intvalpy.intoper import zeros
 
 
+def __tolsolvty(infA, supA, infb, supb, weight=None, \
+                tol_f=1e-12, tol_x=1e-12, tol_g=1e-12, maxiter=2000):
+
+    nsims = 30
+    alpha = 2.3
+    hs = 1
+    nh = 3
+    q1 = 0.9
+    q2 = 1.1
+
+    m, n = infA.shape
+    if weight is None:
+        weight = np.ones(m)
+
+    Ac = 0.5 * (infA + supA)
+    Ar = 0.5 * (supA - infA)
+    bc = 0.5 * (infb + supb)
+    br = 0.5 * (supb - infb)
+
+    sv = np.linalg.svd(Ac, compute_uv=False)
+    minsv, maxsv = min(sv), max(sv)
+
+    def calcfg(x):
+        index = x >= 0
+
+        Ac_x = Ac @ x
+        Ar_absx = Ar @ np.abs(x)
+        infs = bc - (Ac_x + Ar_absx)
+        sups = bc - (Ac_x - Ar_absx)
+
+        tt = weight * (br - np.maximum(np.abs(infs), np.abs(sups)))
+        mc = np.argmin(tt)
+
+        if -infs[mc] <= sups[mc]:
+            dd = weight[mc] * (infA[mc] * index + supA[mc] * (~index))
+        else:
+            dd = -weight[mc] * (supA[mc] * index + infA[mc] * (~index))
+
+        return tt[mc], dd
+
+    if (minsv != 0 and maxsv/minsv < 1e15):
+        x = np.linalg.lstsq(Ac, bc, rcond=-1)[0]
+    else:
+        x = np.zeros(n)
+
+    B = np.eye(n)
+    vf = np.zeros(nsims) + float('inf')
+    w = 1./alpha - 1
+
+    f, g0 = calcfg(x)
+    ff = f ;  xx = x;
+    cal = 1;  ncals = 1;
+
+    for nit in range(int(maxiter)):
+        vf[nsims-1] = ff
+        if np.linalg.norm(g0) < tol_g:
+            ccode = True
+            break
+
+        g1 = B.T @ g0
+        g = B @ (g1/np.linalg.norm(g1))
+        normg = np.linalg.norm(g)
+
+        r = 1
+        cal = 0
+        deltax = 0
+
+        while r > 0 and cal <= 500:
+            cal += 1
+            x = x + hs * g
+            deltax = deltax + hs * normg
+            f, g1 = calcfg(x)
+
+            if f > ff:
+                ff = f
+                xx = x
+
+            if np.mod(cal, nh) == 0:
+                hs = hs * q2
+            r = g @ g1
+
+        if cal > 500:
+            ccode = False
+            break
+
+        if cal == 1:
+            hs = hs * q1
+
+        ncals = ncals + cal
+        if deltax < tol_x:
+            ccode = True
+            break
+
+        dg = B.T @ (g1 - g0)
+        xi = dg / np.linalg.norm(dg)
+        B = B + w * np.outer((B @ xi), xi)
+        g0 = g1
+
+        vf = np.roll(vf, 1)
+        vf[0] = abs(ff - vf[0])
+
+        if abs(ff) > 1:
+            deltaf = np.sum(vf)/abs(ff)
+        else:
+            deltaf = np.sum(vf)
+
+        if deltaf < tol_f:
+            ccode = True
+            break
+        ccode = False
+
+    return ccode, xx, ff
+
+
 def Uni(A, b, x=None, maxQ=False, x0=None, tol=1e-12, maxiter=1e3):
     """
     Вычисление распознающего функционала Uni.
@@ -44,7 +158,15 @@ def Uni(A, b, x=None, maxQ=False, x0=None, tol=1e-12, maxiter=1e3):
                     третий элемент -- значение функции в этой точке.
     """
 
-    __uni = lambda x: min(b.rad - (b.mid - A @ x).mig)
+    midA = A.mid
+    radA = A.rad
+    br = b.rad
+    bm = b.mid
+    def __dot(A, x):
+        tmp1 = np.dot(midA, x)
+        tmp2 = np.dot(radA, abs(x))
+        return Interval(tmp1 - tmp2, tmp1 + tmp2, sortQ=False)
+    __uni = lambda x: min(br - (bm - __dot(A, x)).mig)
     __minus_uni = lambda x: -__uni(x)
 
     if maxQ==False:
@@ -55,7 +177,9 @@ def Uni(A, b, x=None, maxQ=False, x0=None, tol=1e-12, maxiter=1e3):
         from scipy.optimize import minimize
 
         if x0 is None:
-            x0 = np.zeros(A.shape[1])+1
+            # x0 = np.ones(A.shape[1])
+            _, x0, _ = __tolsolvty(A.a, A.b, b.a, b.b, \
+                                   tol_f=1e-8, tol_x=1e-8, tol_g=1e-8)
         maximize = minimize(__minus_uni, x0, method='Nelder-Mead', tol=tol,
                             options={'maxiter': maxiter})
 
@@ -101,7 +225,9 @@ def Tol(A, b, x=None, maxQ=False, x0=None, tol=1e-12, maxiter=1e3):
                     третий элемент -- значение функции в этой точке.
     """
 
-    __tol = lambda x: min(b.rad - abs(b.mid - A @ x))
+    br = b.rad
+    bm = b.mid
+    __tol = lambda x: np.min(br - abs(bm - A @ x))
     __minus_tol = lambda x: -__tol(x)
 
     if maxQ==False:
@@ -111,13 +237,9 @@ def Tol(A, b, x=None, maxQ=False, x0=None, tol=1e-12, maxiter=1e3):
     else:
         from scipy.optimize import minimize
 
-        if x0 is None:
-            x0 = np.zeros(A.shape[1])+1
-        maximize = minimize(__minus_tol, x0, method='Nelder-Mead', tol=tol,
-                            options={'maxiter': maxiter})
-
-        return maximize.success, maximize.x, -maximize.fun
-
+        ccode, x, fun = __tolsolvty(A.a, A.b, b.a, b.b, weight=x0, maxiter=maxiter, \
+                                    tol_f=tol, tol_x=tol, tol_g=tol)
+        return ccode, x, fun
 
 def ive(A, b, N=40):
     """
