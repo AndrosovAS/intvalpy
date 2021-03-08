@@ -1,4 +1,4 @@
-from intvalpy.MyClass import Interval
+from intvalpy.RealInterval import Interval
 from intvalpy.intoper import zeros
 
 

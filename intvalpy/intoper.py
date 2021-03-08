@@ -2,7 +2,7 @@ import numpy as np
 import itertools
 from collections.abc import Sequence
 
-from .MyClass import Interval
+from .RealInterval import Interval
 
 
 def get_shape(lst, shape=()):

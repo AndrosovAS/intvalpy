@@ -1,6 +1,6 @@
 import numpy as np
 
-from intvalpy.MyClass import Interval
+from intvalpy.RealInterval import Interval
 from intvalpy.intoper import asinterval, zeros, dist, intersection, diag
 
 
@@ -44,7 +44,7 @@ def Gauss(A, b):
     return x
 
 
-def Gauss_Seidel(A, b, x0=Interval(-10**3, 10**3), P=True, tol=1e-8, maxiter=10**3):
+def Gauss_Seidel(A, b, x0=None, P=True, tol=1e-8, maxiter=10**3):
     """
     Итерационный метод Гаусса-Зейделя для решения ИСЛАУ.
 
@@ -96,7 +96,11 @@ def Gauss_Seidel(A, b, x0=Interval(-10**3, 10**3), P=True, tol=1e-8, maxiter=10*
 
     error = float("inf")
     result = zeros(n)
-    pre_result = zeros(n) + x0
+
+    if x0 is None:
+        pre_result = zeros(n) + Interval(-1000, 1000, sortQ=False)
+    else:
+        pre_result = x0.copy
 
     nit = 0
     while error >= tol and nit <= maxiter:

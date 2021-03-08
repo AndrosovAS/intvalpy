@@ -8,7 +8,8 @@
 # [2] http://www.nsc.ru/interval/Education/Manuals/Bazhenov-InteAnalBasics.pdf (ru version)
 
 
-from intvalpy import Interval, asinterval, Krawczyk, HansenSengupta
+from intvalpy import Interval, asinterval
+from intvalpy.nonlinear import Krawczyk, HansenSengupta
 import numpy as np
 
 # First, let's look at the one-dimensional equation:

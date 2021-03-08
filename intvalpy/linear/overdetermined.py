@@ -3,8 +3,9 @@ import numpy as np
 from bisect import bisect_left
 from lpsolvers import solve_lp
 
-from intvalpy.MyClass import Interval
-from intvalpy.intoper import zeros, intersection
+from intvalpy.RealInterval import Interval
+from intvalpy.intoper import intersection
+from intvalpy.linear.square_system import Gauss
 
 
 def Rohn(A, b, tol=1e-12, maxiter=2000):
@@ -78,12 +79,6 @@ def PSS(A, b, tol=1e-12, maxiter=2000):
                     Возвращается интервальный вектор решений.
     """
 
-    try:
-        V = Rohn(A, b)
-        if 10**15 < max(abs(V)):
-            V = Interval([-10**15]*len(A[0]), [10**15]*len(A[0]), sortQ=False)
-    except:
-        V = Interval([-10**15]*len(A[0]), [10**15]*len(A[0]), sortQ=False)
 
     class KeyWrapper:
         def __init__(self, iterable, key):
@@ -124,15 +119,22 @@ def PSS(A, b, tol=1e-12, maxiter=2000):
 
 
     def Omega(bAr, nu, Anu, index_classic_div, index_kahan_div, num_func):
-        div = bAr[index_classic_div]/Anu[index_classic_div]
+        try:
+            div = bAr[index_classic_div]/Anu[index_classic_div]
+        except:
+            div = []
         pdiv = []
 
         for k in index_kahan_div:
             pdiv.append(kdiv(bAr[k], Anu[k], num_func[k]))
 
-        result = intersection(div[0], (V*endint)[nu])
-        for el in div[1:]:
-            result = intersection(result, el)
+        try:
+            result = intersection(div[0], (V*endint)[nu])
+            for el in div[1:]:
+                result = intersection(result, el)
+        except:
+            result = intersection(pdiv[0], (V*endint)[nu])
+
         for el in pdiv:
             result = intersection(result, el)
 
@@ -153,6 +155,21 @@ def PSS(A, b, tol=1e-12, maxiter=2000):
     n, m = A.shape
     midA = A.mid
     radA = A.rad
+
+    if n > m:
+        try:
+            V = Rohn(A, b)
+            if 10**15 < max(abs(V)) or not ((V.a < 0).all() and (0 < V.b).all()):
+                V = Interval([-10**15]*m, [10**15]*m, sortQ=False)
+        except:
+            V = Interval([-10**15]*m, [10**15]*m, sortQ=False)
+    else:
+        try:
+            V = Gauss(A, b)
+            if 10**15 < max(abs(V)) or not ((V.a < 0).all() and (0 < V.b).all()):
+                V = Interval([-10**15]*m, [10**15]*m, sortQ=False)
+        except:
+            V = Interval([-10**15]*m, [10**15]*m, sortQ=False)
 
     A_ub = np.zeros((2*(n+m)+m, m))
     A_ub[2*(n+m) : ] = -np.eye(m)
@@ -211,7 +228,7 @@ def PSS(A, b, tol=1e-12, maxiter=2000):
 
         Anu = A[:, nu]
         index_classic_div = np.where(Anu.a*Anu.b > 0)[0]
-        index_kahan_div = np.array([k for k in range(len(Anu.a)) if not k in index_classic_div])
+        index_kahan_div = np.array([k for k in range(len(Anu.a)) if not (k in index_classic_div)])
 
         num_func = np.zeros(len(Anu), dtype='int32')
         for index in index_kahan_div:
@@ -300,13 +317,12 @@ def PSS(A, b, tol=1e-12, maxiter=2000):
                 else:
                     eta2 = float('inf')
 
-
             eta = eta1 if eta1 <= eta2 else eta2
             if omega > eta:
                 omega = eta
-                L = [l for l in L if l[1]<=omega]
+                L = [l for l in L if l[1] <= omega]
 
-            item=0
+            item = 0
             while True:
                 try:
                     Q, q, Ar = L[item]
@@ -318,9 +334,8 @@ def PSS(A, b, tol=1e-12, maxiter=2000):
 
             nit += 1
 
-        print('nit = ', nit)
+        # print('nit = ', nit)
         return -L[0][1] if endint == -1 else L[0][1]
-
 
     inf = []
     sup = []

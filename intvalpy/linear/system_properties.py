@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import minimize
 
-from intvalpy.MyClass import Interval
+from intvalpy.RealInterval import Interval
 from intvalpy.intoper import zeros
 
 
