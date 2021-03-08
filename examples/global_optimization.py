@@ -6,7 +6,8 @@
 # You can read the theory used to algorithmize the process in the following sources:
 # [1] http://www.nsc.ru/interval/Education/Manuals/Bazhenov-InteAnalBasics.pdf (ru version)
 
-from intvalpy import Interval, globopt
+from intvalpy import Interval
+from intvalpy.nonlinear import globopt
 import numpy as np
 
 

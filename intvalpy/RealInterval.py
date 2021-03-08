@@ -58,24 +58,34 @@ class Interval:
         return self._b
 
     def __repr__(self):
-        result = 'interval('
 
         if self.shape == ():
+            result = 'interval('
             return '[%.7g, %.7g]' % (self._a, self._b)
 
         elif self.ndim == 1:
+            result = 'interval('
             try:
                 result += str(['[%.7g, %.7g]' % (self._a[k], self._b[k]) for k in range(self.shape[0])]) + ')'
             except:
-                result += str(['[%.7g, %.7g]' % (self._a, self._b)]) + ')'
+                result += str(['[%.7g, %.7g]' % (self._a, self._b)]) + ')\n'
         else:
+            result = 'interval(['
             for l in range(self.shape[0]-1):
-                result += str(['[%.7g, %.7g]' % (self._a[l, k], self._b[l, k]) for k in range(self.shape[1])]) + '\n      '
+                result += str(['[%.7g, %.7g]' % (self._a[l, k], self._b[l, k]) for k in range(self.shape[1])]) + '\n         '
 
             result += str(['[%.7g, %.7g]' % (self._a[self.shape[0]-1, k], self._b[self.shape[0]-1, k]) \
-                           for k in range(self.shape[1])]) + ')\n'
+                           for k in range(self.shape[1])]) + '])\n'
 
         return result
+
+    # def __repr__(self):
+    #     return self.format("%.6g")
+    #
+    # def format(self, fs):
+    #
+    #
+    #     return type(self).__name__ + '(' + ', '.join('[' + ', '.join(fs % x for x in sorted(set(c))) + ']' for c in self) + ')'
 
 #########################################################################################################
 #                  Описываем операции для классической интервальной арифметики.                         #
@@ -325,21 +335,13 @@ class Interval:
     def __rmatmul__(self, other):
         other = np.asarray(other)
         ndim = (other.ndim, self.ndim)
-        if ndim == (2, 1) and other.shape[1] == self.shape[0]:
-            n, _ = other.shape
-            result = Interval(np.zeros(n), np.zeros(n), sortQ=False)
-            tmp = other * self
-            for k in range(n):
-                result[k] += sum(tmp[k])
-            return result
-
-        elif self.shape == other.shape[::-1] and other.ndim is 2:
-            n, _ = other.shape
-            result = Interval(np.zeros((n,n)), np.zeros((n,n)), sortQ=False)
-            for k in range(n):
-                for l in range(n):
-                    result[k, l] += sum(other[k] * self[:, l])
-            return result
+        if (ndim == (2, 1) and other.shape[1] == self.shape[0]) or \
+           (self.shape == other.shape[::-1] and other.ndim is 2):
+            mid = self.mid
+            rad = self.rad
+            om = other @ mid
+            aor = np.abs(other) @ rad
+            return Interval(om-aor, om+aor, sortQ=False)
 
         elif ndim[0]*ndim[1] <= 1:
             return sum(self * other)
@@ -458,22 +460,13 @@ class Interval:
 
         elif args[0].__name__ in ['matmul']:
             ndim = (args[2].ndim, self.ndim)
-            if ndim == (2, 1) and args[2].shape[1] == self.shape[0]:
-                _, m = args[2].shape
-                tmp = self * args[2]
-                result = Interval(np.zeros(m), np.zeros(m), sortQ=False)
-                for k in range(m):
-                    result[k] += sum(tmp[k])
-                return result
-
-            elif args[2].shape == self.shape[::-1] and self.ndim is 2:
-                n, _ = args[2].shape
-                result = Interval(np.zeros((n, n)), np.zeros((n, n)), sortQ=False)
-
-                for k in range(n):
-                    for l in range(n):
-                        result[k, l] += sum(args[2][k] * self[:, l])
-                return result
+            if (ndim == (2, 1) and args[2].shape[1] == self.shape[0]) or \
+               (args[2].shape == self.shape[::-1] and self.ndim is 2):
+                mid = self.mid
+                rad = self.rad
+                om = args[2] @ mid
+                aor = np.abs(args[2]) @ rad
+                return Interval(om-aor, om+aor, sortQ=False)
 
             elif ndim == (1, 2) and args[2].shape[0] == self.shape[0]:
                 _, m = self.shape

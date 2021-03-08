@@ -1,11 +1,11 @@
 import numpy as np
 
-from intvalpy.MyClass import Interval
+from intvalpy.RealInterval import Interval
 from intvalpy.linear import Gauss_Seidel
 from intvalpy.intoper import asinterval, intersection, dist
 
 
-def HansenSengupta(func, J, x0, maxiter=10**3, tol=1e-12):
+def HansenSengupta(func, J, x0, maxiter=2000, tol=1e-12):
 
     def HS(X, c):
         L = asinterval(J(X))
@@ -49,7 +49,7 @@ def HansenSengupta(func, J, x0, maxiter=10**3, tol=1e-12):
     return result
 
 
-def Krawczyk(func, J, x0, maxiter=10**3, tol=1e-12):
+def Krawczyk(func, J, x0, maxiter=2000, tol=1e-12):
 
     def K(X, c):
         L = asinterval(J(X))

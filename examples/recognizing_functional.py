@@ -11,7 +11,8 @@
 # [3] http://www.nsc.ru/interval/shary/Papers/SShary-JCT-2017.pdf (ru version)
 # [4] http://www.nsc.ru/interval/shary/Slides/SShary-WeakStrong.pdf (en version)
 
-from intvalpy import Interval, Uni, Tol
+from intvalpy import Interval
+from intvalpy.linear import Uni, Tol
 import numpy as np
 
 # As an example, consider the Barth-Nuding system:

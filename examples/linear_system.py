@@ -20,7 +20,8 @@
 #     Porotnikova // Russ. J. Non-Ferr. Met. – 2016. – Vol. 57 – P. 47–51.
 #     DOI: 10.3103/S1067821216010120.
 
-from intvalpy import Interval, zeros, Gauss, Gauss_Seidel, overdetermined, PSS
+from intvalpy import Interval, zeros
+from intvalpy.linear import Gauss, Gauss_Seidel, overdetermined, PSS
 import numpy as np
 
 # First, consider the Gauss and Gauss-Seidel methods for solving quadratic systems:
