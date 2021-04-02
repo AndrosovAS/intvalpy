@@ -96,7 +96,7 @@ Returns:
 >>> ip.dist(f, s)
 1.0
 
-Более подробную информацию о различных метриках на множестве интервалов можно узнать из указанной `книги <http://www.nsc.ru/interval/Library/InteBooks/SharyBook.pdf>`_.
+Более подробную информацию о различных метриках на множестве интервалов можно узнать, к примеру, из `книги <http://www.nsc.ru/interval/Library/InteBooks/SharyBook.pdf>`_.
 
 
 Интервал из нулей
