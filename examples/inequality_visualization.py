@@ -14,7 +14,7 @@
 
 
 from intvalpy import Interval
-from intvalpy.linear import lineqs, IntLinIncR2
+from intvalpy import lineqs, IntLinIncR2
 
 import numpy as np
 import matplotlib.pyplot as plt
