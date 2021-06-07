@@ -17,14 +17,14 @@ INSTALL_REQUIRES = [
 
 setup(
     name='intvalpy',
-    version='1.4.8',
-    description='Interval library in Python using classical interval ' + \
-                'arithmetic + Kahan division in some functions',
+    version='1.5.1',
+    description='An interval library in Python that uses classical interval ' + \
+                'arithmetic and Kauher arithmetic + Kahan division in some functions',
     long_description=README,
     long_description_content_type='text/markdown',
     license='MIT License',
     keywords=[
-        'Interval arithmetic',
+        'Interval',
         'inequality visualization',
         'optimal solutions'
     ],

@@ -2,9 +2,9 @@ import numpy as np
 import itertools
 from collections.abc import Sequence
 
-from .RealInterval import Interval
+from .RealInterval import Interval, ClassicalArithmetic, KauherArithmetic
 
-
+ARITHMETIC_TUPLE = (ClassicalArithmetic, KauherArithmetic);
 def get_shape(lst, shape=()):
     """
     Возвращает форму вложенных списков аналогично форме numpy.
@@ -21,7 +21,7 @@ def get_shape(lst, shape=()):
                     Форма текущей глубины. В конце это будет полная глубина.
     """
 
-    if isinstance(lst, (int, float)) or (len(lst) == 1 and isinstance(lst, Interval)):
+    if isinstance(lst, (int, float)) or (len(lst) == 1 and isinstance(lst, ARITHMETIC_TUPLE)):
         return shape
     elif isinstance(lst, np.ndarray):
         return lst.shape
@@ -57,8 +57,10 @@ def asinterval(a):
                     Если a - int, float, list или ndarrays, то возвращается
                     базовый класс Interval.
     """
+    if isinstance(a, ARITHMETIC_TUPLE):
+        return a
 
-    if isinstance(a, Interval):
+    if isinstance(a, ARITHMETIC_TUPLE):
         return a
 
     elif isinstance(a, (int, float)):
@@ -70,7 +72,7 @@ def asinterval(a):
 
         result = zeros(shape)
         for index in itertools.product(*result.ranges):
-            if isinstance(a[index], Interval):
+            if isinstance(a[index], ARITHMETIC_TUPLE):
                 result[index] = a[index]
             else:
                 result[index] = Interval(a[index], a[index], sortQ=False)
@@ -108,7 +110,8 @@ def intersection(A, B):
             if _max <= _min:
                 result[index] = Interval(_max, _min, sortQ=False)
             else:
-                result[index] = Interval(float('-inf'), float('-inf'), sortQ=False)
+                # result[index] = Interval(float('-inf'), float('-inf'), sortQ=False)
+                result[index] = Interval(None, None, sortQ=False)
 
     elif wA.shape == () or wA.shape == (1, ):
         result = zeros(wB.shape)
@@ -118,7 +121,8 @@ def intersection(A, B):
             if _max <= _min:
                 result[index] = Interval(_max, _min, sortQ=False)
             else:
-                result[index] = Interval(float('-inf'), float('-inf'), sortQ=False)
+                # result[index] = Interval(float('-inf'), float('-inf'), sortQ=False)
+                result[index] = Interval(None, None, sortQ=False)
 
     elif wB.shape == () or wB.shape == (1, ):
         result = zeros(wA.shape)
@@ -128,7 +132,8 @@ def intersection(A, B):
             if _max <= _min:
                 result[index] = Interval(_max, _min, sortQ=False)
             else:
-                result[index] = Interval(float('-inf'), float('-inf'), sortQ=False)
+                # result[index] = Interval(float('-inf'), float('-inf'), sortQ=False)
+                result[index] = Interval(None, None, sortQ=False)
 
     else:
         raise Exception('Не совпадают размерности входных массивов!')

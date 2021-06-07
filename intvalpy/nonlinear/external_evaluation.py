@@ -40,7 +40,7 @@ def HansenSengupta(func, J, x0, maxiter=2000, tol=1e-12):
     nit = 0
     while nit < maxiter and error > tol:
         result = intersection(result, HS(result, c))
-        if Interval(float('-inf'), float('-inf'), sortQ=False) in result:
+        if np.isnan(result.a).any():
             return result
         c = result.mid
         error = dist(result, pre_result)
@@ -79,7 +79,7 @@ def Krawczyk(func, J, x0, maxiter=2000, tol=1e-12):
     nit = 0
     while nit < maxiter and error > tol:
         result = intersection(result, K(result, c))
-        if Interval(float('-inf'), float('-inf'), sortQ=False) in result:
+        if np.isnan(result.a).any():
             return result
         c = result.mid
         error = dist(result, pre_result)

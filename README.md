@@ -20,30 +20,54 @@ We can calculate the list of vertices of the convex set described by a point the
 if an interval system of equations is considered ``A * x = b`` as well as visualize this set:
 
 ```python
-from intvalpy import Interval, lineqs, IntLinIncR2
+import intvalpy as ip
 
 import numpy as np
+import matplotlib.pyplot as plt
 
-A1 = Interval([[-1, -1],[-1, -1]], [[1,1], [-1,1]])
-b1 = Interval([1,-2], [1,2])
+fig, ax = plt.subplots(ncols=2, figsize=(15,8))
 
-vertices = IntLinIncR2(A1, b1)
+A, b = ip.Shary(2)
+vertices1 = ip.IntLinIncR2(A, b, show=False)
+vertices2 = ip.IntLinIncR2(A, b, consistency='tol', show=False)
 
-A2 = -np.array([[-3, -1],
-                [-2, -2],
-                [-1, -3],
-                [1, -3],
-                [2, -2],
-                [3, -1],
-                [3, 1],
-                [2, 2],
-                [1, 3],
-                [-1, 3],
-                [-2, 2],
-                [-3, 1]])
-b2 = -np.array([18,16,18,18,16,18,18,16,18,18,16,18])
+A = -np.array([[-3, -1],
+              [-2, -2],
+              [-1, -3],
+              [1, -3],
+              [2, -2],
+              [3, -1],
+              [3, 1],
+              [2, 2],
+              [1, 3],
+              [-1, 3],
+              [-2, 2],
+              [-3, 1]])
+b = -np.array([18,16,18,18,16,18,18,16,18,18,16,18])
+vertices3 = ip.lineqs(A, b, show=False)
 
-vertices = lineqs(A2, b2, color='blue', alpha=0.2, size=(12,12))
+for k in range(len(vertices1)):
+    if len(vertices1[k])>0:
+        x, y = vertices1[k][:,0], vertices1[k][:,1]
+        ax[0].fill(x, y, linestyle = '-', linewidth = 1, color='gray', alpha=0.5)
+        ax[0].scatter(x, y, s=0, color='black', alpha=1)
+
+for k in range(len(vertices2)):
+    if len(vertices2[k])>0:
+        x, y = vertices2[k][:,0], vertices2[k][:,1]
+        ax[0].fill(x, y, linestyle = '-', linewidth = 1, color='blue', alpha=0.3)
+        ax[0].scatter(x, y, s=10, color='black', alpha=1)
+
+ax[0].text(-4.5, -5.5, 'United and Tolerance sets of the system Shary',
+           rotation = 0,
+           fontsize = 15)      
+
+x, y = vertices3[:,0], vertices3[:,1]
+ax[1].fill(x, y, linestyle = '-', linewidth = 1, color='peru', alpha=0.3)
+ax[1].scatter(x, y, s=10, color='black', alpha=1)
+ax[1].text(-1.5, -7.77, 'Duodecagon',
+           rotation = 0,
+           fontsize = 15);
 ```
 ![SolSet](https://raw.githubusercontent.com/AndrosovAS/intvalpy/master/examples/SolSet.png)
 
