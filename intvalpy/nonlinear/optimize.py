@@ -2,6 +2,7 @@ from bisect import bisect_left
 import numpy as np
 
 from intvalpy.RealInterval import Interval
+from intvalpy.intoper import asinterval
 
 
 class KeyWrapper:
@@ -70,7 +71,7 @@ def __tolsolvty(func, grad, a, b, weight=None, x0=None, \
 
         tt = weight * (br - np.maximum(np.abs(infsup.a), np.abs(infsup.b)))
         mc = np.argmin(tt)
-        _grad = ip.asinterval([g(a[mc], x) for g in grad])
+        _grad = asinterval([g(a[mc], x) for g in grad])
 
         if -infsup[mc].a <= infsup[mc].b:
             dd = weight[mc] * (_grad.a * index + _grad.b * (~index))

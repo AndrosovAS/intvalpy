@@ -54,8 +54,7 @@ def Rohn(A, b, tol=1e-12, maxiter=2000):
     return Interval(x0-result, x0+result)
 
 
-
-def PSS(A, b, tol=1e-12, maxiter=2000):
+def PSS(A, b, tol=1e-12, maxiter=2000, nu=None):
     """
     Метод дробления решений для оптимального внешнего оценивания
     объединённого множества решений.
@@ -118,7 +117,7 @@ def PSS(A, b, tol=1e-12, maxiter=2000):
             raise Exception('Деление не определено!')
 
 
-    def Omega(bAr, nu, Anu, index_classic_div, index_kahan_div, num_func):
+    def Omega(bAr, _nu, Anu, index_classic_div, index_kahan_div, num_func):
         try:
             div = bAr[index_classic_div]/Anu[index_classic_div]
         except:
@@ -129,24 +128,24 @@ def PSS(A, b, tol=1e-12, maxiter=2000):
             pdiv.append(kdiv(bAr[k], Anu[k], num_func[k]))
 
         try:
-            result = intersection(div[0], (V*endint)[nu])
+            result = intersection(div[0], V[_nu])
             for el in div[1:]:
                 result = intersection(result, el)
         except:
-            result = intersection(pdiv[0], (V*endint)[nu])
+            result = intersection(pdiv[0], V[_nu])
 
         for el in pdiv:
             result = intersection(result, el)
 
         if 2 in num_func:
-            if (float('-inf') == result._b).all():
+            if np.isnan(result._b).all():
                 return float('inf')
-            elif (float('-inf') == result._b).any():
+            elif np.isnan(result._b).any():
                 return np.max(result.a)
             else:
                 return np.min(result.a)
         else:
-            if float('-inf') in result._b:
+            if np.isnan(result._b):
                 return float('inf')
             else:
                 return result.a
@@ -156,20 +155,19 @@ def PSS(A, b, tol=1e-12, maxiter=2000):
     midA = A.mid
     radA = A.rad
 
-    if n > m:
-        try:
-            V = Rohn(A, b)
-            if 10**15 < max(abs(V)) or not ((V.a < 0).all() and (0 < V.b).all()):
-                V = Interval([-10**15]*m, [10**15]*m, sortQ=False)
-        except:
-            V = Interval([-10**15]*m, [10**15]*m, sortQ=False)
-    else:
-        try:
-            V = Gauss(A, b)
-            if 10**15 < max(abs(V)) or not ((V.a < 0).all() and (0 < V.b).all()):
-                V = Interval([-10**15]*m, [10**15]*m, sortQ=False)
-        except:
-            V = Interval([-10**15]*m, [10**15]*m, sortQ=False)
+    def StartBar(A, b):
+        if n > m:
+            try:
+                V = Rohn(A, b)
+            except:
+                V = Interval([-10**14]*m, [10**14]*m, sortQ=False)
+        else:
+            try:
+                V = Gauss(A, b)
+            except:
+                V = Interval([-10**14]*m, [10**14]*m, sortQ=False)
+
+        return V
 
     A_ub = np.zeros((2*(n+m)+m, m))
     A_ub[2*(n+m) : ] = -np.eye(m)
@@ -178,14 +176,14 @@ def PSS(A, b, tol=1e-12, maxiter=2000):
     p = np.zeros(2*m)
 
     def ExactOmega(midA, radA, b, Q):
-        S = np.eye(m) * np.insert(np.sign(Q.a), nu, np.sign(V[nu].a))
+        S = np.eye(m) * np.insert(np.sign(Q.a), _nu, np.sign(V[_nu].a))
         midAS = midA @ S
 
-        p[:m] = np.insert(-Q.a, nu, 1e15)
-        p[m:] = np.insert(Q.b, nu, 1e15)
+        p[:m] = np.insert(-Q.a, _nu, 1e15)
+        p[m:] = np.insert(Q.b, _nu, 1e15)
 
         c = np.zeros(m, dtype='float64')
-        c[nu] = S[nu, nu]
+        c[_nu] = S[_nu, _nu]
 
         A_ub[ : n] = midAS - radA
         A_ub[n : 2*n] = -midAS - radA
@@ -202,10 +200,10 @@ def PSS(A, b, tol=1e-12, maxiter=2000):
         except:
             pass
 
-        S[nu, nu] = np.sign(V[nu].b)
+        S[_nu, _nu] = np.sign(V[_nu].b)
         midAS = midA @ S
 
-        c[nu] = S[nu, nu]
+        c[_nu] = S[_nu, _nu]
         A_ub[ : n] = midAS - radA
         A_ub[n : 2*n] = -midAS - radA
         A_ub[2*n : 2*n+m] = -S
@@ -218,15 +216,15 @@ def PSS(A, b, tol=1e-12, maxiter=2000):
             return 10**15
 
 
-    def algo(nu):
-        WorkListA = A.copy; del(WorkListA[:, nu])
-        WorkListb = (b*endint).copy
-        Q = (V*endint).copy; del(Q[nu])
+    def algo(_nu):
+        WorkListA = A.copy; del(WorkListA[:, _nu])
+        WorkListb = b.copy
 
-        q = (V*endint)[nu].a
-        omega = (V*endint)[nu].b
+        Q = V.copy;
+        q, omega = Q[_nu].a, Q[_nu].b
+        del(Q[_nu])
 
-        Anu = A[:, nu]
+        Anu = A[:, _nu]
         index_classic_div = np.where(Anu.a*Anu.b > 0)[0]
         index_kahan_div = np.array([k for k in range(len(Anu.a)) if not (k in index_classic_div)])
 
@@ -268,7 +266,7 @@ def PSS(A, b, tol=1e-12, maxiter=2000):
 
                 Ar1 = Ar + Q1[k] * WorkListA[:, k]
                 bAr = WorkListb - Ar1
-                q1 = Omega(bAr, nu, Anu, index_classic_div, index_kahan_div, num_func)
+                q1 = Omega(bAr, _nu, Anu, index_classic_div, index_kahan_div, num_func)
 
                 if q1 < omega:
                     newcol = (Q1, q1, Ar1)
@@ -278,7 +276,7 @@ def PSS(A, b, tol=1e-12, maxiter=2000):
                 else:
                     eta1 = float('inf')
             else:
-                q1 = ExactOmega(midA*endint, radA, b, Q1)
+                q1 = ExactOmega(midA, radA, b, Q1)
 
                 if q1 < omega:
                     newcol = (Q1, q1)
@@ -297,7 +295,7 @@ def PSS(A, b, tol=1e-12, maxiter=2000):
 
                 Ar2 = Ar + Q2[k] * WorkListA[:, k]
                 bAr = WorkListb - Ar2
-                q2 = Omega(bAr, nu, Anu, index_classic_div, index_kahan_div, num_func)
+                q2 = Omega(bAr, _nu, Anu, index_classic_div, index_kahan_div, num_func)
 
                 if q2 < omega:
                     newcol = (Q2, q2, Ar2)
@@ -307,7 +305,7 @@ def PSS(A, b, tol=1e-12, maxiter=2000):
                 else:
                     eta2 = float('inf')
             else:
-                q2 = ExactOmega(midA*endint, radA, b, Q2)
+                q2 = ExactOmega(midA, radA, b, Q2)
 
                 if q2 < omega:
                     newcol = (Q2, q2)
@@ -328,22 +326,33 @@ def PSS(A, b, tol=1e-12, maxiter=2000):
                     Q, q, Ar = L[item]
                     break
                 except IndexError:
-                    return -L[0][1] if endint == -1 else L[0][1]
+                    return L[0][1]
                 except:
                     item += 1
 
             nit += 1
 
-        # print('nit = ', nit)
-        return -L[0][1] if endint == -1 else L[0][1]
+        return L[0][1]
 
     inf = []
     sup = []
-    for endint in [1, -1]:
-        for nu in range(A.shape[1]):
+    if nu is None:
+        for endint in [1, -1]:
+            b = endint * b.copy
+            V = StartBar(A, b)
+            for _nu in range(A.shape[1]):
+                if endint == -1:
+                    sup.append(endint * algo(_nu))
+                else:
+                    inf.append(algo(_nu))
+    else:
+        _nu = nu
+        for endint in [1, -1]:
+            b = endint * b.copy
+            V = StartBar(A, b)
             if endint == -1:
-                sup.append(algo(nu))
+                sup.append(endint * algo(_nu))
             else:
-                inf.append(algo(nu))
+                inf.append(algo(_nu))
 
     return Interval(inf, sup, sortQ=False)

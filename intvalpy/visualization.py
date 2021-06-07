@@ -2,8 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-from .RealInterval import Interval
+from .RealInterval import Interval, ClassicalArithmetic, KauherArithmetic
 
+ARITHMETIC_TUPLE = (ClassicalArithmetic, KauherArithmetic)
 
 def Unique(a, decimals=12):
     a = np.ascontiguousarray(a)
@@ -182,7 +183,7 @@ def lineqs(A, b, show=True, title="Solution Set", color='gray', \
                     Возвращается список упорядоченных вершин.
                     В случае, если show = True, то график отрисовывается.
     """
-    if isinstance(A, Interval) or isinstance(b, Interval):
+    if isinstance(A, ARITHMETIC_TUPLE) or isinstance(b, ARITHMETIC_TUPLE):
         raise Exception('Система интервального типа!')
 
     A = np.asarray(A)
@@ -230,6 +231,50 @@ def lineqs(A, b, show=True, title="Solution Set", color='gray', \
     if save:
         fig.savefig(title + ".png")
     return Unique(vertices)
+
+
+def OneShotVisual2D(*args, title="Solution Set", grid=True, size=(15, 15),
+                    labelsize=None, save=False):
+
+    fig = plt.figure(figsize=size)
+    ax = fig.add_subplot(111, title=title)
+
+
+    ax.grid() if grid else 0
+    if labelsize is None:
+        ax.xaxis.set_tick_params(labelsize=size[0])
+        ax.yaxis.set_tick_params(labelsize=size[0])
+    else:
+        ax.xaxis.set_tick_params(labelsize=labelsize)
+        ax.yaxis.set_tick_params(labelsize=labelsize)
+
+
+    for v in args:
+        alpha=0.5; s=10; color='gray';
+        for key in v.keys():
+            if key == "vertices":
+                vertices = v["vertices"]
+            elif key == "alpha":
+                alpha = v["alpha"]
+            elif key == "s":
+                s = v["s"]
+            elif key == "color":
+                color = v["color"]
+
+        if isinstance(vertices, list):
+            for k in range(4):
+                if len(vertices[k]) > 0:
+                    x, y = vertices[k][:, 0], vertices[k][:, 1]
+                    ax.fill(x, y, linestyle='-', linewidth=1, color=color, alpha=alpha)
+                    ax.scatter(x, y, s=s, color='black', alpha=1)
+        else:
+            if len(vertices) > 0:
+                x, y = vertices[:, 0], vertices[:, 1]
+                ax.fill(x, y, linestyle='-', linewidth=1, color=color, alpha=alpha)
+                ax.scatter(x, y, s=s, color='black', alpha=1)
+
+    if save:
+        fig.savefig(title + ".png")
 
 
 def IntLinIncR2(A, b, show=True, title="Solution Set", consistency='uni', \
@@ -282,7 +327,7 @@ def IntLinIncR2(A, b, show=True, title="Solution Set", consistency='uni', \
                     В случае, если show = True, то график отрисовывается.
     """
 
-    if not (isinstance(A, Interval) or isinstance(b, Interval)):
+    if not (isinstance(A, ARITHMETIC_TUPLE) or isinstance(b, ARITHMETIC_TUPLE)):
         return lineqs(A, b, show=show, title=title, color=color, bounds=bounds, \
                       alpha=alpha, s=s, size=size, save=save)
 
@@ -295,13 +340,13 @@ def IntLinIncR2(A, b, show=True, title="Solution Set", consistency='uni', \
 
     def algo(bounds):
         for ort in range(4):
-            tmp = A.copy
+            tmp = A.copyInKaucherArithmetic
             WorkListA = np.zeros((2*n+m, m))
             WorkListb = np.zeros(2*n+m)
 
             for k in range(m):
                 if ortant[ort][k] == -1:
-                    tmp[:, k] = tmp[:, k].invbar
+                    tmp[:, k] = tmp[:, k].dual
                 WorkListA[2*n+k, k] = -ortant[ort][k]
 
             if consistency == 'uni':
@@ -413,7 +458,7 @@ def lineqs3D(A, b, show=True, color='C0', alpha=0.5, s=10, size=(8,8), \
 
             if rm <= 1e-14:
                 rm = rm + 1
-
+            __center_rm.append([max(abs(center) + 1*rm)])
             A = np.append(np.append(A, np.eye(3)), -np.eye(3)).reshape((len(A)+6, 3))
             b = np.append(np.append(b, center-rm), -(center+rm))
 
@@ -469,7 +514,7 @@ def lineqs3D(A, b, show=True, color='C0', alpha=0.5, s=10, size=(8,8), \
 def IntLinIncR3(A, b, show=True, consistency='uni', color='C0', \
                 alpha=0.5, s=10, size=(8, 8), bounds=None):
 
-    if not (isinstance(A, Interval) or isinstance(b, Interval)):
+    if not (isinstance(A, ARITHMETIC_TUPLE) or isinstance(b, ARITHMETIC_TUPLE)):
         return lineqs3D(A, b, show=False, color=color, \
                         alpha=alpha, s=s, size=size, bounds=bounds)
 
@@ -481,33 +526,45 @@ def IntLinIncR3(A, b, show=True, consistency='uni', color='C0', \
     assert m <= 3, "В матрице A должно быть два столбца!"
     assert b.shape[0] == n, "Матрица A и правая часть b должны иметь одинаковое число строк!"
 
-    for ort in range(8):
-        tmp = A.copy
-        WorkListA = np.zeros((2*n+m, m))
-        WorkListb = np.zeros(2*n+m)
+    def algo(bounds):
+        for ort in range(8):
+            tmp = A.copyInKaucherArithmetic
+            WorkListA = np.zeros((2*n+m, m))
+            WorkListb = np.zeros(2*n+m)
 
-        for k in range(m):
-            if ortant[ort][k] == -1:
-                tmp[:, k] = tmp[:, k].invbar
-            WorkListA[2*n+k, k] = -ortant[ort][k]
+            for k in range(m):
+                if ortant[ort][k] == -1:
+                    tmp[:, k] = tmp[:, k].dual
+                WorkListA[2*n+k, k] = -ortant[ort][k]
 
-        if consistency == 'uni':
-            WorkListA[:n], WorkListA[n:2*n] = tmp.a, -tmp.b
-            WorkListb[:n], WorkListb[n:2*n] = b.b, -b.a
-        elif consistency == 'tol':
-            WorkListA[:n], WorkListA[n:2*n] = -tmp.a, tmp.b
-            WorkListb[:n], WorkListb[n:2*n] = -b.a, b.b
-        else:
-            msg = "Неверно указан тип согласования системы! Используйте 'uni' или 'tol'."
-            raise Exception(msg)
-
-        for k in range(2*n):
-            if WorkListb[k] >= 0:
-                WorkListb[k] -= 1e-15
+            if consistency == 'uni':
+                WorkListA[:n], WorkListA[n:2*n] = tmp.a, -tmp.b
+                WorkListb[:n], WorkListb[n:2*n] = b.b, -b.a
+            elif consistency == 'tol':
+                WorkListA[:n], WorkListA[n:2*n] = -tmp.a, tmp.b
+                WorkListb[:n], WorkListb[n:2*n] = -b.a, b.b
             else:
-                WorkListb[k] += 1e-15
+                msg = "Неверно указан тип согласования системы! Используйте 'uni' или 'tol'."
+                raise Exception(msg)
 
-        vertices.append(lineqs3D(-WorkListA, -WorkListb, show=False, bounds=bounds))
+            for k in range(2*n):
+                if WorkListb[k] >= 0:
+                    WorkListb[k] -= 1e-15
+                else:
+                    WorkListb[k] += 1e-15
+
+            vertices.append(lineqs3D(-WorkListA, -WorkListb, show=False, bounds=bounds))
+    algo(bounds)
+
+    # Если в каком-либо ортанте множество решений неограничено, то создаём
+    # новое отрисовочное окно, чтобы срез решений был одинаковым.
+    global __center_rm
+    if len(__center_rm) > 0:
+        vertices = []
+        _max = max(np.array(__center_rm))
+        bounds = np.array([[-_max, -_max, -_max], [_max, _max, _max]])
+        algo(bounds)
+    __center_rm = []
 
     if show:
         fig = plt.figure(figsize=size)

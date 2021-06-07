@@ -21,7 +21,7 @@
 #     DOI: 10.3103/S1067821216010120.
 
 from intvalpy import Interval, zeros
-from intvalpy.linear import Gauss, Gauss_Seidel, overdetermined, PSS
+from intvalpy.linear import Gauss, Gauss_Seidel, Rohn, PSS
 import numpy as np
 
 # First, consider the Gauss and Gauss-Seidel methods for solving quadratic systems:
@@ -83,7 +83,7 @@ A[:, 0] += Interval(1, 1)
 A[:, 1] -= data
 b = t * (data - 1)
 
-print('Rohn: ', overdetermined(A, b))
+print('Rohn: ', Rohn(A, b))
 # +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+ #
 # overdetermined(A, b)                                                      #
 # interval(['[-396.621157, 575.293503]', '[-418.434473, 687.961243]'])      #
@@ -94,9 +94,8 @@ print('Rohn: ', overdetermined(A, b))
 # method of splitting solutions, but this is a difficult NP-problem and may
 # take some time.
 
-V = Interval([-400,-420],[600,700])     # initial interval
-print('PSS: ', PSS(A, b, V))
-# +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+ #
-# PSS(A, b, V)                                                              #
-# interval(['[155.256966, 195.743515]', '[205.419847, 253.397959]'])        #
-# +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+ #
+print('PSS: ', PSS(A, b))
+# +-----+-----+-----+-----+-----+-----+-----+-----+-----+ #
+# PSS(A, b)                                               #
+# Interval(['[155.257, 195.744]', '[205.42, 253.398]'])   #
+# +-----+-----+-----+-----+-----+-----+-----+-----+-----+ #
