@@ -12,7 +12,7 @@ intvalpy
 --------
 
 .. toctree::
-   :maxdepth: 5
+   :maxdepth: 2
 
    install
    guide
