@@ -35,12 +35,11 @@ def Gauss(A, b):
 
     for j in range(n-1):
         r[j+1:, j] = WorkListA[j+1:, j]/WorkListA[j, j]
-        WorkListA[j+1:, j+1:] -= r[j+1:, j] * WorkListA[j, j+1:]
-        WorkListb[j+1:] -= r[j+1:, j] * WorkListb[j]
+        WorkListA[j+1:, j+1:] = WorkListA[j+1:, j+1:] - r[j+1:, j] * WorkListA[j, j+1:]
+        WorkListb[j+1:] = WorkListb[j+1:] - r[j+1:, j] * WorkListb[j]
 
     for i in range(n-1, -1, -1):
         x[i] = (WorkListb[i] - sum(WorkListA[i, i:] * x[i:])) / WorkListA[i, i]
-
     return x
 
 
@@ -83,7 +82,7 @@ def Gauss_Seidel(A, b, x0=None, P=True, tol=1e-8, maxiter=10**3):
         return b/A
 
     if P:
-        P = np.linalg.inv(A.mid)
+        P = np.linalg.inv(np.array(A.mid, dtype=np.float64))
         A = P @ A
         b = P @ b
 

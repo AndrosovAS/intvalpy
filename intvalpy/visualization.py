@@ -2,9 +2,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-from .RealInterval import Interval, ClassicalArithmetic, KauherArithmetic
+from .RealInterval import Interval, ARITHMETIC_TUPLE
+from .intoper import infinity
 
-ARITHMETIC_TUPLE = (ClassicalArithmetic, KauherArithmetic)
+
+def scatter_plot(x, y, title="Box", color='gray', alpha=0.5, s=10, size=(15, 15), save=False):
+
+    ox = np.array([x.a, x.a, x.b, x.b])
+    oy = np.array([y.a, y.b, y.b, y.a])
+
+    fig = plt.figure(figsize=size)
+    ax = fig.add_subplot(111, title=title)
+
+    plt.fill(ox, oy, color=color, alpha=alpha)
+    for k in range(x.shape[0]):
+        if (x[k].a-x[k].b) == 0 and (y[k].a-y[k].b) == 0:
+            ax.scatter(ox[:, k], oy[:, k], s=s, color=color, alpha=alpha)
+
+    if save:
+        fig.savefig(title + ".png")
+
 
 def Unique(a, decimals=12):
     a = np.ascontiguousarray(a)
@@ -42,7 +59,7 @@ def BoundaryIntervals(A, b):
     S = []
 
     for i in range(m):
-        q = [float('-inf'), float('inf')]
+        q = [-infinity, infinity]
         si = True
         dotx = (A[i]*b[i])/np.dot(A[i], A[i])
 
