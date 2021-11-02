@@ -2,6 +2,20 @@ import numbers
 import numpy as np
 import itertools
 
+from mpmath import *
+import sys
+
+# from .standartPrecision import ClassicalArithmetic, KauherArithmetic
+# from .increasedPrecision import ipClassicalArithmetic, ipKauherArithmetic
+
+class precision:
+
+    increasedPrecisionQ = False
+    mp.dps = 24
+
+    def dps(_dps):
+        mp.dps = _dps
+
 class BaseTools:
 
     @property
@@ -53,7 +67,18 @@ class BaseTools:
         elif isinstance(self, ClassicalArithmetic) and isinstance(value, KauherArithmetic):
             raise Exception('Объекты из разных арифметик!')
         else:
-            self._a[key], self._b[key] = value, value
+            if not precision.increasedPrecisionQ:
+                self._a[key], self._b[key] = value, value
+            else:
+                if isinstance(value, (matrix, mpf)):
+                    self._a[key], self._b[key] = value, value
+                elif isinstance(value, (int, float)):
+                    value = mpf(np.str(value))
+                    self._a[key], self._b[key] = value, value
+                else:
+                    value = matrix(np.array(value, dtype=np.str))
+                    self._a[key], self._b[key] = value, value
+
 
     def __delitem__(self, key):
         if isinstance(key, int):
@@ -80,7 +105,8 @@ class BaseTools:
             return ((s._a <= o._a) & (o._b <= s._b)).any()
         except:
             s = self.pro
-            return ((s._a <= other) & (other <= s._b)).any()
+            # return ((s._a <= other) & (other <= s._b)).any()
+            return (np.array((s._a <= other)) & np.array((other <= s._b))).any()
 
     # Итерирование
     def __reversed__(self):
@@ -126,11 +152,19 @@ class BaseTools:
         return result
 
     def reshape(self, shape):
-        return Interval(self._a.reshape(shape), self._b.reshape(shape), sortQ=False)
+        if isinstance(self, ClassicalArithmetic):
+            return ClassicalArithmetic(self._a.reshape(shape), self._b.reshape(shape), sortQ=False)
+        else:
+            return KauherArithmetic(self._a.reshape(shape), self._b.reshape(shape))
+        # return Interval(self._a.reshape(shape), self._b.reshape(shape), sortQ=False)
 
     @property
     def dual(self):
-        return Interval(self._b, self._a, sortQ=False)
+        if (self._b <= self._a).all():
+            return ClassicalArithmetic(self._b, self._a, sortQ=False)
+        else:
+            return KauherArithmetic(self._b, self._a)
+        # return Interval(self._b, self._a, sortQ=False)
 
     @property
     def pro(self):
@@ -141,11 +175,19 @@ class BaseTools:
 
     @property
     def opp(self):
-        return Interval(-self._a, -self._b, sortQ=False)
+        if (self._b <= self._a).all():
+            return ClassicalArithmetic(-self._a, -self._b, sortQ=False)
+        else:
+            return KauherArithmetic(-self._a, -self._b)
+        # return Interval(-self._a, -self._b, sortQ=False)
 
     @property
     def inv(self):
-        return Interval(1/self._a, 1/self._b, sortQ=False)
+        if (self._b <= self._a).all():
+            return ClassicalArithmetic(1/self._a, 1/self._b, sortQ=False)
+        else:
+            return KauherArithmetic(1/self._a, 1/self._b)
+        # return Interval(1/self._a, 1/self._b, sortQ=False)
 
 #########################################################################################################
 #                  Согласование класса cls с другими библиотеками Python.                               #
@@ -195,71 +237,56 @@ class BaseTools:
             return cls.__rmatmul__(self, args[2])
 
         elif args[0].__name__ in ['exp']:
-            return cls(args[0].__call__(self._a), args[0].__call__(self._b))
+            # return cls(args[0].__call__(self._a), args[0].__call__(self._b))
+            return cls(np.e ** self._a, np.e ** self._b)
 
         elif args[0].__name__ in ['sin']:
             result = cls(np.zeros(self._shape), np.zeros(self._shape))
-            for index in itertools.product(*self._ranges):
-                if self._b[index] - self._a[index] >= 3*np.pi/2:
-                    result[index] = cls(-1, 1)
-                    continue
+            kahan_index = self._a > self._b
+            inf, sup = np.minimum(self._a, self._b), np.maximum(self._a, self._b)
+            sin_inf, sin_sup = np.sin(np.array(inf, dtype=np.float64)), np.sin(np.array(sup, dtype=np.float64))
 
-                offset = max(self._a[index]//(2*np.pi), self._b[index]//(2*np.pi))
-                _a = self._a[index] - (2*np.pi)*offset
-                _b = self._b[index] - (2*np.pi)*offset
+            sup_index = np.ceil((inf - (np.pi/2)) / (2*np.pi)) <= np.floor((sup - (np.pi/2)) / (2*np.pi))
+            result._b[sup_index] = 1
+            result._b[~sup_index] = np.maximum(sin_inf[~sup_index], sin_sup[~sup_index])
 
-                if (_a <= -3*np.pi/2 and _b <= -3*np.pi/2) or \
-                   (-3*np.pi/2 <= _a and _a <= -np.pi/2 and -3*np.pi/2 <= _b and _b <= -np.pi/2) or \
-                   (-np.pi/2 <= _a and _a <= np.pi/2 and -np.pi/2 <= _b and _b <= np.pi/2) or \
-                   (np.pi/2 <= _a and _a <= 3*np.pi/2 and np.pi/2 <= _b and _b <= 3*np.pi/2) or \
-                   (3*np.pi/2 <= _a and 3*np.pi/2 <= _b):
-                    result[index] = cls(np.sin(_a), np.sin(_b))
+            inf_index = np.ceil((inf + (np.pi/2)) / (2*np.pi)) <= np.floor((sup + (np.pi/2)) / (2*np.pi))
+            result._a[inf_index] = -1
+            result._a[~inf_index] = np.minimum(sin_inf[~inf_index], sin_sup[~inf_index])
 
-                elif (-3*np.pi/2 <= _a and _a <= -np.pi/2 and -np.pi/2 <= _b and _b <= np.pi/2) or \
-                     (np.pi/2 <= _a and _a <= 3*np.pi/2 and 3*np.pi/2 <= _b):
-                    result[index] = cls(-1, max(np.sin(_a), np.sin(_b)))
-
-                elif (_a <= -3*np.pi/2 and -3*np.pi/2 <= _b and _b <= -np.pi/2) or \
-                     (-np.pi/2 <= _a and _a <= np.pi/2 and np.pi/2 <= _b and _b <= 3*np.pi/2):
-                    result[index] = cls(min(np.sin(_a), np.sin(_b)), 1)
-
-                else:
-                    result[index] = cls(-1, 1)
+            try:
+                result[kahan_index] = result[kahan_index].dual
+            except:
+                if kahan_index:
+                    result = result.dual
             return result
 
         elif args[0].__name__ in ['cos']:
             result = cls(np.zeros(self._shape), np.zeros(self._shape))
-            for index in itertools.product(*self._ranges):
-                if self._b[index] - self._a[index] >= 3*np.pi/2:
-                    result[index] = cls(-1, 1)
-                    continue
+            kahan_index = self._a > self._b
+            inf, sup = np.minimum(self._a, self._b), np.maximum(self._a, self._b)
+            cos_inf, cos_sup = np.cos(np.array(inf, dtype=np.float64)), np.cos(np.array(sup, dtype=np.float64))
 
-                offset = max(self._a[index]//(2*np.pi), self._b[index]//(2*np.pi))
-                _a = self._a[index] - (2*np.pi)*offset
-                _b = self._b[index] - (2*np.pi)*offset
+            sup_index = np.ceil(2 * inf/np.pi) <= np.floor(2 * sup/np.pi)
+            result._b[sup_index] = 1
+            result._b[~sup_index] = np.maximum(cos_inf[~sup_index], cos_sup[~sup_index])
 
-                if (_a <= -np.pi and _b <= -np.pi) or \
-                   (-np.pi <= _a and _a <= 0 and -np.pi <= _b and _b <= 0) or \
-                   (0 <= _a and _a <= np.pi and 0 <= _b and _b <= np.pi) or \
-                   (np.pi <= _a and _a <= 2*np.pi and np.pi <= _b and _b <= 2*np.pi):
-                    result[index] = cls(np.cos(_a), np.cos(_b))
+            inf_index = np.ceil((inf - np.pi) / (2*np.pi)) <= np.floor((sup - np.pi) / (2*np.pi))
+            result._a[inf_index] = -1
+            result._a[~inf_index] = np.minimum(cos_inf[~inf_index], cos_sup[~inf_index])
 
-                elif (_a <= -np.pi and -np.pi <= _b and _b <= 0) or \
-                     (0 <= _a and _a <= np.pi and np.pi <= _b and _b <= 2*np.pi):
-                    result[index] = cls(-1, max(np.cos(_a), np.cos(_b)))
-
-                elif -np.pi <= _a and _a <= 0 and 0 <= _b and _b <= np.pi:
-                    result[index] = cls(min(np.cos(_a), np.cos(_b)), 1)
-
-                else:
-                    result[index] = cls(-1, 1)
+            try:
+                result[kahan_index] = result[kahan_index].dual
+            except:
+                if kahan_index:
+                    result = result.dual
             return result
 
         elif args[0].__name__ in ['log']:
             if ((self._a <= 0) | (self._b <= 0)).any():
                 raise Exception('Попытка вычислить логарифм от не положительного интервала!')
             else:
-                return cls(np.log(self._a), np.log(self._b))
+                return cls(np.log(np.array(self._a, dtype=np.float64)), np.log(np.array(self._b, dtype=np.float64)))
 
         else:
             raise Exception("Расчёт функции {} не предусмотрен!".format(args[0].__name__))
@@ -279,7 +306,8 @@ class ClassicalArithmetic(BaseTools):
 
     def __getitem__(self, key):
         if isinstance(key, (slice, numbers.Integral, tuple, list, np.ndarray)):
-            return ClassicalArithmetic(self._a[key], self._b[key], sortQ=False)
+            # return ClassicalArithmetic(self._a[key], self._b[key], sortQ=False)
+            return ClassicalArithmetic(np.array(self._a)[key], np.array(self._b)[key], sortQ=False)
         else:
             msg = 'Indices must be integers / slice / tuple / list / np.ndarray'
             raise TypeError(msg)
@@ -323,6 +351,7 @@ class ClassicalArithmetic(BaseTools):
                             self._a*other._b,
                             self._b*other._a,
                             self._b*other._b])
+
             try:
                 tmp = np.array([tmp[:, k] for k in range(tmp.shape[1])])
                 return ClassicalArithmetic(tmp.min(axis=1), tmp.max(axis=1), sortQ=False)
@@ -344,6 +373,7 @@ class ClassicalArithmetic(BaseTools):
             tmp = np.array([self._a*other,
                             self._b*other])
             return ClassicalArithmetic(tmp.min(axis=0), tmp.max(axis=0), sortQ=False)
+
 
     def __truediv__(self, other):
         if isinstance(other, ClassicalArithmetic):
@@ -561,11 +591,13 @@ class KauherArithmetic(BaseTools):
         else:
             return KauherArithmetic(self._a + other, self._b + other)
 
+
     def __sub__(self, other):
         if isinstance(other, ARITHMETIC_TUPLE):
             return KauherArithmetic(self._a - other._b, self._b - other._a)
         else:
             return KauherArithmetic(self._a - other, self._b - other)
+
 
     def __mul__(self, other):
         if isinstance(other, ARITHMETIC_TUPLE):
@@ -591,7 +623,6 @@ class KauherArithmetic(BaseTools):
             return KauherArithmetic(np.maximum(_selfInfPlus * _otherInfPlus, _selfSupMinus * _otherSupMinus) - np.maximum(_selfSupPlus * _otherInfMinus, _selfInfMinus * _otherSupPlus), \
                                     np.maximum(_selfSupPlus * _otherSupPlus, _selfInfMinus * _otherInfMinus) - np.maximum(_selfInfPlus * _otherSupMinus, _selfSupMinus * _otherInfPlus))
 
-    # Разобраться с делением!!! провести тесты
     def __truediv__(self, other):
         if isinstance(other, ClassicalArithmetic):
             if 0 in other:
@@ -781,9 +812,78 @@ class KauherArithmetic(BaseTools):
 
 
 ARITHMETIC_TUPLE = (ClassicalArithmetic, KauherArithmetic)
-def Interval(left, right, sortQ=True):
-    left = np.asarray(left, dtype='float64')
-    right = np.asarray(right, dtype='float64')
+def Interval(*args, sortQ=True, midRadQ=False):
+
+    n = len(args)
+    assert n <= 2, "Основных аргументов не может быть больше двух."
+
+    if not precision.increasedPrecisionQ:
+        # задаём левые и правые концы интервала-(ов)
+        if n == 2 and not midRadQ:
+            left = np.array(args[0], dtype=np.float64)
+            right = np.array(args[1], dtype=np.float64)
+
+        elif n == 2 and midRadQ:
+            left = np.array(args[0], dtype=np.float64)
+            right = np.array(args[1], dtype=np.float64)
+            left, right = left - right, left + right
+
+        else:
+            data = np.array(args[0], dtype=np.float64)
+            if data.ndim == 1:
+                left, right = data[0], data[1]
+            elif data.ndim == 2:
+                left, right = data[:, 0], data[:, 1]
+            else:
+                left, right = data[:, :, 0], data[:, :, 1]
+    else:
+        case = 1 if np.array(args[0]).shape == () else 0
+        # задаём левые и правые концы интервала-(ов)
+        if n == 2 and not midRadQ:
+            if case:
+                if args[0] is None or args[1] is None:
+                    left, right = np.array(None, dtype=np.float64), np.array(None, dtype=np.float64)
+                else:
+                    left = np.array(mpf(np.str(args[0])), dtype=np.object)
+                    right = np.array(mpf(np.str(args[1])), dtype=np.object)
+            else:
+                left = np.array(matrix(args[0]).tolist(), dtype=np.object)
+                right = np.array(matrix(args[1]).tolist(), dtype=np.object)
+
+        elif n == 2 and midRadQ:
+            if case:
+                left = np.array(mpf(np.str(args[0])), dtype=np.object)
+                right = np.array(mpf(np.str(args[1])), dtype=np.object)
+            else:
+                left = np.array(matrix(args[0]).tolist(), dtype=np.object)
+                right = np.array(matrix(args[1]).tolist(), dtype=np.object)
+            left, right = left - right, left + right
+
+        else:
+            data = np.array(args[0], dtype=np.str)
+            if data.ndim == 1:
+                if data[0] is None or data[1] is None:
+                    left, right = np.array(None, dtype=np.float64), np.array(None, dtype=np.float64)
+                else:
+                    left = np.array(mpf(data[0]), dtype=np.object)
+                    right = np.array(mpf(data[1]), dtype=np.object)
+            elif data.ndim == 2:
+                left = np.array(matrix(data[:, 0]).tolist(), dtype=np.object)
+                right = np.array(matrix(data[:, 1]).tolist(), dtype=np.object)
+            else:
+                left = np.array(matrix(data[:, :, 0]).tolist(), dtype=np.object)
+                right = np.array(matrix(data[:, :, 1]).tolist(), dtype=np.object)
+
+        if left.ndim:
+            if left.shape[0] == 1:
+                left = left.reshape(left.shape[1])
+            elif left.shape[1] == 1:
+                left = left.reshape(left.shape[0])
+
+            if right.shape[0] == 1:
+                right = right.reshape(right.shape[1])
+            elif right.shape[1] == 1:
+                right = right.reshape(right.shape[0])
 
     if sortQ:
         return ClassicalArithmetic(left, right, sortQ)

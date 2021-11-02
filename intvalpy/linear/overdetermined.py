@@ -1,10 +1,11 @@
 import numpy as np
+from mpmath import *
 
 from bisect import bisect_left
 from lpsolvers import solve_lp
 
 from intvalpy.RealInterval import Interval
-from intvalpy.intoper import intersection
+from intvalpy.intoper import intersection, infinity
 from intvalpy.linear.square_system import Gauss
 
 
@@ -30,21 +31,24 @@ def Rohn(A, b, tol=1e-12, maxiter=2000):
                 out: Interval
                     Возвращается интервальный вектор решений.
     """
-    Ac_plus = np.linalg.inv(A.mid.T @ A.mid) @ A.mid.T
+
+    Amid = np.array(A.mid, dtype=np.float64)
+    Ac_plus = np.linalg.inv(Amid.T @ Amid) @ Amid.T
     A = Ac_plus @ A.copy
     b = Ac_plus @ b.copy
 
     n, m = A.shape
     assert m <= n, 'Количество строк должно быть не меньше, чем количество столбцов!'
 
-    R = np.linalg.inv(A.mid.T @ A.mid) @ A.mid.T
+    Amid = np.array(A.mid, dtype=np.float64)
+    R = np.linalg.inv(Amid.T @ Amid) @ Amid.T
     x0 = R @ b.mid
 
-    G = abs(np.eye(m) - R @ A.mid) + abs(R) @ A.rad
-    g = abs(R @ (A.mid @ x0 - b.mid)) + abs(R) @ (A.rad @ abs(x0) + b.rad)
+    G = abs(np.eye(m) - R @ Amid) + abs(R) @ A.rad
+    g = abs(R @ (Amid @ x0 - b.mid)) + abs(R) @ (A.rad @ abs(x0) + b.rad)
 
     result = np.zeros(m)
-    error = float('inf')
+    error = infinity
     nit = 0
     while error >= tol and nit <= maxiter:
         d = np.copy(result)
@@ -95,20 +99,20 @@ def PSS(A, b, tol=1e-12, maxiter=2000, nu=None):
         """
         Деление в арифметике Кахана.
         """
-        func0 = lambda a, b: Interval(float('-inf'), a.b/b.b, sortQ=False)
-        func1 = lambda a, b: Interval(a.b/b.a, float('inf'), sortQ=False)
-        func2 = lambda a, b: Interval([float('-inf'), a.b/b.a],
-                                      [a.b/b.b, float('inf')], sortQ=False)
+        func0 = lambda a, b: Interval(-infinity, a.b/b.b, sortQ=False)
+        func1 = lambda a, b: Interval(a.b/b.a, infinity, sortQ=False)
+        func2 = lambda a, b: Interval([-infinity, a.b/b.a],
+                                      [a.b/b.b, infinity], sortQ=False)
 
-        func3 = lambda a, b: Interval(a.a/b.b, float('inf'), sortQ=False)
-        func4 = lambda a, b: Interval(float('-inf'), a.a/b.a, sortQ=False)
-        func5 = lambda a, b: Interval([float('-inf'), a.a/b.b],
-                                      [a.a/b.a, float('inf')], sortQ=False)
+        func3 = lambda a, b: Interval(a.a/b.b, infinity, sortQ=False)
+        func4 = lambda a, b: Interval(-infinity, a.a/b.a, sortQ=False)
+        func5 = lambda a, b: Interval([-infinity, a.a/b.b],
+                                      [a.a/b.a, infinity], sortQ=False)
 
         kdiv_result = [func0, func1, func2, func3, func4, func5]
 
         if 0 in a:
-            return Interval(float('-inf'), float('inf'), sortQ=False)
+            return Interval(-infinity, infinity, sortQ=False)
         elif a.b<0:
             return kdiv_result[num_func](a, b)
         elif 0<a.a:
@@ -138,15 +142,16 @@ def PSS(A, b, tol=1e-12, maxiter=2000, nu=None):
             result = intersection(result, el)
 
         if 2 in num_func:
-            if np.isnan(result._b).all():
-                return float('inf')
-            elif np.isnan(result._b).any():
+            # if np.isnan(result.b).all():
+            if np.isnan(np.array(result.b, dtype=np.float64)).all():
+                return infinity
+            elif np.isnan(np.array(result.b, dtype=np.float64)).any():
                 return np.max(result.a)
             else:
                 return np.min(result.a)
         else:
-            if np.isnan(result._b):
-                return float('inf')
+            if np.isnan(np.array(result.b, dtype=np.float64)):
+                return infinity
             else:
                 return result.a
 
@@ -260,10 +265,8 @@ def PSS(A, b, tol=1e-12, maxiter=2000, nu=None):
             matmul = True
             if 0 in Q1:
                 QA = Q[k] * WorkListA[:, k]
-                Ar._a -= QA._a
-                Ar._b -= QA._b
+                Ar = Ar + QA.opp
                 matmul = False
-
                 Ar1 = Ar + Q1[k] * WorkListA[:, k]
                 bAr = WorkListb - Ar1
                 q1 = Omega(bAr, _nu, Anu, index_classic_div, index_kahan_div, num_func)
@@ -272,9 +275,9 @@ def PSS(A, b, tol=1e-12, maxiter=2000, nu=None):
                     newcol = (Q1, q1, Ar1)
                     bslindex = bisect_left(KeyWrapper(L, key=lambda c: c[1]), newcol[1])
                     L.insert(bslindex, newcol)
-                    eta1 = float('inf')
+                    eta1 = infinity
                 else:
-                    eta1 = float('inf')
+                    eta1 = infinity
             else:
                 q1 = ExactOmega(midA, radA, b, Q1)
 
@@ -284,14 +287,12 @@ def PSS(A, b, tol=1e-12, maxiter=2000, nu=None):
                     L.insert(bslindex, newcol)
                     eta1 = q1
                 else:
-                    eta1 = float('inf')
-
+                    eta1 = infinity
 
             if 0 in Q2:
                 if matmul:
                     QA = Q[k] * WorkListA[:, k]
-                    Ar._a -= QA._a
-                    Ar._b -= QA._b
+                    Ar = Ar + QA.opp
 
                 Ar2 = Ar + Q2[k] * WorkListA[:, k]
                 bAr = WorkListb - Ar2
@@ -301,9 +302,9 @@ def PSS(A, b, tol=1e-12, maxiter=2000, nu=None):
                     newcol = (Q2, q2, Ar2)
                     bslindex = bisect_left(KeyWrapper(L, key=lambda c: c[1]), newcol[1])
                     L.insert(bslindex, newcol)
-                    eta2 = float('inf')
+                    eta2 = infinity
                 else:
-                    eta2 = float('inf')
+                    eta2 = infinity
             else:
                 q2 = ExactOmega(midA, radA, b, Q2)
 
@@ -313,7 +314,7 @@ def PSS(A, b, tol=1e-12, maxiter=2000, nu=None):
                     L.insert(bslindex, newcol)
                     eta2 = q2
                 else:
-                    eta2 = float('inf')
+                    eta2 = infinity
 
             eta = eta1 if eta1 <= eta2 else eta2
             if omega > eta:

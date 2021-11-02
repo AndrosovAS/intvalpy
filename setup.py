@@ -17,7 +17,7 @@ INSTALL_REQUIRES = [
 
 setup(
     name='intvalpy',
-    version='1.5.1',
+    version='1.5.2',
     description='An interval library in Python that uses classical interval ' + \
                 'arithmetic and Kauher arithmetic + Kahan division in some functions',
     long_description=README,
@@ -26,7 +26,9 @@ setup(
     keywords=[
         'Interval',
         'inequality visualization',
-        'optimal solutions'
+        'optimal solutions',
+        'math',
+        'range'
     ],
     author='Андросов Артем Станиславович, Шарый Сергей Петрович',
     author_email='artem.androsov@gmail.com, shary@ict.nsc.ru',

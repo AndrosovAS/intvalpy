@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import minimize
 
 from intvalpy.RealInterval import Interval
-from intvalpy.intoper import zeros
+from intvalpy.intoper import zeros, infinity
 
 
 def __tolsolvty(infA, supA, infb, supb, weight=None, \
@@ -24,7 +24,7 @@ def __tolsolvty(infA, supA, infb, supb, weight=None, \
     bc = 0.5 * (infb + supb)
     br = 0.5 * (supb - infb)
 
-    sv = np.linalg.svd(Ac, compute_uv=False)
+    sv = np.linalg.svd(np.array(Ac, dtype=np.float64), compute_uv=False)
     minsv, maxsv = min(sv), max(sv)
 
     def calcfg(x):
@@ -46,12 +46,12 @@ def __tolsolvty(infA, supA, infb, supb, weight=None, \
         return tt[mc], dd
 
     if (minsv != 0 and maxsv/minsv < 1e15):
-        x = np.linalg.lstsq(Ac, bc, rcond=-1)[0]
+        x = np.linalg.lstsq(np.array(Ac, dtype=np.float64), np.array(bc, dtype=np.float64), rcond=-1)[0]
     else:
         x = np.zeros(n)
 
     B = np.eye(n)
-    vf = np.zeros(nsims) + float('inf')
+    vf = np.zeros(nsims) + infinity
     w = 1./alpha - 1
 
     f, g0 = calcfg(x)
@@ -267,7 +267,7 @@ def ive(A, b, N=40):
 
     _inf = A.a
     _sup = A.b
-    cond = float('inf')
+    cond = infinity
     angle_A = np.zeros(A.shape, dtype='float64')
     for _ in range(N):
         for k in range(A.shape[0]):

@@ -2,9 +2,10 @@ import numpy as np
 import itertools
 from collections.abc import Sequence
 
-from .RealInterval import Interval, ClassicalArithmetic, KauherArithmetic
+from .RealInterval import Interval, ARITHMETIC_TUPLE, precision
 
-ARITHMETIC_TUPLE = (ClassicalArithmetic, KauherArithmetic);
+infinity = float('inf')
+
 def get_shape(lst, shape=()):
     """
     Возвращает форму вложенных списков аналогично форме numpy.
@@ -96,7 +97,7 @@ def intersection(A, B):
                 out: Interval
                     Возвращается массив пересечённых интервалов.
                     Если некоторые интервалы не пересекаются, то на их месте
-                    выводится интервал Interval(float('-inf'), float('-inf')).
+                    выводится интервал Interval(None, None).
     """
 
     wA = asinterval(A)
@@ -110,7 +111,6 @@ def intersection(A, B):
             if _max <= _min:
                 result[index] = Interval(_max, _min, sortQ=False)
             else:
-                # result[index] = Interval(float('-inf'), float('-inf'), sortQ=False)
                 result[index] = Interval(None, None, sortQ=False)
 
     elif wA.shape == () or wA.shape == (1, ):
@@ -121,7 +121,6 @@ def intersection(A, B):
             if _max <= _min:
                 result[index] = Interval(_max, _min, sortQ=False)
             else:
-                # result[index] = Interval(float('-inf'), float('-inf'), sortQ=False)
                 result[index] = Interval(None, None, sortQ=False)
 
     elif wB.shape == () or wB.shape == (1, ):
@@ -132,7 +131,6 @@ def intersection(A, B):
             if _max <= _min:
                 result[index] = Interval(_max, _min, sortQ=False)
             else:
-                # result[index] = Interval(float('-inf'), float('-inf'), sortQ=False)
                 result[index] = Interval(None, None, sortQ=False)
 
     else:
