@@ -307,3 +307,15 @@ def dot(a, b, aspotQ=False, bspotQ=False):
 
     else:
         return a @ b
+
+subset = lambda a, b: ((a.a >= b.a) & (a.b <= b.b)).all()
+superset = lambda a, b: subset(b, a)
+
+proper_subset = lambda a, b: ((a.a > b.a) & (a.b < b.b)).all()
+proper_superset = lambda a, b: proper_subset(b, a)
+
+sin = lambda a: np.sin(a)
+cos = lambda a: np.cos(a)
+sqrt = lambda a: np.sqrt(a)
+log = lambda a: np.log(a)
+exp = lambda a: np.exp(a)

@@ -116,4 +116,5 @@ def Gauss_Seidel(A, b, x0=None, P=True, tol=1e-8, maxiter=10**3):
         error = dist(result, pre_result)
         pre_result = result.copy
         nit += 1
+
     return result

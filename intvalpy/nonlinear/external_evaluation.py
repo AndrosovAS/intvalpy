@@ -13,7 +13,7 @@ def HansenSengupta(func, J, x0, maxiter=2000, tol=1e-12):
         if L.shape == ():
             LAMBDA = 1/L.mid
             A = LAMBDA * L
-            b = -LAMBDA * func(c)
+            b = -LAMBDA * func(np.array(c, dtype=np.float64))
 
             if 0 in A:
                 raise Exception('Диагональный элемент матрицы содержит нуль!')
@@ -22,9 +22,9 @@ def HansenSengupta(func, J, x0, maxiter=2000, tol=1e-12):
             return c + GS
 
         else:
-            LAMBDA = np.linalg.inv(L.mid)
+            LAMBDA = np.linalg.inv(np.array(L.mid, dtype=np.float64))
             A = LAMBDA @ L
-            b = -LAMBDA @ func(c)
+            b = -LAMBDA @ func(np.array(c, dtype=np.float64))
 
             GS = Gauss_Seidel(A, b, X-c, tol=tol)
             return c + GS
@@ -40,7 +40,7 @@ def HansenSengupta(func, J, x0, maxiter=2000, tol=1e-12):
     nit = 0
     while nit < maxiter and error > tol:
         result = intersection(result, HS(result, c))
-        if np.isnan(result.a).any():
+        if np.isnan(np.array(result.a, dtype=np.float64)).any():
             return result
         c = result.mid
         error = dist(result, pre_result)
@@ -58,15 +58,15 @@ def Krawczyk(func, J, x0, maxiter=2000, tol=1e-12):
             LAMBDA = 1/L.mid
 
             B = 1 - LAMBDA * L
-            return c - LAMBDA * asinterval(func(c)) + B * (X-c)
+            return c - LAMBDA * asinterval(func(np.array(c, dtype=np.float64))) + B * (X-c)
 
         else:
             n, m = L.shape
-            LAMBDA = np.linalg.inv(L.mid)
+            LAMBDA = np.linalg.inv(np.array(L.mid, dtype=np.float64))
 
             B = np.eye(n) - LAMBDA @ L
             w, _ = np.linalg.eigh(abs(B))
-            return c - LAMBDA @ func(c) + B @ (X-c)
+            return c - LAMBDA @ func(np.array(c, dtype=np.float64)) + B @ (X-c)
 
     if not (0 in func(x0)):
         raise Exception('Брус не содержит решений!')
@@ -79,7 +79,7 @@ def Krawczyk(func, J, x0, maxiter=2000, tol=1e-12):
     nit = 0
     while nit < maxiter and error > tol:
         result = intersection(result, K(result, c))
-        if np.isnan(result.a).any():
+        if np.isnan(np.array(result.a, dtype=np.float64)).any():
             return result
         c = result.mid
         error = dist(result, pre_result)
