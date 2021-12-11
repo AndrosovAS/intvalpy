@@ -65,6 +65,7 @@ def __tolsolvty(func, grad, a, b, weight=None, x0=None, \
     bc = b.mid
     br = b.rad
 
+    tt = None
     def calcfg(x):
         index = x >= 0
         infsup = bc - func(a, x)
@@ -78,7 +79,7 @@ def __tolsolvty(func, grad, a, b, weight=None, x0=None, \
         else:
             dd = -weight[mc] * (_grad.b * index + _grad.a * (~index))
 
-        return tt[mc], dd
+        return tt[mc], dd, tt
 
 
     if x0 is None:
@@ -90,7 +91,7 @@ def __tolsolvty(func, grad, a, b, weight=None, x0=None, \
     vf = np.zeros(nsims) + float('inf')
     w = 1./alpha - 1
 
-    f, g0 = calcfg(x)
+    f, g0, _ = calcfg(x)
     ff = f ;  xx = x;
     cal = 1;  ncals = 1;
 
@@ -112,7 +113,7 @@ def __tolsolvty(func, grad, a, b, weight=None, x0=None, \
             cal += 1
             x = x + hs * g
             deltax = deltax + hs * normg
-            f, g1 = calcfg(x)
+            f, g1, tt = calcfg(x)
 
             if f > ff:
                 ff = f
@@ -152,14 +153,39 @@ def __tolsolvty(func, grad, a, b, weight=None, x0=None, \
             break
         ccode = False
 
-    return ccode, xx, ff
+    return ccode, xx, ff, tt
+
+
+def Uni(func, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e-12, maxiter=2000):
+
+    br = b.rad
+    bm = b.mid
+    def __uni(x):
+        data = func(a, x)
+        return np.min(br - (bm - data).mig)
+    __minus_uni = lambda x: -__uni(x)
+
+    if maxQ:
+        if x0 is None:
+            _, x0, _, _ = __tolsolvty(func, grad, a, b, weight=weight, x0=None, maxiter=maxiter, \
+                               tol_f=1e-8, tol_x=1e-8, tol_g=1e-8)
+
+        from scipy.optimize import minimize
+        maximize = minimize(__minus_uni, x0, method='Nelder-Mead', tol=tol,
+                            options={'maxiter': maxiter})
+        return maximize.success, maximize.x, -maximize.fun
+
+    else:
+        if x is None:
+            x = np.zeros(len(a))
+        return __uni(x)
 
 
 def Tol(func, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e-12, maxiter=2000):
 
     if maxQ:
         return __tolsolvty(func, grad, a, b, weight=weight, x0=x0, maxiter=maxiter, \
-                           tol_f=tol, tol_x=tol, tol_g=tol)
+                           tol_f=tol, tol_x=tol, tol_g=tol)[:-1]
 
     else:
         br = b.rad
@@ -173,3 +199,44 @@ def Tol(func, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e-
             x = np.zeros(len(a))
 
         return __tol(x)
+
+
+def outliers(func, a, b, grad, functional='tol', weight=None, x0=None, tol=1e-12, maxiter=2000, method='standard deviations'):
+
+    def interquartile(data):
+        q25, q75 = np.percentile(data, 25), np.percentile(data, 75)
+        iqr = q75 - q25
+        cut_off = iqr * 1.5
+
+        lower, upper = q25 - cut_off, q75 + cut_off
+        return np.argwhere((data < lower) | (data > upper)).flatten()
+
+    def standard_deviations(data):
+        # Set upper and lower limit to 3 standard deviation
+        std, mean = np.std(data), np.mean(data)
+        cut_off = std * 3
+
+        lower, upper = mean - cut_off, mean + cut_off
+        return np.argwhere((data < lower) | (data > upper)).flatten()
+
+    WorkLista = asinterval(a).copy
+    WorkListb = asinterval(b).copy
+
+    if functional == 'tol':
+        _, _, _, tt = __tolsolvty(func, grad, a, b, weight=weight, x0=x0, maxiter=maxiter, \
+                                  tol_f=tol, tol_x=tol, tol_g=tol)
+    else:
+        Exception('Данный функционал не предусмотрен.')
+
+    if method == 'standard deviations':
+        outliers_index = standard_deviations(tt)
+    elif method == 'interquartile':
+        outliers_index = interquartile(tt)
+    else:
+        Exception('Данный метод не предусмотрен.')
+
+    index = np.delete(np.arange(WorkLista.shape[0]), outliers_index)
+    WorkLista = WorkLista[index]
+    WorkListb = WorkListb[index]
+
+    return WorkLista, WorkListb, outliers_index, tt

@@ -1,11 +1,12 @@
 import numpy as np
 from scipy.optimize import minimize
+from mpmath import mpf, matrix
 
-from intvalpy.RealInterval import Interval
-from intvalpy.intoper import zeros, infinity
+from intvalpy.RealInterval import Interval, precision
+from intvalpy.intoper import zeros, asinterval, infinity
 
 
-def __tolsolvty(infA, supA, infb, supb, weight=None, \
+def __tolsolvty(infA, supA, infb, supb, weight=None, x0=None, \
                 tol_f=1e-12, tol_x=1e-12, tol_g=1e-12, maxiter=2000):
 
     nsims = 30
@@ -17,7 +18,10 @@ def __tolsolvty(infA, supA, infb, supb, weight=None, \
 
     m, n = infA.shape
     if weight is None:
-        weight = np.ones(m)
+        if precision.increasedPrecisionQ:
+            weight = np.array([mpf('1')]*m, dtype=np.object)
+        else:
+            weight = np.ones(m)
 
     Ac = 0.5 * (infA + supA)
     Ar = 0.5 * (supA - infA)
@@ -25,8 +29,11 @@ def __tolsolvty(infA, supA, infb, supb, weight=None, \
     br = 0.5 * (supb - infb)
 
     sv = np.linalg.svd(np.array(Ac, dtype=np.float64), compute_uv=False)
-    minsv, maxsv = min(sv), max(sv)
+    if precision.increasedPrecisionQ:
+        sv = np.array([mpf(np.str(el)) for el in sv], dtype=np.object)
+    minsv, maxsv = np.min(sv), np.max(sv)
 
+    tt = None
     def calcfg(x):
         index = x >= 0
 
@@ -43,18 +50,26 @@ def __tolsolvty(infA, supA, infb, supb, weight=None, \
         else:
             dd = -weight[mc] * (supA[mc] * index + infA[mc] * (~index))
 
-        return tt[mc], dd
+        return tt[mc], dd, tt
 
-    if (minsv != 0 and maxsv/minsv < 1e15):
-        x = np.linalg.lstsq(np.array(Ac, dtype=np.float64), np.array(bc, dtype=np.float64), rcond=-1)[0]
+    if x0 is None:
+        if (minsv != 0 and maxsv/minsv < 1e15):
+            x = np.linalg.lstsq(np.array(Ac, dtype=np.float64), np.array(bc, dtype=np.float64), rcond=-1)[0]
+            if precision.increasedPrecisionQ:
+                sv = np.array([mpf(np.str(xx)) for xx in x], dtype=np.object)
+        else:
+            if precision.increasedPrecisionQ:
+                x = np.array([mpf('0')]*n, dtype=np.object)
+            else:
+                x = np.zeros(n)
     else:
-        x = np.zeros(n)
+        x = np.copy(x0)
 
     B = np.eye(n)
     vf = np.zeros(nsims) + infinity
     w = 1./alpha - 1
 
-    f, g0 = calcfg(x)
+    f, g0, _ = calcfg(x)
     ff = f ;  xx = x;
     cal = 1;  ncals = 1;
 
@@ -76,7 +91,7 @@ def __tolsolvty(infA, supA, infb, supb, weight=None, \
             cal += 1
             x = x + hs * g
             deltax = deltax + hs * normg
-            f, g1 = calcfg(x)
+            f, g1, tt = calcfg(x)
 
             if f > ff:
                 ff = f
@@ -116,7 +131,7 @@ def __tolsolvty(infA, supA, infb, supb, weight=None, \
             break
         ccode = False
 
-    return ccode, xx, ff
+    return ccode, xx, ff, tt
 
 
 def Uni(A, b, x=None, maxQ=False, x0=None, tol=1e-12, maxiter=1e3):
@@ -178,15 +193,15 @@ def Uni(A, b, x=None, maxQ=False, x0=None, tol=1e-12, maxiter=1e3):
 
         if x0 is None:
             # x0 = np.ones(A.shape[1])
-            _, x0, _ = __tolsolvty(A.a, A.b, b.a, b.b, \
-                                   tol_f=1e-8, tol_x=1e-8, tol_g=1e-8)
+            _, x0, _, _ = __tolsolvty(A.a, A.b, b.a, b.b, \
+                                      tol_f=1e-8, tol_x=1e-8, tol_g=1e-8)
         maximize = minimize(__minus_uni, x0, method='Nelder-Mead', tol=tol,
                             options={'maxiter': maxiter})
 
         return maximize.success, maximize.x, -maximize.fun
 
 
-def Tol(A, b, x=None, maxQ=False, x0=None, tol=1e-12, maxiter=1e3):
+def Tol(A, b, x=None, maxQ=False, weight=None, x0=None, tol=1e-12, maxiter=1e3):
     """
     Вычисление распознающего функционала Tol.
     В случае, если maxQ=True то находится максимум функционала.
@@ -237,8 +252,8 @@ def Tol(A, b, x=None, maxQ=False, x0=None, tol=1e-12, maxiter=1e3):
     else:
         from scipy.optimize import minimize
 
-        ccode, x, fun = __tolsolvty(A.a, A.b, b.a, b.b, weight=x0, maxiter=maxiter, \
-                                    tol_f=tol, tol_x=tol, tol_g=tol)
+        ccode, x, fun, _ = __tolsolvty(A.a, A.b, b.a, b.b, weight=weight, x0=x0, maxiter=maxiter, \
+                                        tol_f=tol, tol_x=tol, tol_g=tol)
         return ccode, x, fun
 
 def ive(A, b, N=40):
@@ -278,3 +293,48 @@ def ive(A, b, N=40):
 
     return np.sqrt(A.shape[1]) * _max * cond * \
            (np.linalg.norm(_arg_max, ord=2)/np.sqrt(sum(abs(b)**2)))
+
+
+def outliers(A, b, functional='uni', x0=None, tol=1e-12, maxiter=1e3, method='standard deviations'):
+
+    def interquartile(data):
+        q25, q75 = np.percentile(data, 25), np.percentile(data, 75)
+        iqr = q75 - q25
+        cut_off = iqr * 1.5
+
+        lower, upper = q25 - cut_off, q75 + cut_off
+        return np.argwhere((data < lower) | (data > upper)).flatten()
+
+    def standard_deviations(data):
+        # Set upper and lower limit to 3 standard deviation
+        std, mean = np.std(data), np.mean(data)
+        cut_off = std * 3
+
+        lower, upper = mean - cut_off, mean + cut_off
+        return np.argwhere((data < lower) | (data > upper)).flatten()
+
+    WorkListA = asinterval(A).copy
+    WorkListb = asinterval(b).copy
+
+    if functional == 'uni':
+        _, x, _ = Uni(A, b, maxQ=True, x0=x0, tol=tol, maxiter=maxiter)
+        tt = WorkListb.rad - (WorkListb.mid - WorkListA @ x).mig
+
+    elif functional == 'tol':
+        _, _, _, tt = __tolsolvty(WorkListA.a, WorkListA.b, WorkListb.a, WorkListb.b, weight=x0, maxiter=maxiter, \
+                                  tol_f=tol, tol_x=tol, tol_g=tol)
+    else:
+        Exception('Данный функционал не предусмотрен.')
+
+    if method == 'standard deviations':
+        outliers_index = standard_deviations(tt)
+    elif method == 'interquartile':
+        outliers_index = interquartile(tt)
+    else:
+        Exception('Данный метод не предусмотрен.')
+
+    index = np.delete(np.arange(WorkListA.shape[0]), outliers_index)
+    WorkListA = WorkListA[index]
+    WorkListb = WorkListb[index]
+
+    return WorkListA, WorkListb, outliers_index, tt

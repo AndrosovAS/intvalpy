@@ -12,12 +12,13 @@ INSTALL_REQUIRES = [
     'matplotlib',
     'numpy',
     'scipy',
-    'lpsolvers'
+    'cvxopt',
+    'mpmath'
 ]
 
 setup(
     name='intvalpy',
-    version='1.5.2',
+    version='1.5.3',
     description='An interval library in Python that uses classical interval ' + \
                 'arithmetic and Kauher arithmetic + Kahan division in some functions',
     long_description=README,

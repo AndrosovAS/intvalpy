@@ -478,7 +478,6 @@ def lineqs3D(A, b, show=True, color='C0', alpha=0.5, s=10, size=(8,8), \
             __center_rm.append([max(abs(center) + 1*rm)])
             A = np.append(np.append(A, np.eye(3)), -np.eye(3)).reshape((len(A)+6, 3))
             b = np.append(np.append(b, center-rm), -(center+rm))
-
         else:
             A = np.append(np.append(A, np.eye(3)), -np.eye(3)).reshape((len(A)+6, 3))
             b = np.append(np.append(b, [bounds[0][0], bounds[0][1], bounds[0][2]]), \
@@ -507,6 +506,10 @@ def lineqs3D(A, b, show=True, color='C0', alpha=0.5, s=10, size=(8,8), \
         fig = plt.figure(figsize=size)
         ax = fig.add_subplot(111, projection='3d')
     #     ax.grid(False)
+        if not bounds is None:
+            ax.set_xlim((bounds[0][0], bounds[1][0]))
+            ax.set_ylim((bounds[0][1], bounds[1][1]))
+            ax.set_zlim((bounds[0][2], bounds[1][2]))
 
         l = 0
         for v in vertices:
@@ -529,7 +532,7 @@ def lineqs3D(A, b, show=True, color='C0', alpha=0.5, s=10, size=(8,8), \
 
 
 def IntLinIncR3(A, b, show=True, consistency='uni', color='C0', \
-                alpha=0.5, s=10, size=(8, 8), bounds=None):
+                alpha=0.5, s=10, size=(8, 8), bounds=None, zero_lvl=True):
 
     if not (isinstance(A, ARITHMETIC_TUPLE) or isinstance(b, ARITHMETIC_TUPLE)):
         return lineqs3D(A, b, show=False, color=color, \
@@ -540,10 +543,12 @@ def IntLinIncR3(A, b, show=True, consistency='uni', color='C0', \
     vertices = []
     n, m = A.shape
 
-    assert m <= 3, "В матрице A должно быть два столбца!"
+    assert m <= 3, "В матрице A должно быть три столбца!"
     assert b.shape[0] == n, "Матрица A и правая часть b должны иметь одинаковое число строк!"
 
     def algo(bounds):
+        gxmin, gymin, gzmin = infinity, infinity, infinity
+        gxmax, gymax, gzmax = -infinity, -infinity, -infinity
         for ort in range(8):
             tmp = A.copyInKaucherArithmetic
             WorkListA = np.zeros((2*n+m, m))
@@ -571,7 +576,17 @@ def IntLinIncR3(A, b, show=True, consistency='uni', color='C0', \
                     WorkListb[k] += 1e-15
 
             vertices.append(lineqs3D(-WorkListA, -WorkListb, show=False, bounds=bounds))
-    algo(bounds)
+            for v in vertices[-1]:
+                gxmin = min(gxmin, np.min(v[:, 0]))
+                gymin = min(gymin, np.min(v[:, 1]))
+                gzmin = min(gzmin, np.min(v[:, 2]))
+
+                gxmax = max(gxmax, np.max(v[:, 0]))
+                gymax = max(gymax, np.max(v[:, 1]))
+                gzmax = max(gzmax, np.max(v[:, 2]))
+        return gxmin, gymin, gzmin, gxmax, gymax, gzmax
+
+    gxmin, gymin, gzmin, gxmax, gymax, gzmax = algo(bounds)
 
     # Если в каком-либо ортанте множество решений неограничено, то создаём
     # новое отрисовочное окно, чтобы срез решений был одинаковым.
@@ -580,13 +595,17 @@ def IntLinIncR3(A, b, show=True, consistency='uni', color='C0', \
         vertices = []
         _max = max(np.array(__center_rm))
         bounds = np.array([[-_max, -_max, -_max], [_max, _max, _max]])
-        algo(bounds)
+        gxmin, gymin, gzmin, gxmax, gymax, gzmax = algo(bounds)
     __center_rm = []
 
     if show:
         fig = plt.figure(figsize=size)
         ax = fig.add_subplot(111, projection='3d')
     #     ax.grid(False)
+        if not bounds is None:
+            ax.set_xlim((bounds[0][0], bounds[1][0]))
+            ax.set_ylim((bounds[0][1], bounds[1][1]))
+            ax.set_zlim((bounds[0][2], bounds[1][2]))
 
         color1 = color
         for el in vertices:
@@ -596,9 +615,15 @@ def IntLinIncR3(A, b, show=True, consistency='uni', color='C0', \
             for v in el:
                 x, y, z = v[:, 0], v[:, 1], v[:, 2]
                 xmin, ymin, zmin = np.min(abs(x)), np.min(abs(y)), np.min(abs(z))
+                xmax, ymax, zmax = np.max(abs(x)), np.max(abs(y)), np.max(abs(z))
 
                 if n <= l and l < n + 3 and (xmin * ymin * zmin == 0):
                     l += 1
+                    continue
+
+                elif zero_lvl and ((xmax==xmin and xmax==0 and abs(gxmin*gxmax) > 1e-14) or
+                                   (ymax==ymin and ymax==0 and abs(gymin*gymax) > 1e-14) or
+                                   (zmax==zmin and zmax==0 and abs(gzmin*gzmax) > 1e-14)):      # demo
                     continue
 
                 elif l >= n:

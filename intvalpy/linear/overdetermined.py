@@ -2,35 +2,72 @@ import numpy as np
 from mpmath import *
 
 from bisect import bisect_left
-from lpsolvers import solve_lp
+import cvxopt
 
 from intvalpy.RealInterval import Interval
-from intvalpy.intoper import intersection, infinity
+from intvalpy.intoper import asinterval, intersection, infinity
 from intvalpy.linear.square_system import Gauss
+from intvalpy.linear.system_properties import Tol
+from intvalpy.visualization import lineqs
 
 
-def Rohn(A, b, tol=1e-12, maxiter=2000):
-    """
-    Метод Дж. Рона для переопределённых ИСЛАУ.
 
-    Parameters:
-                A: Interval
-                    Матрица ИСЛАУ.
+cvxopt.solvers.options['show_progress'] = False
+cvxopt.solvers.options['glpk'] = {'msg_lev': 'GLP_MSG_OFF'}
 
-                b: Interval
-                    Вектор правой части ИСЛАУ.
+def _Rohn_Tol(A, b, nu=None):
 
-    Optional Parameters:
-                tol: float
-                    Погрешность для остановки итерационного процесса.
+    def solve_lp(c, A_ub, b_ub):
+        asmatrix = lambda A: A if isinstance(A, cvxopt.matrix) else cvxopt.matrix(A)
+        args = [asmatrix(c), asmatrix(A_ub), asmatrix(b_ub)]
 
-                maxiter: int
-                    Максимальное количество итераций.
+        result = cvxopt.solvers.lp(*args, solver='glpk')
+        if 'optimal' not in result['status']:
+            raise Exception("Неизвестная ошибка.")
+        return np.array(result['x']).reshape(c.shape[0])
 
-    Returns:
-                out: Interval
-                    Возвращается интервальный вектор решений.
-    """
+    def algo(A, b, nu):
+        A_ub = np.zeros((2*(n+m) , 2*m), dtype=np.float64)
+        b_ub = np.zeros(2*(n+m), dtype=np.float64)
+
+        A_ub[:n, :m] = A.b
+        A_ub[:n, m:] = -A.a
+
+        A_ub[n:2*n, :m] = -A.a
+        A_ub[n:2*n, m:] = A.b
+        A_ub[2*n:] = -np.eye(2*m)
+
+        b_ub[:n] = b.b
+        b_ub[n:2*n] = -b.a
+
+        c = np.zeros(2*m, dtype=np.float64)
+        c[nu], c[nu+m] = 1, -1
+
+        inf = solve_lp(c, A_ub, b_ub) @ c
+        sup = -(solve_lp(-c, A_ub, b_ub) @ -c)
+
+        return inf, sup
+
+    n, m = A.shape
+    tol = Tol(A, b, maxQ=True)
+    if tol[2] < 0:
+        raise Exception('Допусковое множество решений пусто!')
+
+    _inf, _sup = [], []
+    if nu is None:
+        for k in range(m):
+            inf, sup = algo(A, b, k)
+            _inf.append(inf)
+            _sup.append(sup)
+    else:
+        inf, sup = algo(A, b, nu)
+        _inf.append(inf)
+        _sup.append(sup)
+
+    return Interval(_inf, _sup, sortQ=False)
+
+
+def _Rohn_Uni(A, b, tol=1e-12, maxiter=2000):
 
     Amid = np.array(A.mid, dtype=np.float64)
     Ac_plus = np.linalg.inv(Amid.T @ Amid) @ Amid.T
@@ -56,6 +93,40 @@ def Rohn(A, b, tol=1e-12, maxiter=2000):
         error = np.amax(abs(result-d))
         nit += 1
     return Interval(x0-result, x0+result)
+
+
+def Rohn(A, b, tol=1e-12, maxiter=2000, consistency='uni'):
+    """
+    Метод Дж. Рона для переопределённых ИСЛАУ.
+
+    Parameters:
+                A: Interval
+                    Матрица ИСЛАУ.
+
+                b: Interval
+                    Вектор правой части ИСЛАУ.
+
+    Optional Parameters:
+                tol: float
+                    Погрешность для остановки итерационного процесса.
+
+                maxiter: int
+                    Максимальное количество итераций.
+
+                consistency: str
+                    Параметр указывает какое множество решений (объединённое или
+                    допусковое) будет выведено в ответе.
+
+    Returns:
+                out: Interval
+                    Возвращается интервальный вектор решений.
+    """
+    if consistency == 'uni':
+        return _Rohn_Uni(A, b, tol=tol, maxiter=maxiter)
+    elif consistency == 'tol':
+        return _Rohn_Tol(A, b, nu=None)
+    else:
+        raise Exception('Нахождение данного множества решений не предусмотрено.')
 
 
 def PSS(A, b, tol=1e-12, maxiter=2000, nu=None):
@@ -179,6 +250,15 @@ def PSS(A, b, tol=1e-12, maxiter=2000, nu=None):
 
     b_ub = np.zeros(2*(n+m)+m)
     p = np.zeros(2*m)
+
+    def solve_lp(c, A_ub, b_ub):
+        asmatrix = lambda A: A if isinstance(A, cvxopt.matrix) else cvxopt.matrix(A)
+        args = [asmatrix(c), asmatrix(A_ub), asmatrix(b_ub)]
+
+        result = cvxopt.solvers.lp(*args, solver='glpk')
+        if 'optimal' not in result['status']:
+            raise Exception("LP optimum not found: %s" % result['status'])
+        return np.array(result['x']).reshape(c.shape[0])
 
     def ExactOmega(midA, radA, b, Q):
         S = np.eye(m) * np.insert(np.sign(Q.a), _nu, np.sign(V[_nu].a))
@@ -357,3 +437,115 @@ def PSS(A, b, tol=1e-12, maxiter=2000, nu=None):
                 inf.append(algo(_nu))
 
     return Interval(inf, sup, sortQ=False)
+
+
+def ASh(A, b, y=None):
+
+    def StartBar(tol_Ab, supQ):
+        if supQ:
+            return tol_Ab[1] + Interval(0*tol_Ab[1], 6*(tol_Ab[1]+1))
+        else:
+            return tol_Ab[1] + Interval(-6*(tol_Ab[1]+1), 0*tol_Ab[1])
+
+    def crush(x, supQ, vTol):
+        if supQ:
+            if vTol > 0:
+                return Interval(x.mid, x.b)
+            else:
+                return Interval(x.a, x.mid)
+
+        else:
+            if vTol > 0:
+                return Interval(x.a, x.mid)
+            else:
+                return Interval(x.mid, x.b)
+
+
+    def algo(A, b, nu, tol_Ab, supQ):
+
+        WorkListA, WorkListb = A.copy, b.copy
+        del WorkListA[:, nu]
+
+        a = A[:, nu].reshape((n, 1))
+        V, x = StartBar(tol_Ab, supQ), asinterval(tol_Ab[1])
+        del V[nu]; del x[nu]
+
+        for i in np.append(np.arange(nu, m), np.arange(0, nu)):
+            if i == nu:
+                continue
+            elif i > nu:
+                k = i - 1
+            else:
+                k = i
+
+            x[k] = V[k].copy
+            nit = 1
+            while x[k].wid > 1e-15 and nit < 500:
+                bb = WorkListb + (WorkListA @ x.mid).opp
+                tol = Tol(a, bb, maxQ=True, tol=1e-12)
+                x[k] = crush(x[k], supQ, tol[2])
+
+                nit += 1
+
+        wA = np.zeros((2*(n+1), 2))
+        wb = np.zeros(2*(n+1))
+
+        wA[:n, 0] = a.b[:, 0]
+        wA[:n, 1] = -a.a[:, 0]
+
+        wA[n:2*n, 0] = -a.a[:, 0]
+        wA[n:2*n, 1] = a.b[:, 0]
+        wA[2*n:] = -np.eye(2)
+
+        for xx in [x.mid, x.a, x.b]:
+            bb = WorkListb + (WorkListA @ xx).opp
+            wb[:n] = bb.b
+            wb[n:2*n] = -bb.a
+
+            try:
+                vertices = lineqs(-wA, -wb, show=False)
+                ends = np.max(vertices[:, 0] - vertices[:, 1])
+                break
+            except:
+                pass
+
+        return ends, x
+
+    n, m = A.shape
+    if y is None:
+        tol_Ab = Tol(A, b, maxQ=True)
+        if tol_Ab[2] < 0:
+            raise Exception('Допусковое множество решений пусто!')
+    else:
+        tol_Ab = (True, y, Tol(A, b, x=y))
+        if tol_Ab[2] < 0:
+            raise Exception('Точка не лежит в допусковом множестве решений!')
+
+
+    result = [[] for k in range(m)]
+    for nu in range(m):
+        sup, x1 = algo(A, b, nu, tol_Ab, supQ=True)
+        inf, x2 = algo(A, b, nu, tol_Ab, supQ=False)
+        # print(sup, x1)
+        # print(inf, x2)
+        # print('+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+\n\n')
+
+        for k in range(m):
+            if k == nu:
+                result[k].append(sup)
+                result[k].append(inf)
+            else:
+                if k > nu:
+                    kk = k - 1
+                else:
+                    kk = k
+                result[k].append(x1[kk].a)
+                result[k].append(x1[kk].b)
+                result[k].append(x2[kk].a)
+                result[k].append(x2[kk].b)
+
+    res = []*m
+    for r in result:
+        res.append([min(r), max(r)])
+    res = np.array(res, dtype=np.float64)
+    return Interval(np.min(res, axis=1), np.max(res, axis=1), sortQ=False)
