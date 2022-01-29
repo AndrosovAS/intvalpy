@@ -1,12 +1,11 @@
 import numpy as np
-from scipy.optimize import minimize
-from mpmath import mpf, matrix
+from mpmath import mpf
 
-from intvalpy.RealInterval import Interval, precision
-from intvalpy.intoper import zeros, asinterval, infinity
+from intvalpy.RealInterval import Interval, precision, ARITHMETIC_TUPLE
+from intvalpy.intoper import asinterval, infinity, intersection
 
 
-def __tolsolvty(infA, supA, infb, supb, weight=None, x0=None, \
+def __tolsolvty(infA, supA, infb, supb, weight=None, x0=None,
                 tol_f=1e-12, tol_x=1e-12, tol_g=1e-12, maxiter=2000):
 
     nsims = 30
@@ -34,6 +33,7 @@ def __tolsolvty(infA, supA, infb, supb, weight=None, x0=None, \
     minsv, maxsv = np.min(sv), np.max(sv)
 
     tt = None
+
     def calcfg(x):
         index = x >= 0
 
@@ -70,8 +70,9 @@ def __tolsolvty(infA, supA, infb, supb, weight=None, x0=None, \
     w = 1./alpha - 1
 
     f, g0, _ = calcfg(x)
-    ff = f ;  xx = x;
-    cal = 1;  ncals = 1;
+    ff = f;  xx = x
+    cal = 1;  ncals = 1
+    ccode = False
 
     for nit in range(int(maxiter)):
         vf[nsims-1] = ff
@@ -134,110 +135,113 @@ def __tolsolvty(infA, supA, infb, supb, weight=None, x0=None, \
     return ccode, xx, ff, tt
 
 
-def Uni(A, b, x=None, maxQ=False, x0=None, tol=1e-12, maxiter=1e3):
+def Uni(A, b, x=None, maxQ=False, x0=None, tol=1e-12, maxiter=2000):
     """
-    Вычисление распознающего функционала Uni.
-    В случае, если maxQ=True то находится максимум функционала.
+    When it is necessary to check an interval system of linear equations for its weak solvability
+    you should use the Uni functionality. If maxQ=True, then the maximum of the functional is found,
+    otherwise, the value at point x is calculated.
+
+    To optimize it, the well-known Nelder-Mead method is used, which does not use gradients,
+    since there is an absolute value in the function.
+
 
     Parameters:
-                A: Interval
-                    Матрица ИСЛАУ.
 
-                b: Interval
-                    Вектор правой части ИСЛАУ.
+        A: Interval
+            The input interval matrix of ISLAE, which can be either square or rectangular.
 
-    Optional Parameters:
-                x: float, array_like
-                    Точка в которой вычисляется распознающий функционал.
-                    По умолчанию x равен массиву из нулей.
+        b: Interval
+            The interval vector of the right part of the ISLAE.
 
-                maxQ: bool
-                    Если значение параметра равно True, то производится
-                    максимизация функционала.
+        x: float, array_like, optional
+            The point at which the recognizing functional is calculated. By default, x is equal to an array of zeros.
 
-                x0: float, array_like
-                    Первоначальная догадка.
+        maxQ: bool, optional
+            If the parameter value is True, then the functional is maximized.
 
-                tol: float
-                    Погрешность для прекращения оптимизационного процесса.
+        x0: float, array_like, optional
+            The initial guess for finding the global maximum.
 
-                maxiter: int
-                    Максимальное количество итераций.
+        tol: float, optional
+            Absolute error in xopt between iterations that is acceptable for convergence.
+
+        maxiter: int, optional
+            The maximum number of iterations.
 
     Returns:
-                out: float, tuple
-                    Возвращается значение распознающего функционала в точке x.
-                    В случае, если maxQ=True, то возвращается кортеж, где
-                    первый элемент -- корректность завершения оптимизации,
-                    второй элемент -- точка оптимума,
-                    третий элемент -- значение функции в этой точке.
+
+        out: float, tuple
+            The value of the recognizing functional at point x is returned.
+            If maxQ=True, then a tuple is returned, where the first element is the correctness of the optimization completion,
+            the second element is the optimum point, and the third element is the value of the function at this point.
     """
+
+    from scipy.optimize import minimize, LinearConstraint
 
     midA = A.mid
     radA = A.rad
     br = b.rad
     bm = b.mid
-    def __dot(A, x):
+
+    def __dot(x):
         tmp1 = np.dot(midA, x)
         tmp2 = np.dot(radA, abs(x))
         return Interval(tmp1 - tmp2, tmp1 + tmp2, sortQ=False)
-    __uni = lambda x: min(br - (bm - __dot(A, x)).mig)
+
+    def __uni(x):
+        return min(br - (bm - __dot(x)).mig)
     __minus_uni = lambda x: -__uni(x)
 
-    if maxQ==False:
+    if not maxQ:
         if x is None:
             x = np.zeros(A.shape[1])
         return __uni(x)
     else:
-        from scipy.optimize import minimize
-
         if x0 is None:
-            # x0 = np.ones(A.shape[1])
-            _, x0, _, _ = __tolsolvty(A.a, A.b, b.a, b.b, \
+            _, x0, _, _ = __tolsolvty(A.a, A.b, b.a, b.b,
                                       tol_f=1e-8, tol_x=1e-8, tol_g=1e-8)
-        maximize = minimize(__minus_uni, x0, method='Nelder-Mead', tol=tol,
-                            options={'maxiter': maxiter})
+        maximize = minimize(__minus_uni, x0, method='COBYLA', tol=tol, options={'maxiter': maxiter})
 
         return maximize.success, maximize.x, -maximize.fun
 
 
-def Tol(A, b, x=None, maxQ=False, weight=None, x0=None, tol=1e-12, maxiter=1e3):
+def Tol(A, b, x=None, maxQ=False, weight=None, x0=None, tol=1e-12, maxiter=2000):
     """
-    Вычисление распознающего функционала Tol.
-    В случае, если maxQ=True то находится максимум функционала.
+    When it is necessary to check the interval system of linear equations for its strong
+    solvability you should use the Tol functionality. If maxQ=True, then the maximum
+    of the functional is found, otherwise, the value at point x is calculated.
+    To optimize it, a proven the tolsolvty program, which is suitable for solving practical problems.
+
 
     Parameters:
-                A: Interval
-                    Матрица ИСЛАУ.
 
-                b: Interval
-                    Вектор правой части ИСЛАУ.
+        A: Interval
+            The input interval matrix of ISLAE, which can be either square or rectangular.
 
-    Optional Parameters:
-                x: float, array_like
-                    Точка в которой вычисляется распознающий функционал.
-                    По умолчанию x равен массиву из нулей.
+        b: Interval
+            The interval vector of the right part of the ISLAE.
 
-                maxQ: bool
-                    Если значение параметра равно True, то производится
-                    максимизация функционала.
+        x: float, array_like, optional
+            The point at which the recognizing functional is calculated. By default, x is equal to an array of zeros.
 
-                x0: float, array_like
-                    Первоначальная догадка.
+        maxQ: bool, optional
+            If the parameter value is True, then the functional is maximized.
 
-                tol: float
-                    Погрешность для прекращения оптимизационного процесса.
+        x0: float, array_like, optional
+            The initial guess for finding the global maximum.
 
-                maxiter: int
-                    Максимальное количество итераций.
+        tol: float, optional
+            Absolute error in xopt between iterations that is acceptable for convergence.
+
+        maxiter: int, optional
+            The maximum number of iterations.
 
     Returns:
-                out: float, tuple
-                    Возвращается значение распознающего функционала в точке x.
-                    В случае, если maxQ=True, то возвращается кортеж, где
-                    первый элемент -- корректность завершения оптимизации,
-                    второй элемент -- точка оптимума,
-                    третий элемент -- значение функции в этой точке.
+
+        out: float, tuple
+            The value of the recognizing functional at point x is returned.
+            If maxQ=True, then a tuple is returned, where the first element is the correctness of the optimization completion,
+            the second element is the optimum point, and the third element is the value of the function at this point.
     """
 
     br = b.rad
@@ -245,16 +249,15 @@ def Tol(A, b, x=None, maxQ=False, weight=None, x0=None, tol=1e-12, maxiter=1e3):
     __tol = lambda x: np.min(br - abs(bm - A @ x))
     __minus_tol = lambda x: -__tol(x)
 
-    if maxQ==False:
+    if not maxQ:
         if x is None:
             x = np.zeros(A.shape[1])
         return __tol(x)
     else:
-        from scipy.optimize import minimize
-
-        ccode, x, fun, _ = __tolsolvty(A.a, A.b, b.a, b.b, weight=weight, x0=x0, maxiter=maxiter, \
+        ccode, x, fun, _ = __tolsolvty(A.a, A.b, b.a, b.b, weight=weight, x0=x0, maxiter=maxiter,
                                         tol_f=tol, tol_x=tol, tol_g=tol)
         return ccode, x, fun
+
 
 def ive(A, b, N=40):
     """
@@ -287,15 +290,14 @@ def ive(A, b, N=40):
     for _ in range(N):
         for k in range(A.shape[0]):
             for l in range(A.shape[1]):
-                angle_A[k, l] = np.random.choice([_inf[k,l], _sup[k,l]])
+                angle_A[k, l] = np.random.choice([_inf[k, l], _sup[k, l]])
         tmp = np.linalg.cond(angle_A)
         cond = tmp if tmp<cond else cond
 
-    return np.sqrt(A.shape[1]) * _max * cond * \
-           (np.linalg.norm(_arg_max, ord=2)/np.sqrt(sum(abs(b)**2)))
+    return np.sqrt(A.shape[1]) * _max * cond * (np.linalg.norm(_arg_max, ord=2)/np.sqrt(sum(abs(b)**2)))
 
 
-def outliers(A, b, functional='uni', x0=None, tol=1e-12, maxiter=1e3, method='standard deviations'):
+def outliers(A, b, functional='uni', x0=None, tol=1e-12, maxiter=2000, method='standard deviations'):
 
     def interquartile(data):
         q25, q75 = np.percentile(data, 25), np.percentile(data, 75)
@@ -321,7 +323,7 @@ def outliers(A, b, functional='uni', x0=None, tol=1e-12, maxiter=1e3, method='st
         tt = WorkListb.rad - (WorkListb.mid - WorkListA @ x).mig
 
     elif functional == 'tol':
-        _, _, _, tt = __tolsolvty(WorkListA.a, WorkListA.b, WorkListb.a, WorkListb.b, weight=x0, maxiter=maxiter, \
+        _, _, _, tt = __tolsolvty(WorkListA.a, WorkListA.b, WorkListb.a, WorkListb.b, weight=x0, maxiter=maxiter,
                                   tol_f=tol, tol_x=tol, tol_g=tol)
     else:
         Exception('Данный функционал не предусмотрен.')

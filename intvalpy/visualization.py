@@ -2,11 +2,46 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-from .RealInterval import Interval, ARITHMETIC_TUPLE
+from .RealInterval import ARITHMETIC_TUPLE
 from .intoper import infinity
 
 
 def scatter_plot(x, y, title="Box", color='gray', alpha=0.5, s=10, size=(15, 15), save=False):
+    """
+    A mathematical diagram depicting the values of two variables in the form of bars on a Cartesian plane.
+
+    Parameters:
+
+        x: Interval
+            Interval vector of the data position on the OX axis.
+
+        y: Interval
+            Interval vector of the data position on the OY axis.
+
+        title: str, optional
+            The top legend of the graph.
+
+        color: str, optional
+            The color of the display of the bars.
+
+        alpha: float, optional
+            Transparency of the graph.
+
+        s: float, optional
+            How big are the points of the vertices.
+
+        size: tuple, optional
+            The size of the drawing window.
+
+        save: bool, optional
+            If the value is True, the graph is saved.
+
+    Returns:
+
+        out: None
+            A scatter plot is displayed.
+    """
+
 
     ox = np.array([x.a, x.a, x.b, x.b])
     oy = np.array([y.a, y.b, y.b, y.a])
@@ -15,9 +50,8 @@ def scatter_plot(x, y, title="Box", color='gray', alpha=0.5, s=10, size=(15, 15)
     ax = fig.add_subplot(111, title=title)
 
     plt.fill(ox, oy, color=color, alpha=alpha)
-    for k in range(x.shape[0]):
-        if (x[k].a-x[k].b) == 0 and (y[k].a-y[k].b) == 0:
-            ax.scatter(ox[:, k], oy[:, k], s=s, color=color, alpha=alpha)
+    index = ((x.a - x.b) == 0) & ((y.a - y.b) == 0)
+    ax.scatter(ox[:, index], oy[:, index], s=s, color=color, alpha=alpha)
 
     if save:
         fig.savefig(title + ".png")
@@ -156,59 +190,67 @@ def ChangeVariable(A, b, k):
 
 
 __center_rm = []
-def lineqs(A, b, show=True, title="Solution Set", color='gray', \
+def lineqs(A, b, show=True, title="Solution Set", color='gray',
            bounds=None, alpha=0.5, s=10, size=(15, 15), save=False):
     """
-    Функция визуализирует множество решений системы линейных алгебраических
-    неравенств A x >= b с двумя переменными методом граничных интервалов, а
-    также выводит вершины множества решений.
+    The function visualizes the set of solutions of a system of linear algebraic
+    inequalities A x >= b with two variables by the method of boundary intervals, and
+    also outputs the vertices of the set of solutions.
+
+    If the set of solutions is unlimited, then the algorithm independently
+    selects the rendering boundaries.
 
     Parameters:
-                A: float
-                    Матрица системы линейных алгебраических неравенств.
 
-                b: float
-                    Вектор правой части системы линейных алгебраических неравенств.
+            A: float, array_like
+                Matrix of a system of linear algebraic inequalities.
 
-    Optional Parameters:
-                show: bool
-                    Визуализация множества решений.
+            b: float, array_like
+                The vector of the right part of the system of linear algebraic inequalities.
 
-                title: str
-                    Верхняя легенда графика.
+            show: bool, optional
+                This parameter is responsible for whether a set of solutions will be shown.
+                By default, the value is set to True, i.e. the graph is being drawn.
 
-                color: str
-                    Каким цветом осуществляется отрисовка графика.
+            title: str, optional
+                The top legend of the graph.
 
-                bounds: array_like
-                    Границы отрисовочного окна.
+            color: str, optional
+                The color of the inner area of the set of solutions.
 
-                alpha: float
-                    Прозрачность графика.
+            bounds: array_like, optional
+                Borders of the drawing area. The first element of the array is responsible for the lower faces
+                on the OX and OY axes, and the second for the upper ones. Thus, in order to OX
+                lay within [-2, 2], and OY within [-3, 4], it is necessary to set bounds as [[-2, -3], [2, 4]].
 
-                s: float
-                    Насколько велики точки вершин.
+            alpha: float, optional
+                Transparency of the graph.
 
-                size: tuple
-                    Размер отрисовочного окна.
+            s: float, optional
+                How big are the points of the vertices.
 
-                save: bool
-                    Если значение True, то график сохраняется.
+            size: tuple, optional
+                The size of the drawing window.
+
+            save: bool, optional
+                If the value is True, the graph is saved.
 
     Returns:
-                out: list
-                    Возвращается список упорядоченных вершин.
-                    В случае, если show = True, то график отрисовывается.
+
+            out: list
+                Returns a list of ordered vertices.
+                If show = True, then the graph is drawn.
     """
+
     if isinstance(A, ARITHMETIC_TUPLE) or isinstance(b, ARITHMETIC_TUPLE):
-        raise Exception('Система интервального типа!')
+        raise Exception('Interval type system!')
 
     A = np.asarray(A)
     b = np.asarray(b)
 
     n, m = A.shape
-    assert m <= 2, "В матрице A должно быть два столбца!"
-    assert b.shape[0] == n, "Матрица A и правая часть b должны иметь одинаковое число строк!"
+    assert m <= 2, "There should be two columns in matrix A."
+    assert b.shape[0] == n, "The size of the matrix A must be consistent with the size of the vector of the right part of b."
 
     A, b, cnmty = clear_zero_rows(A, b)
 
@@ -230,7 +272,7 @@ def lineqs(A, b, show=True, title="Solution Set", color='gray', \
 
         else:
             A = np.append(np.append(A, np.eye(2)), -np.eye(2)).reshape((len(A)+4, 2))
-            b = np.append(np.append(b, [bounds[0][0], bounds[0][1]]), \
+            b = np.append(np.append(b, [bounds[0][0], bounds[0][1]]),
                           [-bounds[1][0], -bounds[1][1]])
 
         S = BoundaryIntervals(A, b)
@@ -245,19 +287,19 @@ def lineqs(A, b, show=True, title="Solution Set", color='gray', \
         ax.fill(x, y, linestyle='-', linewidth=1, color=color, alpha=alpha)
         ax.scatter(x, y, s=s, color='black', alpha=1)
 
-    if save:
-        fig.savefig(title + ".png")
+        if save:
+            fig.savefig(title + ".png")
     return Unique(vertices)
 
 
-def OneShotVisual2D(*args, title="Solution Set", grid=True, size=(15, 15),
-                    labelsize=None, save=False):
+def OneShotVisual2D(*args, title="Solution Set", grid=True, size=(15, 15), labelsize=None, save=False):
 
     fig = plt.figure(figsize=size)
     ax = fig.add_subplot(111, title=title)
 
+    if grid:
+        ax.grid()
 
-    ax.grid() if grid else 0
     if labelsize is None:
         ax.xaxis.set_tick_params(labelsize=size[0])
         ax.yaxis.set_tick_params(labelsize=size[0])
@@ -265,9 +307,11 @@ def OneShotVisual2D(*args, title="Solution Set", grid=True, size=(15, 15),
         ax.xaxis.set_tick_params(labelsize=labelsize)
         ax.yaxis.set_tick_params(labelsize=labelsize)
 
-
     for v in args:
-        alpha=0.5; s=10; color='gray';
+        alpha = 0.5
+        s = 10
+        color = 'gray'
+        vertices = None
         for key in v.keys():
             if key == "vertices":
                 vertices = v["vertices"]
@@ -278,82 +322,90 @@ def OneShotVisual2D(*args, title="Solution Set", grid=True, size=(15, 15),
             elif key == "color":
                 color = v["color"]
 
-        if isinstance(vertices, list):
-            for k in range(4):
-                if len(vertices[k]) > 0:
-                    x, y = vertices[k][:, 0], vertices[k][:, 1]
+        if not (vertices is None):
+            if isinstance(vertices, list):
+                for k in range(4):
+                    if len(vertices[k]) > 0:
+                        x, y = vertices[k][:, 0], vertices[k][:, 1]
+                        ax.fill(x, y, linestyle='-', linewidth=1, color=color, alpha=alpha)
+                        ax.scatter(x, y, s=s, color='black', alpha=1)
+            else:
+                if len(vertices) > 0:
+                    x, y = vertices[:, 0], vertices[:, 1]
                     ax.fill(x, y, linestyle='-', linewidth=1, color=color, alpha=alpha)
                     ax.scatter(x, y, s=s, color='black', alpha=1)
-        else:
-            if len(vertices) > 0:
-                x, y = vertices[:, 0], vertices[:, 1]
-                ax.fill(x, y, linestyle='-', linewidth=1, color=color, alpha=alpha)
-                ax.scatter(x, y, s=s, color='black', alpha=1)
 
     if save:
         fig.savefig(title + ".png")
 
 
-def IntLinIncR2(A, b, show=True, title="Solution Set", consistency='uni', \
+def IntLinIncR2(A, b, show=True, title="Solution Set", consistency='uni',
                 bounds=None, color='gray', alpha=0.5, s=10, size=(15, 15), save=False):
     """
-    Функция визуализирует множество решений интервальной системы линейных
-    алгебраических уравнений A x = b с двумя переменными методом граничных
-    интервалов, а также выводит вершины множества решений.
+    The function visualizes a set of solutions of an interval system of linear
+    algebraic equations A x = b with two variables by the boundary value method
+    intervals, and also outputs the vertices of the set of solutions.
+
+    If the set of solutions is unlimited, then the algorithm independently
+    selects the rendering boundaries.
 
     Parameters:
-                A: Interval
-                    Матрица ИСЛАУ.
 
-                b: Interval
-                    Вектор правой части ИСЛАУ.
+            A: Interval
+                The input interval matrix of ISLAE, which can be either square or rectangular.
 
-    Optional Parameters:
-                show: bool
-                    Визуализация множества решений.
+            b: Interval
+                The interval vector of the right part of the ISLAE.
 
-                title: str
-                    Верхняя легенда графика.
+            show: bool, optional
+                This parameter is responsible for whether a set of solutions will be shown.
+                By default, the value is set to True, i.e. the graph is being drawn.
 
-                consistency: str
-                    Параметр указывает какое множество решений (объединённое или
-                    допусковое) будет выведено в ответе.
+            title: str, optional
+                The top legend of the graph.
 
-                bounds: array_like
-                    Границы отрисовочного окна.
+            consistency: str, optional
+                A parameter for selecting the type of a set of solutions.
+                If consistency = "uni", then the function returns the united set of the solution.
+                If consistency = "tol", then the tolerance set of the solution.
 
-                color: str
-                    Каким цветом осуществляется отрисовка графика.
+            bounds: array_like, optional
+                Borders of the drawing area. The first element of the array is responsible for the lower faces
+                on the OX and OY axes, and the second for the upper ones. Thus, in order to OX
+                lay within [-2, 2], and OY within [-3, 4], it is necessary to set bounds as [[-2, -3], [2, 4]].
 
-                alpha: float
-                    Прозрачность графика.
+            color: str, optional
+                The color of the inner area of the set of solutions.
 
-                s: float
-                    Насколько велики точки вершин.
+            alpha: float, optional
+                Transparency of the graph.
 
-                size: tuple
-                    Размер отрисовочного окна.
+            s: float, optional
+                How big are the points of the vertices.
 
-                save: bool
-                    Если значение True, то график сохраняется.
+            size: tuple, optional
+                The size of the drawing window.
+
+            save: bool, optional
+                If the value is True, the graph is saved.
 
     Returns:
-                out: list
-                    Возвращается список упорядоченных вершин в каждом ортанте
-                    начиная с первого и совершая обход в положительном направлении.
-                    В случае, если show = True, то график отрисовывается.
+
+            out: list
+                Returns a list of ordered vertices in each ortant starting from the first
+                and making a detour in a positive direction. If show = True, then the graph is drawn.
     """
 
     if not (isinstance(A, ARITHMETIC_TUPLE) or isinstance(b, ARITHMETIC_TUPLE)):
-        return lineqs(A, b, show=show, title=title, color=color, bounds=bounds, \
+        return lineqs(A, b, show=show, title=title, color=color, bounds=bounds,
                       alpha=alpha, s=s, size=size, save=save)
 
     ortant = [(1, 1), (-1, 1), (-1, -1), (1, -1)]
     vertices = []
     n, m = A.shape
 
-    assert m <= 2, "В матрице A должно быть два столбца!"
-    assert b.shape[0] == n, "Матрица A и правая часть b должны иметь одинаковое число строк!"
+    assert m <= 2, "There should be two columns in matrix A."
+    assert b.shape[0] == n, "The size of the matrix A must be consistent with the size of the vector of the right part of b."
 
     def algo(bounds):
         for ort in range(4):
@@ -398,14 +450,59 @@ def IntLinIncR2(A, b, show=True, title="Solution Set", consistency='uni', \
                 x, y = vertices[k][:, 0], vertices[k][:, 1]
                 ax.fill(x, y, linestyle='-', linewidth=1, color=color, alpha=alpha)
                 ax.scatter(x, y, s=s, color='black', alpha=1)
-    if save:
-        fig.savefig(title + ".png")
+        if save:
+            fig.savefig(title + ".png")
 
     return vertices
 
 
-def lineqs3D(A, b, show=True, color='C0', alpha=0.5, s=10, size=(8,8), \
+def lineqs3D(A, b, show=True, color='C0', alpha=0.5, s=10, size=(8, 8),
              bounds=None):
+    """
+    The function visualizes the set of solutions of a system of linear algebraic
+    inequalities A x >= b with three variables by the method of boundary intervals, and
+    also outputs the vertices of the set of solutions.
+
+    If the set of solutions is unlimited, then the algorithm independently
+    selects the rendering boundaries.
+
+
+    Parameters:
+
+        A: float, array_like
+            Matrix of a system of linear algebraic inequalities.
+
+        b: float, array_like
+            The vector of the right part of the system of linear algebraic inequalities.
+
+        show: bool, optional
+            This parameter is responsible for whether a set of solutions will be shown.
+            By default, the value is set to True, i.e. the graph is being drawn.
+
+        color: str, optional
+            The color of the inner area of the set of solutions.
+
+        bounds: array_like, optional
+            Borders of the drawing area. The first element of the array is responsible
+            for the lower faces along the axes OX, OY and OZ, and the second for the upper ones.
+            Thus, in order for OX to lie within [-2, 2], OY within [-3, 4], and OZ within [1, 5],
+            it is necessary to set bounds as [[-2, -3, 1], [2, 4, 5]].
+
+        alpha: float, optional
+            Transparency of the graph.
+
+        s: float, optional
+            How big are the points of the vertices.
+
+        size: tuple, optional
+            The size of the drawing window.
+
+    Returns:
+
+        out: list
+            Returns a list of ordered vertices.
+            If show = True, then the graph is drawn.
+    """
 
     A = np.asarray(A)
     b = np.asarray(b)
@@ -414,8 +511,8 @@ def lineqs3D(A, b, show=True, color='C0', alpha=0.5, s=10, size=(8,8), \
     A, b = non_repeat(A, b)
 
     n, m = A.shape
-    assert m == 3, "В матрице A должно быть три столбца!"
-    assert b.shape[0] == n, "Матрица A и правая часть b должны иметь одинаковое число строк!"
+    assert m == 3, "There should be three columns in matrix A."
+    assert b.shape[0] == n, "The size of the matrix A must be consistent with the size of the vector of the right part of b."
 
     V = []
     PP = []
@@ -452,7 +549,6 @@ def lineqs3D(A, b, show=True, color='C0', alpha=0.5, s=10, size=(8,8), \
 
     if len(PP) == 0:
         return []
-        # raise Exception('Система несовместна - множество решений пусто')
 
     if not cfinite:
         if bounds is None:
@@ -480,7 +576,7 @@ def lineqs3D(A, b, show=True, color='C0', alpha=0.5, s=10, size=(8,8), \
             b = np.append(np.append(b, center-rm), -(center+rm))
         else:
             A = np.append(np.append(A, np.eye(3)), -np.eye(3)).reshape((len(A)+6, 3))
-            b = np.append(np.append(b, [bounds[0][0], bounds[0][1], bounds[0][2]]), \
+            b = np.append(np.append(b, [bounds[0][0], bounds[0][1], bounds[0][2]]),
                           [-bounds[1][0], -bounds[1][1], -bounds[1][2]])
 
     vertices = []
@@ -505,7 +601,7 @@ def lineqs3D(A, b, show=True, color='C0', alpha=0.5, s=10, size=(8,8), \
     if show:
         fig = plt.figure(figsize=size)
         ax = fig.add_subplot(111, projection='3d')
-    #     ax.grid(False)
+
         if not bounds is None:
             ax.set_xlim((bounds[0][0], bounds[1][0]))
             ax.set_ylim((bounds[0][1], bounds[1][1]))
@@ -531,20 +627,70 @@ def lineqs3D(A, b, show=True, color='C0', alpha=0.5, s=10, size=(8,8), \
     return vertices
 
 
-def IntLinIncR3(A, b, show=True, consistency='uni', color='C0', \
+def IntLinIncR3(A, b, show=True, consistency='uni', color='C0',
                 alpha=0.5, s=10, size=(8, 8), bounds=None, zero_lvl=True):
+    """
+    The function visualizes a set of solutions of an interval system of linear
+    algebraic equations A x = b with three variables by the boundary value method
+    intervals, and also outputs the vertices of the set of solutions.
+
+    If the set of solutions is unlimited, then the algorithm independently
+    selects the rendering boundaries.
+
+
+    Parameters:
+
+        A: Interval
+            The input interval matrix of ISLAE, which can be either square or rectangular.
+
+        b: Interval
+            The interval vector of the right part of the ISLAE.
+
+        show: bool, optional
+            This parameter is responsible for whether a set of solutions will be shown.
+            By default, the value is set to True, i.e. the graph is being drawn.
+
+        consistency: str, optional
+            A parameter for selecting the type of a set of solutions.
+            If consistency = "uni", then the function returns the united set of the solution.
+            If consistency = "tol", then the tolerance set of the solution.
+
+        bounds: array_like, optional
+            Borders of the drawing area. The first element of the array is responsible
+            for the lower faces along the axes OX, OY and OZ, and the second for the upper ones.
+            Thus, in order for OX to lie within [-2, 2], OY within [-3, 4], and OZ within [1, 5],
+            it is necessary to set bounds as [[-2, -3, 1], [2, 4, 5]].
+
+        color: str, optional
+            The color of the inner area of the set of solutions.
+
+        alpha: float, optional
+            Transparency of the graph.
+
+        s: float, optional
+            How big are the points of the vertices.
+
+        size: tuple, optional
+            The size of the drawing window.
+
+    Returns:
+
+        out: list
+            Returns a list of ordered vertices in each ortant starting from the first
+            and making a detour in a positive direction. If show = True, then the graph is drawn.
+    """
 
     if not (isinstance(A, ARITHMETIC_TUPLE) or isinstance(b, ARITHMETIC_TUPLE)):
-        return lineqs3D(A, b, show=False, color=color, \
+        return lineqs3D(A, b, show=False, color=color,
                         alpha=alpha, s=s, size=size, bounds=bounds)
 
-    ortant = [(1, 1, 1), (-1, 1, 1), (-1, -1, 1), (1, -1, 1), \
+    ortant = [(1, 1, 1), (-1, 1, 1), (-1, -1, 1), (1, -1, 1),
               (1, 1, -1), (-1, 1, -1), (-1, -1, -1), (1, -1, -1)]
     vertices = []
     n, m = A.shape
 
-    assert m <= 3, "В матрице A должно быть три столбца!"
-    assert b.shape[0] == n, "Матрица A и правая часть b должны иметь одинаковое число строк!"
+    assert m <= 3, "There should be three columns in matrix A."
+    assert b.shape[0] == n, "The size of the matrix A must be consistent with the size of the vector of the right part of b."
 
     def algo(bounds):
         gxmin, gymin, gzmin = infinity, infinity, infinity
@@ -601,7 +747,7 @@ def IntLinIncR3(A, b, show=True, consistency='uni', color='C0', \
     if show:
         fig = plt.figure(figsize=size)
         ax = fig.add_subplot(111, projection='3d')
-    #     ax.grid(False)
+
         if not bounds is None:
             ax.set_xlim((bounds[0][0], bounds[1][0]))
             ax.set_ylim((bounds[0][1], bounds[1][1]))

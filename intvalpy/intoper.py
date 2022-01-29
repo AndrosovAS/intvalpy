@@ -2,7 +2,7 @@ import numpy as np
 import itertools
 from collections.abc import Sequence
 
-from .RealInterval import Interval, ARITHMETIC_TUPLE, precision
+from .RealInterval import Interval, ARITHMETIC_TUPLE
 
 infinity = float('inf')
 
@@ -186,7 +186,7 @@ def dist(a, b, order=float('inf')):
 
 def zeros(shape):
     """Функция создаёт массив размерности shape."""
-    return Interval(np.zeros(shape, dtype='float64'), \
+    return Interval(np.zeros(shape, dtype='float64'),
                     np.zeros(shape, dtype='float64'), sortQ=False)
 
 
@@ -272,17 +272,17 @@ def create_data(x=None, N=3, model=None):
 
 
 def randint(inf, sup, shape=1):
-    return Interval(np.random.randint(inf, sup, shape), \
+    return Interval(np.random.randint(inf, sup, shape),
                     np.random.randint(inf, sup, shape))
 
 
 def uniform(inf, sup, shape=1):
-    return Interval(np.random.uniform(inf, sup, shape), \
+    return Interval(np.random.uniform(inf, sup, shape),
                     np.random.uniform(inf, sup, shape))
 
 
 def normal(mu, sigma, shape=1):
-    return Interval(np.random.normal(mu, sigma, shape), \
+    return Interval(np.random.normal(mu, sigma, shape),
                     np.random.normal(mu, sigma, shape))
 
 
@@ -308,10 +308,11 @@ def dot(a, b, aspotQ=False, bspotQ=False):
     else:
         return a @ b
 
-subset = lambda a, b: ((a.a >= b.a) & (a.b <= b.b)).all()
+
+subset = lambda a, b: np.array(((a.a >= b.a) & (a.b <= b.b)), dtype=np.bool).all()
 superset = lambda a, b: subset(b, a)
 
-proper_subset = lambda a, b: ((a.a > b.a) & (a.b < b.b)).all()
+proper_subset = lambda a, b: np.array(((a.a > b.a) & (a.b < b.b)), dtype=np.bool).all()
 proper_superset = lambda a, b: proper_subset(b, a)
 
 sin = lambda a: np.sin(a)

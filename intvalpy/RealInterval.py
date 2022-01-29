@@ -2,18 +2,16 @@ import numbers
 import numpy as np
 import itertools
 
-# from mpmath import *
 from mpmath import mp, mpf, matrix
-import sys
 
 
 class precision:
-
     increasedPrecisionQ = True
     mp.dps = 32
 
     def dps(_dps):
         mp.dps = _dps
+
 
 class BaseTools:
 
@@ -67,8 +65,8 @@ class BaseTools:
             k = 0
             for ends in itertools.product(itertools.product([0, 1], repeat=m), repeat=n):
                 ends = np.array(ends)
-                result[k][ends==0] = self._a[ends==0]
-                result[k][ends==1] = self._b[ends==1]
+                result[k][ends == 0] = self._a[ends == 0]
+                result[k][ends == 1] = self._b[ends == 1]
                 k += 1
         else:
             raise Exception('Функция предусмотрена не более чем для двумерных массивов.')
@@ -189,22 +187,22 @@ class BaseTools:
     # Характеристики интервала, такие как mid, rad и т.д.
     @property
     def rad(self):
-        """Возвращает радиус интервала"""
+        """Возвращает радиус интервала."""
         return 1/2 * (self._b - self._a)
 
     @property
     def wid(self):
-        """Возвращает ширину интервала"""
+        """Возвращает ширину интервала."""
         return self._b - self._a
 
     @property
     def mid(self):
-        """Возвращает серидину интервала"""
+        """Возвращает серидину интервала."""
         return (self._b + self._a)/2
 
     @property
     def mig(self):
-        """Возвращает мигнитуду интервала"""
+        """Возвращает мигнитуду интервала."""
         if precision.increasedPrecisionQ:
             result = np.array(np.minimum(np.abs(self._a), np.abs(self._b)), dtype=np.object)
             result[self._a * self._b <= 0] = mpf('0')
@@ -301,7 +299,7 @@ class BaseTools:
             return cls.__rmatmul__(self, args[2])
 
         elif args[0].__name__ in ['sqrt']:
-            if np.array(self._a <= 0, dtype=np.bool).any() or np.array(self._b <= 0, dtype=np.bool).any():
+            if np.array(self._a < 0, dtype=np.bool).any() or np.array(self._b < 0, dtype=np.bool).any():
                 raise Exception("Невозможно взять квадратный корень из отрицательного числа!")
             return cls(np.sqrt(self._a), np.sqrt(self._b))
 
