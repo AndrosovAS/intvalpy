@@ -1,8 +1,8 @@
 from bisect import bisect_left
 import numpy as np
 
-from intvalpy.RealInterval import Interval
-from intvalpy.intoper import asinterval
+from intvalpy.RealInterval import Interval, ARITHMETIC_TUPLE
+from intvalpy.intoper import asinterval, infinity
 
 
 class KeyWrapper:
@@ -17,13 +17,24 @@ class KeyWrapper:
         return len(self.it)
 
 
-def globopt(func, x0, tol=1e-12, maxiter=10**3):
+def globopt(func, x0, tol=1e-12, maxiter=2000):
     Y = x0.copy
     y = func(Y).a
     L = [(Y, y)]
 
     nit = 0
     while func(Y).wid >= tol and nit <= maxiter:
+        # if nit % 200 == 0:
+        #     print('len(L): ', len(L))
+        #     for k in range(len(L)):
+        #         if k == 10:
+        #             break
+        #         else:
+        #             print('L[{:}]: '.format(k), L[k])
+        #
+        #     print('+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+\n\n')
+
+
         l = np.argmax(Y.wid)
         Y1 = L[0][0].copy
         Y2 = L[0][0].copy
@@ -41,10 +52,11 @@ def globopt(func, x0, tol=1e-12, maxiter=10**3):
         L.insert(bslindex, newcol)
         Y = L[0][0]
         nit += 1
+
     return L[0][0], func(L[0][0])
 
 
-def __tolsolvty(func, grad, a, b, weight=None, x0=None, \
+def __tolsolvty(func, grad, a, b, weight=None, x0=None,
                 tol_f=1e-12, tol_x=1e-12, tol_g=1e-12, maxiter=2000):
 
     nsims = 30
@@ -64,15 +76,18 @@ def __tolsolvty(func, grad, a, b, weight=None, x0=None, \
 
     bc = b.mid
     br = b.rad
-
     tt = None
+
     def calcfg(x):
         index = x >= 0
         infsup = bc - func(a, x)
 
         tt = weight * (br - np.maximum(np.abs(infsup.a), np.abs(infsup.b)))
         mc = np.argmin(tt)
-        _grad = asinterval([g(a[mc], x) for g in grad])
+        if n == 1:
+            _grad = asinterval(grad[0](a[mc], x))
+        else:
+            _grad = asinterval([g(a[mc], x) for g in grad])
 
         if -infsup[mc].a <= infsup[mc].b:
             dd = weight[mc] * (_grad.a * index + _grad.b * (~index))
@@ -92,8 +107,9 @@ def __tolsolvty(func, grad, a, b, weight=None, x0=None, \
     w = 1./alpha - 1
 
     f, g0, _ = calcfg(x)
-    ff = f ;  xx = x;
-    cal = 1;  ncals = 1;
+    ff = f;  xx = x
+    cal = 1;  ncals = 1
+    ccode = False
 
     for nit in range(int(maxiter)):
         vf[nsims-1] = ff
@@ -160,14 +176,50 @@ def Uni(func, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e-
 
     br = b.rad
     bm = b.mid
+
+    def imig(x, tol=1e-8, maxiter=200):
+        def _gmax(x):
+            tmp = -func(ak, x).b
+            return Interval(tmp, tmp, sortQ=False)
+        def _gmin(x):
+            tmp = func(ak, x).a
+            return Interval(tmp, tmp, sortQ=False)
+
+        inf, sup = [], []
+        for k in range(len(a)):
+            ak = a[k].copy
+
+            xmax, _ = globopt(_gmax, x, tol=tol, maxiter=maxiter)
+            xmin, _ = globopt(_gmin, x, tol=tol, maxiter=maxiter)
+
+            sup.append((bm[k] - func(ak, xmax)).mig)
+
+            tmp = (bm[k] - func(ak, xmin)).mig
+            if 0 in func(ak, x):
+                inf.append(0)
+                if sup[-1] < tmp:
+                    sup[-1] = tmp
+            else:
+                inf.append(tmp)
+        return Interval(inf, sup)
+
     def __uni(x):
         data = func(a, x)
-        return np.min(br - (bm - data).mig)
+        if isinstance(x, ARITHMETIC_TUPLE) and False:
+
+            _global_mig = lambda x: Interval(np.max((bm - func(a, x)).mig), infinity)
+            x0 = x.copy
+            _gmig = globopt(_global_mig, x0, tol=tol, maxiter=maxiter)
+            return True, _gmig[0], np.min(br - (bm - func(a, _gmig[0])).mig)
+
+            # return min(br - imig(x))
+        else:
+            return np.min(br - (bm - data).mig)
     __minus_uni = lambda x: -__uni(x)
 
     if maxQ:
         if x0 is None:
-            _, x0, _, _ = __tolsolvty(func, grad, a, b, weight=weight, x0=None, maxiter=maxiter, \
+            _, x0, _, _ = __tolsolvty(func, grad, a, b, weight=weight, x0=None, maxiter=maxiter,
                                tol_f=1e-8, tol_x=1e-8, tol_g=1e-8)
 
         from scipy.optimize import minimize
@@ -183,8 +235,17 @@ def Uni(func, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e-
 
 def Tol(func, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e-12, maxiter=2000):
 
+    # if isinstance(x, ARITHMETIC_TUPLE) and False:
+    #     br = b.rad
+    #     bm = b.mid
+    #
+    #     _global_max = lambda x: Interval(-np.min(br - abs(bm - func(a, x))), infinity)
+    #     x0 = x.copy
+    #     _gmax = globopt(_global_max, x0, tol=tol, maxiter=maxiter)
+    #     return True, _gmax[0], -_gmax[1].a
+
     if maxQ:
-        return __tolsolvty(func, grad, a, b, weight=weight, x0=x0, maxiter=maxiter, \
+        return __tolsolvty(func, grad, a, b, weight=weight, x0=x0, maxiter=maxiter,
                            tol_f=tol, tol_x=tol, tol_g=tol)[:-1]
 
     else:
@@ -223,7 +284,7 @@ def outliers(func, a, b, grad, functional='tol', weight=None, x0=None, tol=1e-12
     WorkListb = asinterval(b).copy
 
     if functional == 'tol':
-        _, _, _, tt = __tolsolvty(func, grad, a, b, weight=weight, x0=x0, maxiter=maxiter, \
+        _, _, _, tt = __tolsolvty(func, grad, a, b, weight=weight, x0=x0, maxiter=maxiter,
                                   tol_f=tol, tol_x=tol, tol_g=tol)
     else:
         Exception('Данный функционал не предусмотрен.')

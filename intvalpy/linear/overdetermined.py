@@ -1,19 +1,17 @@
 import numpy as np
-from mpmath import *
 
 from bisect import bisect_left
 import cvxopt
 
 from intvalpy.RealInterval import Interval
-from intvalpy.intoper import asinterval, intersection, infinity
+from intvalpy.intoper import intersection, infinity
 from intvalpy.linear.square_system import Gauss
 from intvalpy.linear.system_properties import Tol
-from intvalpy.visualization import lineqs
-
 
 
 cvxopt.solvers.options['show_progress'] = False
 cvxopt.solvers.options['glpk'] = {'msg_lev': 'GLP_MSG_OFF'}
+
 
 def _Rohn_Tol(A, b, nu=None):
 
@@ -27,7 +25,7 @@ def _Rohn_Tol(A, b, nu=None):
         return np.array(result['x']).reshape(c.shape[0])
 
     def algo(A, b, nu):
-        A_ub = np.zeros((2*(n+m) , 2*m), dtype=np.float64)
+        A_ub = np.zeros((2*(n+m), 2*m), dtype=np.float64)
         b_ub = np.zeros(2*(n+m), dtype=np.float64)
 
         A_ub[:n, :m] = A.b
@@ -131,26 +129,40 @@ def Rohn(A, b, tol=1e-12, maxiter=2000, consistency='uni'):
 
 def PSS(A, b, tol=1e-12, maxiter=2000, nu=None):
     """
-    Метод дробления решений для оптимального внешнего оценивания
-    объединённого множества решений.
+    A hybrid method of crushing PSS solutions designed to find an external optimal estimate
+    of the united set of solutions of interval systems of linear algebraic equations (ISLAE) A x = b.
+    Since the task is NP-hard, the process can be stopped by the number of iterations completed.
+    PSS methods are consistently guaranteeing, i.e. when the process is interrupted at any number of iterations,
+    an approximate estimate of the solution satisfies the required estimation method.
+
+    Returns the formal solution of the interval system of linear equations.
+    If it is not necessary to evaluate all the components, then any nu component can be evaluated.
+
 
     Parameters:
-                A: Interval
-                    Матрица ИСЛАУ.
 
-                b: Interval
-                    Вектор правой части ИСЛАУ.
+        A: Interval
+            The input interval matrix of ISLAE, which can be either square or rectangular.
 
-    Optional Parameters:
-                tol: float
-                    Погрешность для остановки процесса дробления решений.
+        b: Interval
+            The interval vector of the right part of the ISLAE.
 
-                maxiter: int
-                    Максимальное количество итераций.
+        tol: float, optional
+            The error that determines when further crushing of the bars is unnecessary,
+            i.e. their width is "close enough" to zero, which can be considered exactly zero.
+
+        maxiter: int, optional
+            The maximum number of iterations.
+
+        nu: int, optional
+            Choosing the number of the component along which the set of solutions is evaluated.
 
     Returns:
-                out: Interval
-                    Возвращается интервальный вектор решений.
+
+        out: Interval
+            Returns an interval vector, which, after substituting into the system of equations
+            and performing all operations according to the rules of arithmetic and analysis,
+            turns the equations into true equalities.
     """
 
 
@@ -270,42 +282,41 @@ def PSS(A, b, tol=1e-12, maxiter=2000, nu=None):
         c = np.zeros(m, dtype='float64')
         c[_nu] = S[_nu, _nu]
 
-        A_ub[ : n] = midAS - radA
-        A_ub[n : 2*n] = -midAS - radA
-        A_ub[2*n : 2*n+m] = -S
-        A_ub[2*n+m : 2*(n+m)] = S
+        A_ub[:n] = midAS - radA
+        A_ub[n:2*n] = -midAS - radA
+        A_ub[2*n:2*n+m] = -S
+        A_ub[2*n+m:2*(n+m)] = S
 
-        b_ub[ : n] = b.b
-        b_ub[n : 2*n] = -b.a
-        b_ub[2*n : 2*(n+m)] = p
+        b_ub[:n] = b.b
+        b_ub[n:2*n] = -b.a
+        b_ub[2*n:2*(n+m)] = p
 
         try:
             result = solve_lp(c, A_ub, b_ub)
             return result @ c
-        except:
+        except Exception:
             pass
 
         S[_nu, _nu] = np.sign(V[_nu].b)
         midAS = midA @ S
 
         c[_nu] = S[_nu, _nu]
-        A_ub[ : n] = midAS - radA
-        A_ub[n : 2*n] = -midAS - radA
-        A_ub[2*n : 2*n+m] = -S
-        A_ub[2*n+m : 2*(n+m)] = S
+        A_ub[:n] = midAS - radA
+        A_ub[n:2*n] = -midAS - radA
+        A_ub[2*n:2*n+m] = -S
+        A_ub[2*n+m:2*(n+m)] = S
 
         try:
             result = solve_lp(c, A_ub, b_ub)
             return result @ c
-        except:
+        except Exception:
             return 10**15
-
 
     def algo(_nu):
         WorkListA = A.copy; del(WorkListA[:, _nu])
         WorkListb = b.copy
 
-        Q = V.copy;
+        Q = V.copy
         q, omega = Q[_nu].a, Q[_nu].b
         del(Q[_nu])
 
@@ -437,115 +448,3 @@ def PSS(A, b, tol=1e-12, maxiter=2000, nu=None):
                 inf.append(algo(_nu))
 
     return Interval(inf, sup, sortQ=False)
-
-
-def ASh(A, b, y=None):
-
-    def StartBar(tol_Ab, supQ):
-        if supQ:
-            return tol_Ab[1] + Interval(0*tol_Ab[1], 6*(tol_Ab[1]+1))
-        else:
-            return tol_Ab[1] + Interval(-6*(tol_Ab[1]+1), 0*tol_Ab[1])
-
-    def crush(x, supQ, vTol):
-        if supQ:
-            if vTol > 0:
-                return Interval(x.mid, x.b)
-            else:
-                return Interval(x.a, x.mid)
-
-        else:
-            if vTol > 0:
-                return Interval(x.a, x.mid)
-            else:
-                return Interval(x.mid, x.b)
-
-
-    def algo(A, b, nu, tol_Ab, supQ):
-
-        WorkListA, WorkListb = A.copy, b.copy
-        del WorkListA[:, nu]
-
-        a = A[:, nu].reshape((n, 1))
-        V, x = StartBar(tol_Ab, supQ), asinterval(tol_Ab[1])
-        del V[nu]; del x[nu]
-
-        for i in np.append(np.arange(nu, m), np.arange(0, nu)):
-            if i == nu:
-                continue
-            elif i > nu:
-                k = i - 1
-            else:
-                k = i
-
-            x[k] = V[k].copy
-            nit = 1
-            while x[k].wid > 1e-15 and nit < 500:
-                bb = WorkListb + (WorkListA @ x.mid).opp
-                tol = Tol(a, bb, maxQ=True, tol=1e-12)
-                x[k] = crush(x[k], supQ, tol[2])
-
-                nit += 1
-
-        wA = np.zeros((2*(n+1), 2))
-        wb = np.zeros(2*(n+1))
-
-        wA[:n, 0] = a.b[:, 0]
-        wA[:n, 1] = -a.a[:, 0]
-
-        wA[n:2*n, 0] = -a.a[:, 0]
-        wA[n:2*n, 1] = a.b[:, 0]
-        wA[2*n:] = -np.eye(2)
-
-        for xx in [x.mid, x.a, x.b]:
-            bb = WorkListb + (WorkListA @ xx).opp
-            wb[:n] = bb.b
-            wb[n:2*n] = -bb.a
-
-            try:
-                vertices = lineqs(-wA, -wb, show=False)
-                ends = np.max(vertices[:, 0] - vertices[:, 1])
-                break
-            except:
-                pass
-
-        return ends, x
-
-    n, m = A.shape
-    if y is None:
-        tol_Ab = Tol(A, b, maxQ=True)
-        if tol_Ab[2] < 0:
-            raise Exception('Допусковое множество решений пусто!')
-    else:
-        tol_Ab = (True, y, Tol(A, b, x=y))
-        if tol_Ab[2] < 0:
-            raise Exception('Точка не лежит в допусковом множестве решений!')
-
-
-    result = [[] for k in range(m)]
-    for nu in range(m):
-        sup, x1 = algo(A, b, nu, tol_Ab, supQ=True)
-        inf, x2 = algo(A, b, nu, tol_Ab, supQ=False)
-        # print(sup, x1)
-        # print(inf, x2)
-        # print('+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+\n\n')
-
-        for k in range(m):
-            if k == nu:
-                result[k].append(sup)
-                result[k].append(inf)
-            else:
-                if k > nu:
-                    kk = k - 1
-                else:
-                    kk = k
-                result[k].append(x1[kk].a)
-                result[k].append(x1[kk].b)
-                result[k].append(x2[kk].a)
-                result[k].append(x2[kk].b)
-
-    res = []*m
-    for r in result:
-        res.append([min(r), max(r)])
-    res = np.array(res, dtype=np.float64)
-    return Interval(np.min(res, axis=1), np.max(res, axis=1), sortQ=False)
