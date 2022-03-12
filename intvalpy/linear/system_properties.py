@@ -1,8 +1,8 @@
 import numpy as np
 from mpmath import mpf
 
-from intvalpy.RealInterval import Interval, precision, ARITHMETIC_TUPLE
-from intvalpy.intoper import asinterval, infinity, intersection
+from intvalpy.RealInterval import Interval, precision
+from intvalpy.utils import asinterval, infinity
 
 
 def __tolsolvty(infA, supA, infb, supb, weight=None, x0=None,
@@ -246,7 +246,7 @@ def Tol(A, b, x=None, maxQ=False, weight=None, x0=None, tol=1e-12, maxiter=2000)
 
     br = b.rad
     bm = b.mid
-    __tol = lambda x: np.min(br - abs(bm - A @ x))
+    __tol = lambda x: np.min(br - (bm - A @ x).mag)
     __minus_tol = lambda x: -__tol(x)
 
     if not maxQ:
@@ -294,7 +294,7 @@ def ive(A, b, N=40):
         tmp = np.linalg.cond(angle_A)
         cond = tmp if tmp<cond else cond
 
-    return np.sqrt(A.shape[1]) * _max * cond * (np.linalg.norm(_arg_max, ord=2)/np.sqrt(sum(abs(b)**2)))
+    return np.sqrt(A.shape[1]) * _max * cond * (np.linalg.norm(_arg_max, ord=2)/np.sqrt(sum(b.mag**2)))
 
 
 def outliers(A, b, functional='uni', x0=None, tol=1e-12, maxiter=2000, method='standard deviations'):

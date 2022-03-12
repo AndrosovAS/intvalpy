@@ -1,4 +1,4 @@
-from intvalpy.intoper import zeros
+from intvalpy.utils import zeros
 
 
 def miranda(func, x):

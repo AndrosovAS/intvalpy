@@ -1,8 +1,8 @@
 from bisect import bisect_left
 import numpy as np
 
-from intvalpy.RealInterval import Interval, ARITHMETIC_TUPLE
-from intvalpy.intoper import asinterval, infinity
+from intvalpy.RealInterval import Interval
+from intvalpy.utils import asinterval
 
 
 class KeyWrapper:
@@ -24,17 +24,6 @@ def globopt(func, x0, tol=1e-12, maxiter=2000):
 
     nit = 0
     while func(Y).wid >= tol and nit <= maxiter:
-        # if nit % 200 == 0:
-        #     print('len(L): ', len(L))
-        #     for k in range(len(L)):
-        #         if k == 10:
-        #             break
-        #         else:
-        #             print('L[{:}]: '.format(k), L[k])
-        #
-        #     print('+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+\n\n')
-
-
         l = np.argmax(Y.wid)
         Y1 = L[0][0].copy
         Y2 = L[0][0].copy
@@ -177,44 +166,9 @@ def Uni(func, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e-
     br = b.rad
     bm = b.mid
 
-    def imig(x, tol=1e-8, maxiter=200):
-        def _gmax(x):
-            tmp = -func(ak, x).b
-            return Interval(tmp, tmp, sortQ=False)
-        def _gmin(x):
-            tmp = func(ak, x).a
-            return Interval(tmp, tmp, sortQ=False)
-
-        inf, sup = [], []
-        for k in range(len(a)):
-            ak = a[k].copy
-
-            xmax, _ = globopt(_gmax, x, tol=tol, maxiter=maxiter)
-            xmin, _ = globopt(_gmin, x, tol=tol, maxiter=maxiter)
-
-            sup.append((bm[k] - func(ak, xmax)).mig)
-
-            tmp = (bm[k] - func(ak, xmin)).mig
-            if 0 in func(ak, x):
-                inf.append(0)
-                if sup[-1] < tmp:
-                    sup[-1] = tmp
-            else:
-                inf.append(tmp)
-        return Interval(inf, sup)
-
     def __uni(x):
         data = func(a, x)
-        if isinstance(x, ARITHMETIC_TUPLE) and False:
-
-            _global_mig = lambda x: Interval(np.max((bm - func(a, x)).mig), infinity)
-            x0 = x.copy
-            _gmig = globopt(_global_mig, x0, tol=tol, maxiter=maxiter)
-            return True, _gmig[0], np.min(br - (bm - func(a, _gmig[0])).mig)
-
-            # return min(br - imig(x))
-        else:
-            return np.min(br - (bm - data).mig)
+        return np.min(br - (bm - data).mig)
     __minus_uni = lambda x: -__uni(x)
 
     if maxQ:
@@ -233,16 +187,17 @@ def Uni(func, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e-
         return __uni(x)
 
 
-def Tol(func, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e-12, maxiter=2000):
 
-    # if isinstance(x, ARITHMETIC_TUPLE) and False:
-    #     br = b.rad
-    #     bm = b.mid
-    #
-    #     _global_max = lambda x: Interval(-np.min(br - abs(bm - func(a, x))), infinity)
-    #     x0 = x.copy
-    #     _gmax = globopt(_global_max, x0, tol=tol, maxiter=maxiter)
-    #     return True, _gmax[0], -_gmax[1].a
+def _tol_tsopt(model, a, b, grad, weight=None, x0=None, tol=1e-12, maxiter=2000):
+    return __tolsolvty(model, grad, a, b, weight=weight, x0=x0, maxiter=maxiter,
+                       tol_f=tol, tol_x=tol, tol_g=tol)[:-1]
+
+
+def _tol_iopt(model, a, b, grad, x0, tol=1e-12, maxiter=2000):
+    return None, None, None
+
+
+def Tol(func, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e-12, maxiter=2000):
 
     if maxQ:
         return __tolsolvty(func, grad, a, b, weight=weight, x0=x0, maxiter=maxiter,
@@ -254,7 +209,7 @@ def Tol(func, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e-
 
         def __tol(x):
             data = func(a, x)
-            return np.min(br - abs(bm - data))
+            return np.min(br - (bm - data).mag)
 
         if x is None:
             x = np.zeros(len(a))
