@@ -4,7 +4,8 @@ from bisect import bisect_left
 import cvxopt
 
 from intvalpy.RealInterval import Interval
-from intvalpy.intoper import intersection, infinity
+
+from intvalpy.utils import intersection, infinity
 from intvalpy.linear.square_system import Gauss
 from intvalpy.linear.system_properties import Tol
 
@@ -358,6 +359,7 @@ def PSS(A, b, tol=1e-12, maxiter=2000, nu=None):
                 QA = Q[k] * WorkListA[:, k]
                 Ar = Ar + QA.opp
                 matmul = False
+
                 Ar1 = Ar + Q1[k] * WorkListA[:, k]
                 bAr = WorkListb - Ar1
                 q1 = Omega(bAr, _nu, Anu, index_classic_div, index_kahan_div, num_func)
