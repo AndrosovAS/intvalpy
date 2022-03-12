@@ -544,7 +544,7 @@ array([[-5., -3.], [-6., -0.], [-5.,  3.], [-3.,  5.], [-0.,  6.], [ 3.,  5.],
 
 [2] П.А. Щербина - `Метод граничных интервалов в свободной системе компьютерной математики Scilab <http://www.nsc.ru/interval/Education/StudWorks/Shcherbina-diplom.pdf>`_
 
-[3] С.П. Шарый - `монография <http://www.nsc.ru/interval/Library/InteBooks/SharyBook.pdf>`_.
+[3] С.П. Шарый - `Конечномерный интервальный анализ <http://www.nsc.ru/interval/Library/InteBooks/SharyBook.pdf>`_.
 
 
 Методы для решения квадратных систем
@@ -586,7 +586,7 @@ interval(['[-5.0, 5.0]', '[-4.0, 4.0]'])
 Метод Гаусса-Зейделя
 ~~~~~~~~~~~~~~~~~~
 
-Итерационный метод Гаусса-Зейделя для решения ИСЛАУ. 
+Итерационный метод Гаусса-Зейделя для решения ИСЛАУ.
 
 
 **Parameters**:
@@ -641,7 +641,7 @@ interval(['[-4.266757, 6.076814]', '[-5.371444, 5.265456]'])
 
 [1] R.B. Kearfott, C. Hu, M. Novoa III - `A review of preconditioners for the interval Gauss-Seidel method <https://www.researchgate.net/publication/2656909_A_Review_of_Preconditioners_for_the_Interval_Gauss-Seidel_Method>`_ // Interval Computations 1991-1 pp 59-85
 
-[2] С.П. Шарый - `монография <http://www.nsc.ru/interval/Library/InteBooks/SharyBook.pdf>`_.
+[2] С.П. Шарый - `Конечномерный интервальный анализ <http://www.nsc.ru/interval/Library/InteBooks/SharyBook.pdf>`_.
 
 
 Методы для решения переопределённых систем
@@ -757,6 +757,6 @@ interval(['[-2.373013, 2.373013]'])
 
 [1] J. Rohn - `Enclosing solutions of overdetermined systems of linear interval equations <http://uivtx.cs.cas.cz/~rohn/publist/88.pdf>`_ // Reliable Computing 2 (1996), 167-171
 
-[2] С.П. Шарый - `монография <http://www.nsc.ru/interval/Library/InteBooks/SharyBook.pdf>`_.
+[2] С.П. Шарый - `Конечномерный интервальный анализ <http://www.nsc.ru/interval/Library/InteBooks/SharyBook.pdf>`_.
 
 [3] J. Horacek, M. Hladik - `Computing enclosures of overdetermined interval linear systems <https://www.researchgate.net/publication/236203844_Computing_Enclosures_of_Overdetermined_Interval_Linear_Systems>`_ // Reliable Computing 2 (2013), 142-155

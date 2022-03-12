@@ -2,9 +2,11 @@ import numpy as np
 import itertools
 from collections.abc import Sequence
 
-from .RealInterval import Interval, ARITHMETIC_TUPLE
+from .RealInterval import ClassicalArithmetic, KaucherArithmetic, ArrayInterval, Interval, INTERVAL_CLASSES, single_type, ARITHMETICS
 
 infinity = float('inf')
+nan = float('nan')
+
 
 def get_shape(lst, shape=()):
     """
@@ -22,7 +24,7 @@ def get_shape(lst, shape=()):
                     Форма текущей глубины. В конце это будет полная глубина.
     """
 
-    if isinstance(lst, (int, float)) or (len(lst) == 1 and isinstance(lst, ARITHMETIC_TUPLE)):
+    if isinstance(lst, single_type) or (len(lst) == 1 and isinstance(lst, INTERVAL_CLASSES)):
         return shape
     elif isinstance(lst, np.ndarray):
         return lst.shape
@@ -58,13 +60,10 @@ def asinterval(a):
                     Если a - int, float, list или ndarrays, то возвращается
                     базовый класс Interval.
     """
-    if isinstance(a, ARITHMETIC_TUPLE):
+    if isinstance(a, INTERVAL_CLASSES):
         return a
 
-    if isinstance(a, ARITHMETIC_TUPLE):
-        return a
-
-    elif isinstance(a, (int, float)):
+    elif isinstance(a, single_type):
         return Interval(a, a, sortQ=False)
 
     elif isinstance(a, (list, np.ndarray)):
@@ -73,7 +72,7 @@ def asinterval(a):
 
         result = zeros(shape)
         for index in itertools.product(*result.ranges):
-            if isinstance(a[index], ARITHMETIC_TUPLE):
+            if isinstance(a[index], INTERVAL_CLASSES):
                 result[index] = a[index]
             else:
                 result[index] = Interval(a[index], a[index], sortQ=False)
@@ -84,7 +83,7 @@ def asinterval(a):
         raise TypeError(msg)
 
 
-def intersection(A, B):
+def intersection(x, y):
     """
     Покомпонентное пересечение двух интервальных массивов.
 
@@ -100,46 +99,25 @@ def intersection(A, B):
                     выводится интервал Interval(None, None).
     """
 
-    wA = asinterval(A)
-    wB = asinterval(B)
+    def intersect(x, y):
+        sup = y.a if x.a < y.a else x.a
+        inf = x.b if x.b < y.b else y.b
+        if sup - inf <= 1e-15:
+            return Interval(sup, inf, sortQ=True)
+        else:
+            return Interval(nan, nan)
 
-    if wA.shape == wB.shape:
-        result = zeros(wA.shape)
-        for index in itertools.product(*wA.ranges):
-            _max = wB[index].a if wA[index].a < wB[index].a else wA[index].a
-            _min = wA[index].b if wA[index].b < wB[index].b else wB[index].b
-            if _max <= _min:
-                result[index] = Interval(_max, _min, sortQ=False)
-            else:
-                result[index] = Interval(None, None, sortQ=False)
-
-    elif wA.shape == () or wA.shape == (1, ):
-        result = zeros(wB.shape)
-        for index in itertools.product(*wB.ranges):
-            _max = wB[index].a if wA.a < wB[index].a else wA.a
-            _min = wA.b if wA.b < wB[index].b else wB[index].b
-            if _max <= _min:
-                result[index] = Interval(_max, _min, sortQ=False)
-            else:
-                result[index] = Interval(None, None, sortQ=False)
-
-    elif wB.shape == () or wB.shape == (1, ):
-        result = zeros(wA.shape)
-        for index in itertools.product(*wA.ranges):
-            _max = wB.a if wA[index].a < wB.a else wA[index].a
-            _min = wA[index].b if wA[index].b < wB.b else wB.b
-            if _max <= _min:
-                result[index] = Interval(_max, _min, sortQ=False)
-            else:
-                result[index] = Interval(None, None, sortQ=False)
-
+    if isinstance(x, ArrayInterval) and isinstance(y, ArrayInterval):
+        assert x.shape == y.shape, 'Не совпадают размерности входных массивов!'
+        return ArrayInterval(np.vectorize(lambda xx, yy: intersect(xx, yy))(x.data, y.data))
+    elif isinstance(x, ARITHMETICS) and isinstance(y, ArrayInterval):
+        return ArrayInterval(np.vectorize(lambda yy: intersect(x, yy))(y.data))
+    elif isinstance(x, ArrayInterval) and isinstance(y, ARITHMETICS):
+        return ArrayInterval(np.vectorize(lambda xx: intersect(xx, y))(x.data))
     else:
-        raise Exception('Не совпадают размерности входных массивов!')
+        return intersect(x, y)
 
-    return result
-
-
-def dist(a, b, order=float('inf')):
+def dist(x, y, order=infinity):
     """
     Метрика в интервальных пространствах.
 
@@ -157,29 +135,13 @@ def dist(a, b, order=float('inf')):
                     Возвращается расстояние между входными операндами.
     """
 
-    def cheb(a, b):
-        return max(abs(a.a-b.a), abs(a.b-b.b))
+    def cheb(x, y):
+        return np.maximum(abs(x.a - y.a), abs(x.b - y.b))
 
-    if a.shape != b.shape:
-        raise Exception('Размерности входных значений не совпадают!')
-
-    if a.ndim > 2:
-        raise Exception('Глубина входных значений не может быть больше двух!')
-    elif a.ndim == 0:
-        return cheb(a, b)
-
-    if order == float('inf'):
-        result = np.zeros(a.shape)
-        for index in itertools.product(*a.ranges):
-            result[index] = cheb(a[index], b[index])
-        return np.amax(result)
-
+    if order == infinity:
+        return np.amax(cheb(x, y))
     elif isinstance(order, int):
-        result = 0
-        for index in itertools.product(*a.ranges):
-            result += cheb(a[index], b[index])**order
-        return pow(result, 1/order)
-
+        return pow(np.sum(cheb(x, y) ** order), 1/order)
     else:
         raise Exception('Не верно задан порядок нормы order.')
 
@@ -211,15 +173,16 @@ def eye(n):
 
 
 def Neumeier(n, theta, infb=None, supb=None):
-    b = zeros(n)
+    interval = [None, None]
     if infb is None:
-        b._a = -np.ones(n)
+        interval[0] = -1
     else:
-        b._a += np.array([infb]*n)
+        interval[0] = infb
     if supb is None:
-        b._b = np.ones(n)
+        interval[1] = 1
     else:
-        b._b += np.array([supb]*n)
+        interval[1] = supb
+    b = Interval([interval]*n)
 
     A = zeros((n,n)) + Interval(0, 2, sortQ=False)
     for k in range(n):
@@ -292,7 +255,7 @@ def dot(a, b, aspotQ=False, bspotQ=False):
         radb = b.rad
 
         tmp1 = np.dot(a, midb)
-        tmp2 = np.dot(abs(a), radb)
+        tmp2 = np.dot(a.mag, radb)
 
         return Interval(tmp1 - tmp2, tmp1 + tmp2, sortQ=False)
 
@@ -301,12 +264,21 @@ def dot(a, b, aspotQ=False, bspotQ=False):
         rada = a.rad
 
         tmp1 = np.dot(mida, b)
-        tmp2 = np.dot(rada, abs(b))
+        tmp2 = np.dot(rada, b.mag)
 
         return Interval(tmp1 - tmp2, tmp1 + tmp2, sortQ=False)
 
     else:
         return a @ b
+
+def isnan(x):
+    def _isnan(x):
+        isnanQ = np.isnan(float(x.a)) or np.isnan(float(x.b))
+        return isnanQ
+    if isinstance(x, ARITHMETICS):
+        return _isnan(x)
+    else:
+        return np.vectorize(lambda xx: _isnan(xx))(x.data)
 
 
 subset = lambda a, b: np.array(((a.a >= b.a) & (a.b <= b.b)), dtype=np.bool).all()
@@ -315,8 +287,46 @@ superset = lambda a, b: subset(b, a)
 proper_subset = lambda a, b: np.array(((a.a > b.a) & (a.b < b.b)), dtype=np.bool).all()
 proper_superset = lambda a, b: proper_subset(b, a)
 
-sin = lambda a: np.sin(a)
-cos = lambda a: np.cos(a)
-sqrt = lambda a: np.sqrt(a)
-log = lambda a: np.log(a)
-exp = lambda a: np.exp(a)
+contain = lambda a, b: np.array(((a.a >= b.a) & (a.b <= b.b)), dtype=np.bool)
+supercontain = lambda a, b: subset(b, a)
+
+def sqrt(x):
+    """Interval enclosure of the square root intrinsic over an interval."""
+    return np.sqrt(x)
+
+def exp(x):
+    """Interval enclosure of the exponential intrinsic over an interval."""
+    return np.exp(x)
+
+def log(x):
+    """Interval enclosure of the natural logarithm intrinsic over an interval."""
+    return np.log(x)
+
+def sin(x):
+    """Interval enclosure of the sin intrinsic over an interval."""
+    return np.sin(x)
+
+def cos(x):
+    """Interval enclosure of the cos intrinsic over an interval."""
+    return np.sin(x)
+
+
+def sgn(x):
+    def _sgn(x):
+        if x.b < 0:
+            return Interval(-1, -1, sortQ=False)
+        elif x.a < 0 and x.b == 0:
+            return Interval(-1, 0, sortQ=False)
+        elif x.a < 0 and 0 < x.b:
+            return Interval(-1, 1, sortQ=False)
+        elif x.a == 0 and x.b == 0:
+            return Interval(0, 0, sortQ=False)
+        elif x.a == 0 and 0 < x.b:
+            return Interval(0, 1, sortQ=False)
+        else:
+            return Interval(1, 1, sortQ=False)
+
+    if isinstance(x, ARITHMETICS):
+        return _sgn(x)
+    else:
+        return asinterval(np.vectorize(lambda xx: _sgn(xx))(x.data))
