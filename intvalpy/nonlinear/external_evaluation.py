@@ -1,7 +1,8 @@
 import numpy as np
 
 from intvalpy.linear import Gauss_Seidel, PSS
-from intvalpy.intoper import asinterval, intersection, dist, infinity
+from intvalpy.utils import asinterval, intersection, dist, infinity, isnan
+from intvalpy.RealInterval import ARITHMETICS
 
 
 def HansenSengupta(func, J, x0, maxiter=2000, tol=1e-12):
@@ -9,7 +10,7 @@ def HansenSengupta(func, J, x0, maxiter=2000, tol=1e-12):
     def HS(X, c):
         L = asinterval(J(X))
 
-        if L.shape == ():
+        if isinstance(L, ARITHMETICS):
             LAMBDA = 1/L.mid
             A = LAMBDA * L
             b = -LAMBDA * func(c)
@@ -21,7 +22,7 @@ def HansenSengupta(func, J, x0, maxiter=2000, tol=1e-12):
             return c + GS
 
         else:
-            LAMBDA = np.linalg.inv(np.array(L.mid, dtype=np.float64))
+            LAMBDA = np.linalg.inv(L.to_float().mid)
             A = LAMBDA @ L
             b = -LAMBDA @ func(c)
 
@@ -33,15 +34,15 @@ def HansenSengupta(func, J, x0, maxiter=2000, tol=1e-12):
 
     result = x0
     pre_result = result.copy
-    c = result.mid
+    c = asinterval(result.mid)
 
     error = infinity
     nit = 0
     while nit < maxiter and error > tol:
         result = intersection(result, HS(result, c))
-        if np.isnan(np.array(result.a, dtype=np.float64)).any():
+        if isnan(result).any():
             return result
-        c = result.mid
+        c = asinterval(result.mid)
         error = dist(result, pre_result)
         pre_result = result.copy
         nit += 1
@@ -53,7 +54,7 @@ def Krawczyk(func, J, x0, maxiter=2000, tol=1e-12):
     def K(X, c):
         L = asinterval(J(X))
 
-        if L.shape == ():
+        if isinstance(L, ARITHMETICS):
             LAMBDA = 1/L.mid
 
             B = 1 - LAMBDA * L
@@ -61,10 +62,10 @@ def Krawczyk(func, J, x0, maxiter=2000, tol=1e-12):
 
         else:
             n, m = L.shape
-            LAMBDA = np.linalg.inv(np.array(L.mid, dtype=np.float64))
+            LAMBDA = np.linalg.inv(L.to_float().mid)
 
             B = np.eye(n) - LAMBDA @ L
-            w, _ = np.linalg.eigh(np.array(abs(B), dtype=np.float64))
+            w, _ = np.linalg.eigh(B.to_float().mag)
             return c - LAMBDA @ func(c) + B @ (X-c)
 
     if not (0 in func(x0)):
@@ -72,15 +73,15 @@ def Krawczyk(func, J, x0, maxiter=2000, tol=1e-12):
 
     result = x0
     pre_result = result.copy
-    c = result.mid
+    c = asinterval(result.mid)
 
     error = infinity
     nit = 0
-    while nit < maxiter and error > tol:
+    while nit <= maxiter and error > tol:
         result = intersection(result, K(result, c))
-        if np.isnan(np.array(result.a, dtype=np.float64)).any():
+        if isnan(result).any():
             return result
-        c = result.mid
+        c = asinterval(result.mid)
         error = dist(result, pre_result)
         pre_result = result.copy
         nit += 1

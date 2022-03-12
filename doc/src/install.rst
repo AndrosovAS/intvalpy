@@ -15,9 +15,9 @@
 Вы можете либо скачать исходные тексты из PyPI_ либо клонировать репозиторий
 размещённый на GitHub_::
 
-    git clone https://github.com/Maestross/intvalpy.git
+    git clone https://github.com/AndrosovAS/intvalpy.git
     cd intvalpy
     python setup.py install
 
-.. _github: https://github.com/Maestross/intvalpy
+.. _github: https://github.com/AndrosovAS/intvalpy
 .. _pypi: http://pypi.python.org/pypi/intvalpy/

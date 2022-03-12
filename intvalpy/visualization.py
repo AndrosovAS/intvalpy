@@ -2,8 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-from .RealInterval import ARITHMETIC_TUPLE
-from .intoper import infinity
+from .RealInterval import INTERVAL_CLASSES
+
+from .utils import infinity
 
 
 def scatter_plot(x, y, title="Box", color='gray', alpha=0.5, s=10, size=(15, 15), save=False):
@@ -41,7 +42,6 @@ def scatter_plot(x, y, title="Box", color='gray', alpha=0.5, s=10, size=(15, 15)
         out: None
             A scatter plot is displayed.
     """
-
 
     ox = np.array([x.a, x.a, x.b, x.b])
     oy = np.array([y.a, y.b, y.b, y.a])
@@ -242,7 +242,7 @@ def lineqs(A, b, show=True, title="Solution Set", color='gray',
                 If show = True, then the graph is drawn.
     """
 
-    if isinstance(A, ARITHMETIC_TUPLE) or isinstance(b, ARITHMETIC_TUPLE):
+    if isinstance(A, INTERVAL_CLASSES) or isinstance(b, INTERVAL_CLASSES):
         raise Exception('Interval type system!')
 
     A = np.asarray(A)
@@ -396,7 +396,7 @@ def IntLinIncR2(A, b, show=True, title="Solution Set", consistency='uni',
                 and making a detour in a positive direction. If show = True, then the graph is drawn.
     """
 
-    if not (isinstance(A, ARITHMETIC_TUPLE) or isinstance(b, ARITHMETIC_TUPLE)):
+    if not (isinstance(A, INTERVAL_CLASSES) or isinstance(b, INTERVAL_CLASSES)):
         return lineqs(A, b, show=show, title=title, color=color, bounds=bounds,
                       alpha=alpha, s=s, size=size, save=save)
 
@@ -409,7 +409,7 @@ def IntLinIncR2(A, b, show=True, title="Solution Set", consistency='uni',
 
     def algo(bounds):
         for ort in range(4):
-            tmp = A.copyInKaucherArithmetic
+            tmp = A.copy
             WorkListA = np.zeros((2*n+m, m))
             WorkListb = np.zeros(2*n+m)
 
@@ -602,7 +602,7 @@ def lineqs3D(A, b, show=True, color='C0', alpha=0.5, s=10, size=(8, 8),
         fig = plt.figure(figsize=size)
         ax = fig.add_subplot(111, projection='3d')
 
-        if not bounds is None:
+        if not (bounds is None):
             ax.set_xlim((bounds[0][0], bounds[1][0]))
             ax.set_ylim((bounds[0][1], bounds[1][1]))
             ax.set_zlim((bounds[0][2], bounds[1][2]))
@@ -680,7 +680,7 @@ def IntLinIncR3(A, b, show=True, consistency='uni', color='C0',
             and making a detour in a positive direction. If show = True, then the graph is drawn.
     """
 
-    if not (isinstance(A, ARITHMETIC_TUPLE) or isinstance(b, ARITHMETIC_TUPLE)):
+    if not (isinstance(A, INTERVAL_CLASSES) or isinstance(b, INTERVAL_CLASSES)):
         return lineqs3D(A, b, show=False, color=color,
                         alpha=alpha, s=s, size=size, bounds=bounds)
 
@@ -696,7 +696,7 @@ def IntLinIncR3(A, b, show=True, consistency='uni', color='C0',
         gxmin, gymin, gzmin = infinity, infinity, infinity
         gxmax, gymax, gzmax = -infinity, -infinity, -infinity
         for ort in range(8):
-            tmp = A.copyInKaucherArithmetic
+            tmp = A.copy
             WorkListA = np.zeros((2*n+m, m))
             WorkListb = np.zeros(2*n+m)
 
@@ -767,9 +767,9 @@ def IntLinIncR3(A, b, show=True, consistency='uni', color='C0',
                     l += 1
                     continue
 
-                elif zero_lvl and ((xmax==xmin and xmax==0 and abs(gxmin*gxmax) > 1e-14) or
-                                   (ymax==ymin and ymax==0 and abs(gymin*gymax) > 1e-14) or
-                                   (zmax==zmin and zmax==0 and abs(gzmin*gzmax) > 1e-14)):      # demo
+                elif zero_lvl and ((xmax == xmin and xmax == 0 and abs(gxmin*gxmax) > 1e-14) or
+                                   (ymax == ymin and ymax == 0 and abs(gymin*gymax) > 1e-14) or
+                                   (zmax == zmin and zmax == 0 and abs(gzmin*gzmax) > 1e-14)):      # demo
                     continue
 
                 elif l >= n:
