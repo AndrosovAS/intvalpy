@@ -329,4 +329,4 @@ def sgn(x):
     if isinstance(x, ARITHMETICS):
         return _sgn(x)
     else:
-        return asinterval(np.vectorize(lambda xx: _sgn(xx))(x.data))
+        return asinterval(np.vectorize(_sgn)(x.data))

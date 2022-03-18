@@ -241,7 +241,7 @@ def Subdiff(A, b, tol=1e-12, maxiter=500, tau=1, norm_min_val=1e-12):
             xx[i] = t.a
             xx[i + n] = t.b
 
-            r = r + abs(t)
+            r = r + t.mag
 
         xx = np.linalg.solve(F, xx)
         xx = x - xx * tau

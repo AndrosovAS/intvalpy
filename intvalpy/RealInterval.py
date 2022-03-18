@@ -159,7 +159,10 @@ class BaseTools(object):
             return np.exp(1/2 * np.log(self))
 
         elif args[0].__name__ in ['exp']:
-            return cls(math.exp(self._a), math.exp(self._b))
+            try:
+                return cls(math.exp(self._a), math.exp(self._b))
+            except OverflowError:
+                return cls(float('inf'), float('inf'))
 
         elif args[0].__name__ in ['log']:
             pro = self.pro
@@ -757,7 +760,7 @@ class ArrayInterval:
             return ArrayInterval(self._data / other)
 
     def __pow__(self, other):
-        return ArrayInterval(self._data ** other)
+        return ArrayInterval(np.vectorize(pow)(self._data, other))
 
     def __matmul__(self, other):
         matmul = self._data @ other
@@ -822,19 +825,19 @@ class ArrayInterval:
                 return ArrayInterval(matmul)
 
         elif args[0].__name__ in ['sqrt']:
-            return ArrayInterval(np.vectorize(lambda el: np.sqrt(el))(self._data))
+            return ArrayInterval(np.vectorize(np.sqrt)(self._data))
 
         elif args[0].__name__ in ['exp']:
-            return ArrayInterval(np.vectorize(lambda el: np.exp(el))(self._data))
+            return ArrayInterval(np.vectorize(np.exp)(self._data))
 
         elif args[0].__name__ in ['log']:
-            return ArrayInterval(np.vectorize(lambda el: np.log(el))(self._data))
+            return ArrayInterval(np.vectorize(np.log)(self._data))
 
         elif args[0].__name__ in ['sin']:
-            return ArrayInterval(np.vectorize(lambda el: np.sin(el))(self._data))
+            return ArrayInterval(np.vectorize(np.sin)(self._data))
 
         elif args[0].__name__ in ['cos']:
-            return ArrayInterval(np.vectorize(lambda el: np.cos(el))(self._data))
+            return ArrayInterval(np.vectorize(np.cos)(self._data))
 
         else:
             raise Exception("Расчёт функции {} не предусмотрен!".format(args[0].__name__))
