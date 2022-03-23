@@ -109,11 +109,11 @@ def intersection(x, y):
 
     if isinstance(x, ArrayInterval) and isinstance(y, ArrayInterval):
         assert x.shape == y.shape, 'Не совпадают размерности входных массивов!'
-        return ArrayInterval(np.vectorize(lambda xx, yy: intersect(xx, yy))(x.data, y.data))
+        return ArrayInterval(np.vectorize(intersect)(x.data, y.data))
     elif isinstance(x, ARITHMETICS) and isinstance(y, ArrayInterval):
-        return ArrayInterval(np.vectorize(lambda yy: intersect(x, yy))(y.data))
+        return ArrayInterval(np.vectorize(intersect)(x, y.data))
     elif isinstance(x, ArrayInterval) and isinstance(y, ARITHMETICS):
-        return ArrayInterval(np.vectorize(lambda xx: intersect(xx, y))(x.data))
+        return ArrayInterval(np.vectorize(intersect)(x.data, y))
     else:
         return intersect(x, y)
 
@@ -278,7 +278,7 @@ def isnan(x):
     if isinstance(x, ARITHMETICS):
         return _isnan(x)
     else:
-        return np.vectorize(lambda xx: _isnan(xx))(x.data)
+        return np.vectorize(_isnan)(x.data)
 
 
 subset = lambda a, b: np.array(((a.a >= b.a) & (a.b <= b.b)), dtype=np.bool).all()
