@@ -73,8 +73,8 @@ def __tolsolvty(func, grad, a, b, weight=None, x0=None,
     cal = 1;  ncals = 1
     ccode = False
 
-    for nit in range(int(maxiter)):
-        if (nit + 1) % stepwise == 0:
+    for nit in range(1, int(maxiter)):
+        if nit % stepwise == 0:
             print('nit: ', nit)
             print('x: ', xx)
             print('tol: ', ff)
@@ -179,16 +179,15 @@ def _tol_iopt(model, a, b, grad, x0, tol, maxiter, stepwise):
 
             return Y, v, nit_mon
 
-        times_mon = 0
         Y = x0.copy
         y = func(Y).a
         L = [(Y, y)]
         n, m = len(a), len(grad)
 
         nit_mon = 0
-        nit = 0
+        nit = 1
         while func(Y).wid >= tol and nit <= maxiter:
-            if (nit + 1) % stepwise == 0:
+            if nit % stepwise == 0:
                 print('nit: ', nit)
                 print('x: ', Y)
                 print('tol: ', -func(Y))
