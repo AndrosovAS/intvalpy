@@ -11,7 +11,6 @@ with io.open(readme_file, mode='r', encoding='utf-8') as f:
 INSTALL_REQUIRES = [
     'matplotlib==3.5.1',
     'numpy==1.22.3',
-    'scipy==1.8.0',
     'cvxopt==1.3.0',
     'mpmath==1.2.1'
 ]

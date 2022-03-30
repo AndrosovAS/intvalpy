@@ -7,7 +7,7 @@ from intvalpy.RealInterval import Interval
 
 from intvalpy.utils import intersection, infinity
 from intvalpy.linear.square_system import Gauss
-from intvalpy.linear.system_properties import Tol
+from intvalpy.linear.recognizing_functional import Tol
 
 
 cvxopt.solvers.options['show_progress'] = False
