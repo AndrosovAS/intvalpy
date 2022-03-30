@@ -73,21 +73,14 @@ class TestArithmeticsOperation(unittest.TestCase):
             [[2, 4], [-2, 1]],
             [[-1, 2], [2, 4]]
         ])
-        x = Interval([[-2, 2], [1, 2]])
 
         B = Interval([
             [[1, 2], [-7, 6]],
             [[-7, 6], [1, 2]]
         ])
-        y = Interval([[-1, 1], [-2, 0]])
+        x = Interval([[-2, 2], [1, 2]])
 
-
-        assert (A @ B                                                            == Interval([[[-10, 22], [-32, 26]],
-                                                                                              [[-30, 28], [-12, 20]]])).all()
-        assert (A @ x                                                            == Interval([[-12, 10], [-2, 12]])).all()
-        assert (x @ A                                                            == Interval([[-10, 12], [-2, 12]])).all()
-        assert x @ y                                                             == Interval(-6, 2)
-
+        assert ((x @ A) @ B) @ x                                                 == Interval(-384, 400)
 
 if __name__ == '__main__':
     unittest.main()

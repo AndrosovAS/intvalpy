@@ -13,14 +13,14 @@ from intvalpy.nonlinear import Krawczyk, HansenSengupta
 import numpy as np
 
 # First, let's look at the one-dimensional equation:
-def f(x):
+def f1(x):
     return np.sin(x)**2 - x/5 - 1
 
-def df(x):
+def df1(x):
     return 2*np.sin(x)*np.cos(x) - 1/5
 
 x = Interval(-1.5, -1)
-print('Krawczyk: ', Krawczyk(f, df, x))
+print('Krawczyk: ', Krawczyk(f1, df1, x))
 # +-----+-----+-----+-----+-----+-----+-----+ #
 # Krawczyk(f, df, x)                          #
 # [-1.085983, -1.085983]                      #
@@ -29,7 +29,7 @@ print('Krawczyk: ', Krawczyk(f, df, x))
 
 # For the multidimensional case, consider the system from the textbook [2]:
 epsilon = 0
-def f(x):
+def f2(x):
     return asinterval([x[0]**2 + x[1]**2 - 1 - Interval(-epsilon, epsilon),
                        x[0] - x[1]**2])
 
@@ -38,7 +38,7 @@ def J(x):
               [1, -2*x[1]]]
     return asinterval(result)
 
-print('Multidimensional Krawczyk: ', Krawczyk(f, J, Interval([0,0],[1,1])))
+print('Multidimensional Krawczyk: ', Krawczyk(f2, J, Interval([0,0],[1,1])))
 # +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+ #
 # Krawczyk(f, J, Interval([0,0],[1,1]))                                                       #
 # Спектральный радиус матрицы ρ(|I - Λ·L|) = 1.31 больше единицы!                             #
@@ -47,7 +47,7 @@ print('Multidimensional Krawczyk: ', Krawczyk(f, J, Interval([0,0],[1,1])))
 
 
 epsilon = 0.1
-print('Multidimensional HansenSengupta: ', HansenSengupta(f, J, Interval([0.5,0.5],[1,1])))
+print('Multidimensional HansenSengupta: ', HansenSengupta(f2, J, Interval([0.5,0.5],[1,1])))
 # +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+ #
 # HansenSengupta(f, J, Interval([0.5,0.5],[1,1]))                                                   #
 # Multidimensional HansenSengupta:  interval(['[0.569485, 0.666583]', '[0.755144, 0.817158]'])      #
