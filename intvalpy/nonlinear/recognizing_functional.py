@@ -2,6 +2,7 @@ import numpy as np
 
 from intvalpy.utils import asinterval, zeros, sgn
 from intvalpy.RealInterval import Interval, INTERVAL_CLASSES
+from intvalpy.ralgb5 import ralgb5
 
 from bisect import bisect_left
 
@@ -18,137 +19,59 @@ class KeyWrapper:
         return len(self.it)
 
 
-def __tolsolvty(func, grad, a, b, weight=None, x0=None,
-                tol_f=1e-12, tol_x=1e-12, tol_g=1e-12, maxiter=2000, stepwise=float('inf')):
+def recfunsolvty(model, grad, a, b, x0, consistency='uni', weight=None, tol=1e-12, maxiter=2000, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
 
-    nsims = 30
-    alpha = 2.3
-    hs = 1
-    nh = 3
-    q1 = 0.9
-    q2 = 1.1
-
-    if grad is None:
-        raise Exception('Необходимо задать вектор градиент!')
-
-    m = len(a)
-    n = len(grad)
+    n, m = len(a), len(grad)
     if weight is None:
-        weight = np.ones(m)
+        weight = np.ones(n)
+    x0 = np.copy(x0)
 
-    bc = b.mid
+    bm = b.mid
     br = b.rad
-    tt = None
+
+    def mig(inf, sup):
+        if inf*sup <= 0:
+            return 0.0
+        else:
+            return min(abs(inf), abs(sup))
+
+    if consistency=='uni':
+        functional = lambda infs, sups: weight * (br - np.vectorize(mig)(infs, sups))
+    else:
+        functional = lambda infs, sups: weight * (br - np.maximum(np.abs(infs), np.abs(sups)))
+
 
     def calcfg(x):
         index = x >= 0
-        infsup = bc - func(a, x)
+        infsup = bm - model(a, x)
 
-        tt = weight * (br - np.maximum(np.abs(infsup.a), np.abs(infsup.b)))
+        tt = functional(infsup.a, infsup.b)
         mc = np.argmin(tt)
-        if n == 1:
-            _grad = asinterval(grad[0](a[mc], x))
-        else:
-            _grad = asinterval([g(a[mc], x) for g in grad])
+        gg = asinterval([g(a[mc], x) for g in grad])
 
         if -infsup[mc].a <= infsup[mc].b:
-            dd = weight[mc] * (_grad.a * index + _grad.b * (~index))
+            dd = weight[mc] * (gg.a * index + gg.b * (~index))
         else:
-            dd = -weight[mc] * (_grad.b * index + _grad.a * (~index))
+            dd = -weight[mc] * (gg.b * index + gg.a * (~index))
 
-        return tt[mc], dd, tt
+        return -tt[mc], -dd
 
-
-    if x0 is None:
-        x = np.zeros(n)
-    else:
-        x = x0
-
-    B = np.eye(n)
-    vf = np.zeros(nsims) + float('inf')
-    w = 1./alpha - 1
-
-    f, g0, _ = calcfg(x)
-    ff = f;  xx = x
-    cal = 1;  ncals = 1
-    ccode = False
-
-    for nit in range(1, int(maxiter)):
-        if nit % stepwise == 0:
-            print('nit: ', nit)
-            print('x: ', xx)
-            print('tol: ', ff)
-            print('+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+\n\n')
-
-        vf[nsims-1] = ff
-        if np.linalg.norm(g0) < tol_g:
-            ccode = True
-            break
-
-        g1 = B.T @ g0
-        g = B @ (g1/np.linalg.norm(g1))
-        normg = np.linalg.norm(g)
-
-        r = 1
-        cal = 0
-        deltax = 0
-
-        while r > 0 and cal <= 500:
-            cal += 1
-            x = x + hs * g
-            deltax = deltax + hs * normg
-            f, g1, tt = calcfg(x)
-
-            if f > ff:
-                ff = f
-                xx = x
-
-            if np.mod(cal, nh) == 0:
-                hs = hs * q2
-            r = g @ g1
-
-        if cal > 500:
-            ccode = False
-            break
-
-        if cal == 1:
-            hs = hs * q1
-
-        ncals = ncals + cal
-        if deltax < tol_x:
-            ccode = True
-            break
-
-        dg = B.T @ (g1 - g0)
-        xi = dg / np.linalg.norm(dg)
-        B = B + w * np.outer((B @ xi), xi)
-        g0 = g1
-
-        vf = np.roll(vf, 1)
-        vf[0] = abs(ff - vf[0])
-
-        if abs(ff) > 1:
-            deltaf = np.sum(vf)/abs(ff)
-        else:
-            deltaf = np.sum(vf)
-
-        if deltaf < tol_f:
-            ccode = True
-            break
-        ccode = False
-
-    return ccode, xx, ff, tt
+    xr, fr, nit, ncalls, ccode = ralgb5(calcfg, x0, tol=tol, maxiter=maxiter, alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2, tolx=tolx, tolg=tolg, tolf=tolf)
+    return xr, -fr, nit, ncalls, ccode
 
 
-def _tol_tsopt(model, a, b, grad, weight, x0, tol, maxiter, stepwise):
-    return __tolsolvty(model, grad, a, b, weight=weight, x0=x0, maxiter=maxiter, stepwise=stepwise,
-                       tol_f=tol, tol_x=tol, tol_g=tol)[:-1]
+def _tol_tsopt(model, grad, a, b, x0, weight=None, tol=1e-12, maxiter=2000, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
+
+    xr, fr, nit, ncalls, ccode = recfunsolvty(model, grad, a, b, x0, consistency='tol', weight=weight, tol=tol, maxiter=maxiter,
+                                                alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2, tolx=tolx, tolg=tolg, tolf=tolf)
+    ccode = False if (ccode==4 or ccode==5) else True
+    return ccode, xr, fr
 
 
 def _tol_iopt(model, a, b, grad, x0, tol, maxiter, stepwise):
     def tol_globopt(func, x0, grad, tol, maxiter):
         def insert(zeroS, Y, v, vmag, bmm, nit_mon):
-            if zeroS:
+            if zeroS or True:
                 newcol = (Y, v.a)
                 bslindex = bisect_left(KeyWrapper(L, key=lambda c: c[1]), newcol[1])
                 L.insert(bslindex, newcol)
@@ -185,6 +108,7 @@ def _tol_iopt(model, a, b, grad, x0, tol, maxiter, stepwise):
         n, m = len(a), len(grad)
 
         nit_mon = 0
+        gamma = float('inf')
         nit = 1
         while func(Y).wid >= tol and nit <= maxiter:
             if nit % stepwise == 0:
@@ -211,12 +135,23 @@ def _tol_iopt(model, a, b, grad, x0, tol, maxiter, stepwise):
             Y1, v1, nit_mon = insert(zeroS1, Y1, v1, mag1, bmm1, nit_mon)
             Y2, v2, nit_mon = insert(zeroS2, Y2, v2, mag2, bmm2, nit_mon)
 
+            gamma1 = func(Y1.mid).a
+            gamma2 = func(Y2.mid).a
+            if gamma1 < gamma:
+                gamma = gamma1
+            if gamma2 < gamma:
+                gamma = gamma2
+
+            L = [l for l in L if l[1] <= gamma]
+
             Y = L[0][0]
             nit += 1
 
+        print('nit: ', nit)
+        print('len(L): ', len(L))
         return L[0][0], func(L[0][0]), nit
 
-
+    a = asinterval(a)
     br = b.rad
     bm = b.mid
 
@@ -227,14 +162,15 @@ def _tol_iopt(model, a, b, grad, x0, tol, maxiter, stepwise):
     return success, xx, -ff
 
 
-def Tol(model, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e-12, maxiter=2000, stepwise=float('inf')):
+def Tol(model, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e-12, maxiter=2000, stepwise=float('inf'),
+        alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
 
     if maxQ:
         if isinstance(x0, INTERVAL_CLASSES):
             return _tol_iopt(model, a, b, grad, x0, tol, maxiter, stepwise)
         else:
-            return _tol_tsopt(model, a, b, grad, weight, x0, tol, maxiter, stepwise)
-
+            return _tol_tsopt(model, grad, a, b, x0, weight=weight, tol=tol, maxiter=maxiter,
+                                alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2, tolx=tolx, tolg=tolg, tolf=tolf)
     else:
         br = b.rad
         bm = b.mid
@@ -248,3 +184,27 @@ def Tol(model, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e
             if x is None:
                 raise TypeError('It is necessary to specify at which point to calculate the recognizing functional.')
             return tol_exact(x)
+
+
+def _uni_usopt(model, grad, a, b, x0, weight=None, tol=1e-12, maxiter=2000, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
+
+    xr, fr, nit, ncalls, ccode = recfunsolvty(model, grad, a, b, x0, consistency='uni', weight=weight, tol=tol, maxiter=maxiter,
+                                              alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2, tolx=tolx, tolg=tolg, tolf=tolf)
+    ccode = False if (ccode==4 or ccode==5) else True
+    return ccode, xr, fr
+
+def Uni(model, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e-12, maxiter=2000, stepwise=float('inf'),
+        alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
+
+    br = b.rad
+    bm = b.mid
+
+    uni_exact = lambda x: min(br - (bm - model(a, x)).mig)
+
+    if maxQ:
+        return _uni_usopt(model, grad, a, b, x0, weight=weight, tol=tol, maxiter=maxiter,
+                            alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2, tolx=tolx, tolg=tolg, tolf=tolf)
+    else:
+        if x is None:
+            raise TypeError('It is necessary to specify at which point to calculate the recognizing functional.')
+        return uni_exact(x)

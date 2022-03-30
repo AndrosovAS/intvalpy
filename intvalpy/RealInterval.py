@@ -116,6 +116,14 @@ class BaseTools(object):
         else:
             return KaucherArithmetic(1/self._a, 1/self._b)
 
+    @property
+    def khi(self):
+        if abs(self._a) <= abs(self._b):
+            return self._a / self._b
+        else:
+            return self._b / self._a
+
+
     def __repr__(self):
         return "'[%.6g, %.6g]'" % (self._a, self._b)
 
@@ -318,6 +326,7 @@ class ClassicalArithmetic(BaseTools):
             return ArrayInterval(np.vectorize(lambda o: o * self)(other))
 
     def __rtruediv__(self, other):
+        assert not (0 in self), 'It is impossible to divide by zero containing intervals!'
         return other * ClassicalArithmetic(1/self._b, 1/self._a)
 
     def __iadd__(self, other):
@@ -454,6 +463,7 @@ class KaucherArithmetic(BaseTools):
             return ArrayInterval(np.vectorize(lambda o: o * self)(other))
 
     def __rtruediv__(self, other):
+        assert not (0 in self), 'It is impossible to divide by zero containing intervals!'
         return other * KaucherArithmetic(1/self._b, 1/self._a)
 
     def __iadd__(self, other):
@@ -597,6 +607,10 @@ class ArrayInterval:
     @property
     def inv(self):
         return ArrayInterval(np.vectorize(lambda el: el.inv)(self._data))
+
+    @property
+    def khi(self):
+        return np.vectorize(lambda el: el.khi)(self._data)
 
     @property
     def vertex(self):
