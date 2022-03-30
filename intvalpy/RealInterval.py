@@ -23,18 +23,34 @@ class BaseTools(object):
 
     @property
     def a(self):
+        """
+        The largest number that is less than or equal to each of a given
+        set of real numbers of an interval.
+        """
         return self._a
 
     @property
     def b(self):
+        """
+        The smallest number that is greater than or equal to each of a given
+        set of real numbers of an interval.
+        """
         return self._b
 
     @property
     def inf(self):
+        """
+        The largest number that is less than or equal to each of a given
+        set of real numbers of an interval.
+        """
         return self._a
 
     @property
     def sup(self):
+        """
+        The smallest number that is greater than or equal to each of a given
+        set of real numbers of an interval.
+        """
         return self._b
 
     @property
@@ -46,22 +62,22 @@ class BaseTools(object):
 
     @property
     def wid(self):
-        """Возвращает ширину интервала."""
+        """Width of the non-empty interval."""
         return abs(self._b - self._a)
 
     @property
     def rad(self):
-        """Возвращает радиус интервала."""
+        """Radius of the non-empty interval."""
         return 1/2 * self.wid
 
     @property
     def mid(self):
-        """Возвращает середину интервала."""
+        """Midpoint of the non-empty interval."""
         return 1/2 * (self._b + self._a)
 
     @property
     def mig(self):
-        """Возвращает мигнитуду интервала."""
+        """The smallest absolute value in the non-empty interval."""
         if 0 in self:
             return 0.0
         else:
@@ -69,7 +85,7 @@ class BaseTools(object):
 
     @property
     def mag(self):
-        """Возвращает магнитуду интервала."""
+        """The greatest absolute value in the non-empty interval."""
         return max(abs(self._a), abs(self._b))
 
     @property
@@ -100,14 +116,23 @@ class BaseTools(object):
         else:
             return KaucherArithmetic(1/self._a, 1/self._b)
 
+    @property
+    def khi(self):
+        if abs(self._a) <= abs(self._b):
+            return self._a / self._b
+        else:
+            return self._b / self._a
+
+
     def __repr__(self):
         return "'[%.6g, %.6g]'" % (self._a, self._b)
 
-    # Унарные числовые операции
+    # Unary operation
     def __neg__(self):
         return type(self)(-self._b, -self._a)
 
     def __abs__(self):
+        """Range of absolute value."""
         return type(self)(self.mig, self.mag)
 
     @wrap_to_interval
@@ -137,9 +162,6 @@ class BaseTools(object):
     @wrap_to_interval
     def __ge__(self, other):
         return (self.a >= other.a) and (self.b >= other.b)
-
-    # def __pow__(self, other):
-    #     return np.exp(other * np.log(self))
 
     def __array_ufunc__(self, *args):
         cls = type(self)
@@ -213,7 +235,7 @@ class BaseTools(object):
                 return cls(sup, inf)
 
         else:
-            raise Exception("Расчёт функции {} не предусмотрен!".format(args[0].__name__))
+            raise Exception("Calculation of the {} function is not provided!".format(args[0].__name__))
 
 
 class ClassicalArithmetic(BaseTools):
@@ -254,7 +276,7 @@ class ClassicalArithmetic(BaseTools):
     def __truediv__(self, other):
 
         if isinstance(other, ClassicalArithmetic):
-            assert not (0 in other), 'Нельзя делить на нуль содержащие интервалы!'
+            assert not (0 in other), 'It is impossible to divide by zero containing intervals!'
 
             div = np.array([self._a/other._a,
                             self._a/other._b,
@@ -263,23 +285,23 @@ class ClassicalArithmetic(BaseTools):
             return ClassicalArithmetic(div.min(), div.max())
 
         if isinstance(other, KaucherArithmetic):
-            assert not (0 in other), 'Нельзя делить на нуль содержащие интервалы!'
+            assert not (0 in other), 'It is impossible to divide by zero containing intervals!'
             return self.__mul__(KaucherArithmetic(1/other.b, 1/other.a))
 
         else:
             return 1/other * self
 
     def __pow__(self, other):
-        if self >= 0:
+        if isinstance(other, (int, np.int_)) and other >= 0:
+            inf, sup = self._a**other, self._b**other
+            if other % 2 == 0 and 0 in self:
+                return ClassicalArithmetic(0, max(inf, sup))
+            else:
+                return ClassicalArithmetic(min(inf, sup), max(inf, sup))
+        elif self >= 0:
             return np.exp(other * np.log(self))
-        elif (not isinstance(other, int)) or other < 0:
-            raise ValueError('Если основание содержит отрицательные числа, то степень может быть только натуральным числом.')
-
-        inf, sup = self._a**other, self._b**other
-        if other % 2 == 0 and 0 in self:
-            return ClassicalArithmetic(0, max(inf, sup))
         else:
-            return ClassicalArithmetic(min(inf, sup), max(inf, sup))
+            raise ValueError('If the base contains negative numbers, than the degree can only be a natural number.')
 
     def __radd__(self, other):
         if isinstance(other, single_type):
@@ -304,9 +326,9 @@ class ClassicalArithmetic(BaseTools):
             return ArrayInterval(np.vectorize(lambda o: o * self)(other))
 
     def __rtruediv__(self, other):
+        assert not (0 in self), 'It is impossible to divide by zero containing intervals!'
         return other * ClassicalArithmetic(1/self._b, 1/self._a)
 
-    #  Арифметические операторы присваивания
     def __iadd__(self, other):
         other = Interval(other)
         if isinstance(other, ClassicalArithmetic):
@@ -338,7 +360,7 @@ class ClassicalArithmetic(BaseTools):
     def __itruediv__(self, other):
         other = Interval(other)
         if isinstance(other, ClassicalArithmetic):
-            assert not (0 in other), 'Нельзя делить на нуль содержащие интервалы!'
+            assert not (0 in other), 'It is impossible to divide by zero containing intervals!'
 
             div = np.array([self._a/other._a,
                             self._a/other._b,
@@ -352,7 +374,6 @@ class ClassicalArithmetic(BaseTools):
 
 class KaucherArithmetic(BaseTools):
 
-    #     Арифметические операторы
     def __add__(self, other):
         if isinstance(other, ARITHMETICS):
             return KaucherArithmetic(self._a + other.a, self._b + other.b)
@@ -381,7 +402,7 @@ class KaucherArithmetic(BaseTools):
 
     def __truediv__(self, other):
         if isinstance(other, ClassicalArithmetic):
-            assert not (0 in other), 'Нельзя делить на нуль содержащие интервалы!'
+            assert not (0 in other), 'It is impossible to divide by zero containing intervals!'
 
             other = ClassicalArithmetic(1/other.b, 1/other.a)
             _selfInfPlus, _selfSupPlus = max(self._a, 0), max(self._b, 0)
@@ -394,25 +415,24 @@ class KaucherArithmetic(BaseTools):
                                     _selfSupPlus*_otherSupPlus + _selfInfMinus*_otherInfMinus - _selfInfPlus*_otherSupMinus - _selfSupMinus*_otherInfPlus)
 
         if isinstance(other, KaucherArithmetic):
-            assert not (0 in other), 'Нельзя делить на нуль содержащие интервалы!'
+            assert not (0 in other), 'It is impossible to divide by zero containing intervals!'
             return self.__mul__(KaucherArithmetic(1/other.b, 1/other.a))
 
         else:
             return 1/other * self
 
     def __pow__(self, other):
-        if self >= 0:
+        if isinstance(other, (int, np.int_)) and other >= 0:
+            inf, sup = self._a**other, self._b**other
+            if other % 2 == 0 and 0 in self:
+                return KaucherArithmetic(0, max(inf, sup))
+            else:
+                return KaucherArithmetic(inf, sup)
+        elif self >= 0:
             return np.exp(other * np.log(self))
-        elif (not isinstance(other, int)) or other < 0:
-            raise ValueError('Если основание содержит отрицательные числа, то степень может быть только натуральным числом.')
-
-        inf, sup = self._a**other, self._b**other
-        if other % 2 == 0 and 0 in self:
-            return KaucherArithmetic(0, max(inf, sup))
         else:
-            return KaucherArithmetic(inf, sup)
+            raise ValueError('If the base contains negative numbers, than the degree can only be a natural number.')
 
-    # Инверсные арифметические операторы
     def __radd__(self, other):
         if isinstance(other, single_type):
             return KaucherArithmetic(self._a + other, self._b + other)
@@ -443,9 +463,9 @@ class KaucherArithmetic(BaseTools):
             return ArrayInterval(np.vectorize(lambda o: o * self)(other))
 
     def __rtruediv__(self, other):
+        assert not (0 in self), 'It is impossible to divide by zero containing intervals!'
         return other * KaucherArithmetic(1/self._b, 1/self._a)
 
-    #  Арифметические операторы присваивания
     def __iadd__(self, other):
         other = Interval(other)
         if isinstance(other, ARITHMETICS):
@@ -481,7 +501,7 @@ class KaucherArithmetic(BaseTools):
     def __itruediv__(self, other):
         other = Interval(other)
         if isinstance(other, ClassicalArithmetic):
-            assert (not 0 in other), 'Нельзя делить на нуль содержащие интервалы!'
+            assert (not 0 in other), 'It is impossible to divide by zero containing intervals!'
 
             other = ClassicalArithmetic(1/other.b, 1/other.a)
             _selfInfPlus, _selfSupPlus = max(self._a, 0), max(self._b, 0)
@@ -495,7 +515,7 @@ class KaucherArithmetic(BaseTools):
             return self
 
         if isinstance(other, KaucherArithmetic):
-            assert not (0 in other), 'Нельзя делить на нуль содержащие интервалы!'
+            assert not (0 in other), 'It is impossible to divide by zero containing intervals!'
 
             div = self.__mul__(KaucherArithmetic(1/other.b, 1/other.a))
             self._a, self._b = div._a, div._b
@@ -589,6 +609,10 @@ class ArrayInterval:
         return ArrayInterval(np.vectorize(lambda el: el.inv)(self._data))
 
     @property
+    def khi(self):
+        return np.vectorize(lambda el: el.khi)(self._data)
+
+    @property
     def vertex(self):
         inf, sup = self.a, self.b
         if self._ndim == 1:
@@ -611,7 +635,7 @@ class ArrayInterval:
                 result[k][ends == 1] = sup[ends == 1]
                 k += 1
         else:
-            raise Exception('Функция предусмотрена не более чем для двумерных массивов.')
+            raise Exception('The function is provided for no more than two-dimensional arrays.')
 
         return result
 
@@ -639,7 +663,8 @@ class ArrayInterval:
         return iter(self.storage[::-1])
 
     def __abs__(self):
-        return np.vectorize(lambda el: abs(el))(self._data)
+        """Range of absolute value."""
+        return ArrayInterval(np.vectorize(abs)(self._data))
 
     def __contains__(self, other):
         if isinstance(other, single_type) or isinstance(other, (ClassicalArithmetic, KaucherArithmetic)):
@@ -690,7 +715,6 @@ class ArrayInterval:
         else:
             return self._data >= other
 
-    #     Эмуляция коллекций
     def __len__(self):
         return self._data.__len__()
 
@@ -840,7 +864,7 @@ class ArrayInterval:
             return ArrayInterval(np.vectorize(np.cos)(self._data))
 
         else:
-            raise Exception("Расчёт функции {} не предусмотрен!".format(args[0].__name__))
+            raise Exception("Calculation of the {} function is not provided!".format(args[0].__name__))
 
 
 class precision:
@@ -853,7 +877,7 @@ class precision:
 
 def SingleInterval(left, right, sortQ=True, midRadQ=False):
     if precision.increasedPrecisionQ:
-        left, right = mpf(np.str(left)), mpf(np.str(right))
+        left, right = mpf(str(left)), mpf(str(right))
     else:
         left, right = np.float64(left), np.float64(right)
 
@@ -872,7 +896,7 @@ def SingleInterval(left, right, sortQ=True, midRadQ=False):
         else:
             return KaucherArithmetic(left, right)
 
-single_type = (int, float, np.int, np.float, np.int32, np.float32, np.int64, np.float64, mpf)
+single_type = (int, float, np.int_, np.float_, mpf)
 ARITHMETICS = (ClassicalArithmetic, KaucherArithmetic)
 INTERVAL_CLASSES = (ClassicalArithmetic, KaucherArithmetic, ArrayInterval)
 
