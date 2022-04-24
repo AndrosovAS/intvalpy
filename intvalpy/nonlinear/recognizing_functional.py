@@ -3,6 +3,7 @@ import numpy as np
 from intvalpy.utils import asinterval, zeros, sgn
 from intvalpy.RealInterval import Interval, INTERVAL_CLASSES
 from intvalpy.ralgb5 import ralgb5
+from intvalpy.nonlinear.optimize import globopt
 
 from bisect import bisect_left
 
@@ -76,11 +77,25 @@ def _tol_iopt(model, a, b, grad, x0, tol, maxiter, stepwise):
                 bslindex = bisect_left(KeyWrapper(L, key=lambda c: c[1]), newcol[1])
                 L.insert(bslindex, newcol)
             else:
-                g = zeros(n)
+                mm = model(a, Y)
+                infs, sups = mm.a, mm.b
+
+                index = []
+                for k in range(len(infs)):
+                    inf = infs[k]
+                    if not (inf > sups).any():
+                        index.append(k)
+                bars = a[index]
+                BM = bm[index]
+
+                nbars = len(bars)
+                g = zeros(nbars)
                 for k in range(m):
+                    # print('k: ', k)
+                    # print('grad: ', -grad[k](bars, Y) * sgn(BM - model(bars, Y)) )
                     zeroG = False
-                    for l in range(n):
-                        g[l] = -grad[k](a[l], Y) * sgn(bmm[l])
+                    for l in range(nbars):
+                        g[l] = -grad[k](bars[l], Y) * sgn(BM[l] - model(bars[l], Y))
                         if 0 in g[l]:
                             zeroG = True
                             break
@@ -113,6 +128,7 @@ def _tol_iopt(model, a, b, grad, x0, tol, maxiter, stepwise):
         while func(Y).wid >= tol and nit <= maxiter:
             if nit % stepwise == 0:
                 print('nit: ', nit)
+                print('len(L): ', len(L))
                 print('x: ', Y)
                 print('tol: ', -func(Y))
                 print('+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+\n\n')
@@ -190,6 +206,7 @@ def _uni_usopt(model, grad, a, b, x0, weight=None, tol=1e-12, maxiter=2000, alph
 
     xr, fr, nit, ncalls, ccode = recfunsolvty(model, grad, a, b, x0, consistency='uni', weight=weight, tol=tol, maxiter=maxiter,
                                               alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2, tolx=tolx, tolg=tolg, tolf=tolf)
+
     ccode = False if (ccode==4 or ccode==5) else True
     return ccode, xr, fr
 
