@@ -166,4 +166,6 @@ Links
 
 * [PyPI package](<https://pypi.org/project/intvalpy/>)
 
+* [Article](<https://www.researchgate.net/publication/361560329_IntvalPy_-_biblioteka_intervalnyh_vycislenij_na_azyke_Python>)
+
 * A detailed [monograph](<http://www.nsc.ru/interval/Library/InteBooks/SharyBook.pdf>) on interval theory
