@@ -63,7 +63,7 @@ class BaseTools(object):
     @property
     def wid(self):
         """Width of the non-empty interval."""
-        return abs(self._b - self._a)
+        return self._b - self._a
 
     @property
     def rad(self):
@@ -868,7 +868,7 @@ class ArrayInterval:
 
 
 class precision:
-    increasedPrecisionQ = True
+    extendedPrecisionQ = True
     mp.dps = 36
 
     def dps(_dps):
@@ -876,7 +876,7 @@ class precision:
 
 
 def SingleInterval(left, right, sortQ=True, midRadQ=False):
-    if precision.increasedPrecisionQ:
+    if precision.extendedPrecisionQ:
         left, right = mpf(str(left)), mpf(str(right))
     else:
         left, right = np.float64(left), np.float64(right)

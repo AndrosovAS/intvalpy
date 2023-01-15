@@ -122,7 +122,7 @@ print('pss: ', pss)
 
 ### Interval system of nonlinear equations:
 
-For nonlinear systems, the simplest multidimensional interval methods of Kravchik and Hansen-Sengupta are implemented for solving nonlinear systems:
+For nonlinear systems, the simplest multidimensional interval methods of Krawczyk and Hansen-Sengupta are implemented for solving nonlinear systems:
 
 ```python
 import intvalpy as ip
