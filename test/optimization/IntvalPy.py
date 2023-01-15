@@ -130,7 +130,7 @@ def eggholder(x):
             x[0]*np.sin(np.sqrt(mag(x[0] - (x[1]+47))))
 # +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
 
-def shaffner(x):
+def schaffer(x):
     return 0.5 + (np.cos(np.sin(mag(x[0]**2 - x[1]**2)))**2 - 0.5) / (1 + 0.001*(x[0]**2 + x[1]**2))**2
 # +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
 
@@ -157,7 +157,7 @@ test_opt = [
     [easom,         ip.Interval([[-100, 100] for _ in range(2)])],
     [eggholder,     ip.Interval([[-512, 512] for _ in range(2)])],
     [rastrigin,     ip.Interval([[-2.56, 5.12] for _ in range(4)])],
-    [shaffner,      ip.Interval([[-100, 100] for _ in range(2)])],
+    [schaffer,      ip.Interval([[-100, 100] for _ in range(2)])],
     [levy13,        ip.Interval([[-10, 10] for _ in range(2)])],
     [hartmann,      ip.Interval([[0, 1] for _ in range(3)])],
     [trekkani,      ip.Interval([[-5, 5], [-5, 5]])],

@@ -165,6 +165,15 @@ def diag(mat):
     return result
 
 
+def compmat(A):
+    """
+    Компарант интервальной матрицы
+    """
+    Amag = A.mag
+    Amig = A.mig
+    return np.array([[Amig[k, l] if k==l else -Amag[k, l] for l in range(A.shape[1])] for k in range(A.shape[0])])
+
+
 def eye(n):
     A = zeros((n, n))
     for k in range(n):
@@ -205,6 +214,22 @@ def Shary(n, N=None, alpha=0.23, beta=0.35):
 
     for k in range(n):
         A[k, k] = Interval(n-1, N, sortQ=False)
+
+    return A, b
+
+
+def Toft(n, r=0, R=0):
+    assert r >= 0, 'The parameter r must be a positive real number.'
+    assert R >= 0, 'The parameter R must be a positive real number.'
+
+    A = zeros((n,n))
+    b = zeros(n) + Interval(1-R, 1+R, sortQ=False)
+
+    a = zeros(n)
+    for k in range(n):
+        A[k, k] = Interval(1-r, 1+r, sortQ=False)
+        a[k] = Interval(k+1-r, k+1+r)
+    A[:, -1], A[-1, :] = a.copy, a.copy
 
     return A, b
 
