@@ -636,12 +636,68 @@ Interval(['[-10.6623, 12.5714]', '[-11.0649, 12.4286]'])
 interval(['[-4.266757, 6.076814]', '[-5.371444, 5.265456]'])
 
 
+Parameter partitioning methods
+~~~~~~~~~~~~~~~~~~
+
+PPS - optimal (exact) componentwise estimation of the united solution
+set to interval linear system of equations.
+
+x = PPS(A, b) computes optimal componentwise lower and upper estimates
+of the solution set to interval linear system of equations Ax = b,
+where A - square interval matrix, b - interval right-hand side vector.
+
+
+x = PPS(A, b, tol, maxiter, nu) computes vector x of
+optimal componentwise estimates of the solution set to interval linear
+system Ax = b with accuracy no more than epsilon and after the number of
+iterations no more than numit. Optional input argument ncomp indicates
+a component's number of interval solution in case of computing the estimates
+for this component only. If this argument is omitted, all componentwise
+estimates is computed.
+
+
+**Parameters**:
+
+* A: Interval
+    The input interval matrix of ISLAE, which can be either square or rectangular.
+
+* b: Interval
+    The interval vector of the right part of the ISLAE.
+
+* tol: float, optional
+    The error that determines when further crushing of the bars is unnecessary,
+    i.e. their width is "close enough" to zero, which can be considered exactly zero.
+
+* maxiter: int, optional
+    The maximum number of iterations.
+
+* nu: int, optional
+    Choosing the number of the component along which the set of solutions is evaluated.
+
+
+**Returns**:
+
+* out: Interval
+    Returns an interval vector, which, after substituting into the system of equations
+    and performing all operations according to the rules of arithmetic and analysis,
+    turns the equations into true equalities.
+
+
+**Examples**:
+
+>>> A, b = ip.Neumeier(5, 10)
+>>> ip.linear.PPS(A, b)
+Interval(['[-0.214286, 0.214286]', '[-0.214286, 0.214286]', '[-0.214286, 0.214286]', '[-0.214286, 0.214286]', '[-0.214286, 0.214286]'])
+
+
 Список использованной литературы
 ~~~~~~~~~~~~~~~~~~
 
-[1] R.B. Kearfott, C. Hu, M. Novoa III - `A review of preconditioners for the interval Gauss-Seidel method <https://www.researchgate.net/publication/2656909_A_Review_of_Preconditioners_for_the_Interval_Gauss-Seidel_Method>`_ // Interval Computations 1991-1 pp 59-85
+[1] R.B. Kearfott, C. Hu, M. Novoa III - `A review of preconditioners for the interval Gauss-Seidel method <https://www.researchgate.net/publication/2656909_A_Review_of_Preconditioners_for_the_Interval_Gauss-Seidel_Method>`_ // Interval Computations, 1991-1, pp 59-85
 
 [2] С.П. Шарый - `Конечномерный интервальный анализ <http://www.nsc.ru/interval/Library/InteBooks/SharyBook.pdf>`_.
+
+[3] S.P. Shary, D.Yu. Lyudvin - `Testing Implementations of PPS-methods for Interval Linear Systems <https://www.researchgate.net/publication/259658132_Testing_Implementations_of_PPS-methods_for_Interval_Linear_Systems>`_ // Reliable Computing, 2013, Volume 19, pp 176-196
 
 
 Методы для решения переопределённых систем

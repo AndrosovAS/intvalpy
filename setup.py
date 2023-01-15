@@ -9,15 +9,15 @@ with io.open(readme_file, mode='r', encoding='utf-8') as f:
     README = f.read()
 
 INSTALL_REQUIRES = [
-    'matplotlib==3.5.1',
-    'numpy==1.22.3',
-    'cvxopt==1.3.0',
-    'mpmath==1.2.1'
+    'matplotlib',
+    'numpy',
+    'cvxopt',
+    'mpmath'
 ]
 
 setup(
     name='intvalpy',
-    version='1.5.7',
+    version='1.5.8',
     description='An interval library in Python that uses classical interval ' + \
                 'arithmetic and Kauсher arithmetic + Kahan division in some functions',
     long_description=README,
