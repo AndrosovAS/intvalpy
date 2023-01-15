@@ -4,7 +4,147 @@ from intvalpy.RealInterval import Interval, INTERVAL_CLASSES
 from intvalpy.ralgb5 import ralgb5
 
 
-def recfunsolvty(A, b, consistency='uni', x0=None, weight=None, tol=1e-12, maxiter=2000, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
+################################################################################
+################################################################################
+# define LinearConstraint
+class LinearConstraint:
+    def __init__(self, A, lb=None, ub=None, mu=None):
+        # TODO
+        # идёт преобразование A x <= b
+        # надо удалить все строки, где значение inf, а также, где нет зависимости от x
+
+        assert A.shape[0] >= 1, 'Inconsistent dimension of matrix'
+        if (not lb is None) or (not ub is None):
+            self.A, self.b = [], []
+            if (not lb is None):
+                assert A.shape[0] == len(lb), 'Inconsistent dimensions of matrix and left-hand side vector'
+                for k in range(A.shape[0]):
+                    if abs(lb[k]) != np.inf and A[k].any():
+                        self.A.append(-A[k])
+                        self.b.append(-lb[k])
+
+            if (not ub is None):
+                assert A.shape[0] == len(ub), 'Inconsistent dimensions of matrix and left-hand side vector'
+                for k in range(A.shape[0]):
+                    if abs(ub[k]) != np.inf and A[k].any():
+                        self.A.append(A[k])
+                        self.b.append(ub[k])
+
+            n = len(self.A)
+            if n == 0:
+                self.A.append(A[0])
+                self.b.append(ub[0])
+            else:
+                w = np.random.uniform(1, 2, n)
+                # TODO
+                # переписать более оптимальным способом
+                W = np.zeros( (n, A.shape[1]), dtype=np.float64)
+                for k in range(W.shape[1]):
+                    W[:, k] = w
+
+            self.A, self.b = np.array(self.A)*W, np.array(self.b)*w
+
+
+        else:
+            self.A, self.b = A[0], np.array([np.inf])
+
+        self.mu = mu
+
+    def breachConditionQ(self, x, i):
+        Aix = self.A[i] @ x
+        return Aix, Aix > self.b[i]
+
+    def find_mu(self):
+        return min(abs(np.sum(self.A[:, np.any(self.A != 0, axis=0)], axis=0)))
+
+
+# define calcfg
+# tol
+def calcfg_tol(x, infA, supA, Ac, Ar, bc, functional, weight):
+    index = x>=0
+    Ac_x = Ac @ x
+    Ar_absx = Ar @ np.abs(x)
+    infs = bc - (Ac_x + Ar_absx)
+    sups = bc - (Ac_x - Ar_absx)
+    tt = functional(infs, sups)
+    mc = np.argmin(tt)
+    if -infs[mc] <= sups[mc]:
+        dd = weight[mc] * (infA[mc] * index + supA[mc] * (~index))
+    else:
+        dd = -weight[mc] * (supA[mc] * index + infA[mc] * (~index))
+    return -tt[mc], -dd
+
+def calcfg_tol_constraint(x, infA, supA, Ac, Ar, bc, functional, weight, linear_constraint):
+    n, m = linear_constraint.A.shape
+    alphai, dalphai = np.zeros(n), np.zeros((n, m))
+    for i in range(n):
+        Aix, condQ = linear_constraint.breachConditionQ(x, i)
+        if condQ:
+            alphai[i] = Aix - linear_constraint.b[i]
+            dalphai[i] = linear_constraint.A[i]
+
+    alpha = linear_constraint.mu * sum(alphai)
+    grad_alpha = linear_constraint.mu * np.array([ sum(dalphai[:, k]) for k in range(m)])
+
+    index = x>=0
+    Ac_x = Ac @ x
+    Ar_absx = Ar @ np.abs(x)
+    infs = bc - (Ac_x + Ar_absx)
+    sups = bc - (Ac_x - Ar_absx)
+    tt = functional(infs, sups) - alpha
+    mc = np.argmin(tt)
+    if -infs[mc] <= sups[mc]:
+        dd = weight[mc] * (infA[mc] * index + supA[mc] * (~index)) - grad_alpha
+    else:
+        dd = -weight[mc] * (supA[mc] * index + infA[mc] * (~index)) - grad_alpha
+    return -tt[mc], -dd
+
+################################################################################
+# uni
+def calcfg_uni(x, infA, supA, Ac, Ar, bc, functional, weight):
+    index = x>=0
+    Ac_x = Ac @ x
+    Ar_absx = Ar @ np.abs(x)
+    infs = bc - (Ac_x + Ar_absx)
+    sups = bc - (Ac_x - Ar_absx)
+    tt = functional(infs, sups)
+    mc = np.argmin(tt)
+    if -infs[mc] <= sups[mc]:
+        dd = weight[mc] * (supA[mc] * index + infA[mc] * (~index))
+    else:
+        dd = -weight[mc] * (infA[mc] * index + supA[mc] * (~index))
+    return -tt[mc], -dd
+
+def calcfg_uni_constraint(x, infA, supA, Ac, Ar, bc, functional, weight, linear_constraint):
+    n, m = linear_constraint.A.shape
+    alphai, dalphai = np.zeros(n), np.zeros((n, m))
+    for i in range(n):
+        Aix, condQ = linear_constraint.breachConditionQ(x, i)
+        if condQ:
+            alphai[i] = Aix - linear_constraint.b[i]
+            dalphai[i] = linear_constraint.A[i]
+
+    alpha = linear_constraint.mu * sum(alphai)
+    grad_alpha = linear_constraint.mu * np.array([ sum(dalphai[:, k]) for k in range(m)])
+
+    index = x>=0
+    Ac_x = Ac @ x
+    Ar_absx = Ar @ np.abs(x)
+    infs = bc - (Ac_x + Ar_absx)
+    sups = bc - (Ac_x - Ar_absx)
+    tt = functional(infs, sups) - alpha
+    mc = np.argmin(tt)
+    if -infs[mc] <= sups[mc]:
+        dd = weight[mc] * (supA[mc] * index + infA[mc] * (~index)) - grad_alpha
+    else:
+        dd = -weight[mc] * (infA[mc] * index + supA[mc] * (~index)) - grad_alpha
+    return -tt[mc], -dd
+
+################################################################################
+################################################################################
+
+
+def recfunsolvty(A, b, consistency='uni', x0=None, weight=None, tol=1e-12, maxiter=2000, linear_constraint=None, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
 
     n, m = A.shape
     A = A.to_float()
@@ -20,6 +160,12 @@ def recfunsolvty(A, b, consistency='uni', x0=None, weight=None, tol=1e-12, maxit
 
     if weight is None:
         weight = np.ones(n)
+
+    # для штрафной функции alpha = sum G x - c, где G-матрица ограничений, c-вектор ограничений
+    # находим значение весового коэффициента mu, чтобы гарантировано не выходить за пределы ограничений
+    if (not linear_constraint is None) and (linear_constraint.mu is None):
+        linear_constraint.mu = np.max(A.mag) / linear_constraint.find_mu()
+
 
     if x0 is None:
         sv = np.linalg.svd(Ac, compute_uv=False)
@@ -41,27 +187,22 @@ def recfunsolvty(A, b, consistency='uni', x0=None, weight=None, tol=1e-12, maxit
 
     if consistency=='uni':
         functional = lambda infs, sups: weight * (br - np.vectorize(mig)(infs, sups))
+        if linear_constraint is None:
+            def calcfg(x):
+                return calcfg_uni(x, infA, supA, Ac, Ar, bc, functional, weight)
+        else:
+            def calcfg(x):
+                return calcfg_uni_constraint(x, infA, supA, Ac, Ar, bc, functional, weight, linear_constraint)
+
     else:
         functional = lambda infs, sups: weight * (br - np.maximum(np.abs(infs), np.abs(sups)))
-
-
-    def calcfg(x):
-        index = x >= 0
-
-        Ac_x = Ac @ x
-        Ar_absx = Ar @ np.abs(x)
-        infs = bc - (Ac_x + Ar_absx)
-        sups = bc - (Ac_x - Ar_absx)
-
-        tt = functional(infs, sups)
-        mc = np.argmin(tt)
-
-        if -infs[mc] <= sups[mc]:
-            dd = weight[mc] * (infA[mc] * index + supA[mc] * (~index))
+        if linear_constraint is None:
+            def calcfg(x):
+                return calcfg_tol(x, infA, supA, Ac, Ar, bc, functional, weight)
         else:
-            dd = -weight[mc] * (supA[mc] * index + infA[mc] * (~index))
+            def calcfg(x):
+                return calcfg_tol_constraint(x, infA, supA, Ac, Ar, bc, functional, weight, linear_constraint)
 
-        return -tt[mc], -dd
 
     xr, fr, nit, ncalls, ccode = ralgb5(calcfg, x0, tol=tol, maxiter=maxiter, alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2, tolx=tolx, tolg=tolg, tolf=tolf)
     return xr, -fr, nit, ncalls, ccode
@@ -73,7 +214,7 @@ def dot(midA, radA, x):
     return Interval(midAx - radAabsx, midAx + radAabsx, sortQ=False)
 
 
-def Tol(A, b, x=None, maxQ=False, x0=None, weight=None, tol=1e-12, maxiter=2000, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
+def Tol(A, b, x=None, maxQ=False, x0=None, weight=None, tol=1e-12, maxiter=2000, linear_constraint=None, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
     """
     When it is necessary to check the interval system of linear equations for its strong
     solvability you should use the Tol functionality. If maxQ=True, then the maximum
@@ -119,14 +260,13 @@ def Tol(A, b, x=None, maxQ=False, x0=None, weight=None, tol=1e-12, maxiter=2000,
             x = np.zeros(A.shape[1]) if x is None else x
             return min(b.rad - (b.mid - (A @ x)).mag)
     else:
-        xr, fr, nit, ncalls, ccode = recfunsolvty(A, b, consistency='tol', x0=x0, weight=weight, tol=tol, maxiter=maxiter,
+        xr, fr, nit, ncalls, ccode = recfunsolvty(A, b, consistency='tol', x0=x0, weight=weight, tol=tol, maxiter=maxiter, linear_constraint=linear_constraint,
                                                   alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2, tolx=tolx, tolg=tolg, tolf=tolf)
-
         ccode = False if (ccode==4 or ccode==5) else True
         return ccode, xr, fr
 
 
-def Uni(A, b, x=None, maxQ=False, x0=None, weight=None, tol=1e-12, maxiter=2000, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
+def Uni(A, b, x=None, maxQ=False, x0=None, weight=None, tol=1e-12, maxiter=2000, linear_constraint=None, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
     """
     When it is necessary to check an interval system of linear equations for its weak solvability
     you should use the Uni functionality. If maxQ=True, then the maximum of the functional is found,
@@ -180,7 +320,7 @@ def Uni(A, b, x=None, maxQ=False, x0=None, weight=None, tol=1e-12, maxiter=2000,
             x = np.zeros(A.shape[1]) if x is None else x
             return min(b.rad - (b.mid - (A @ x)).mig)
     else:
-        xr, fr, nit, ncalls, ccode = recfunsolvty(A, b, consistency='uni', x0=x0, weight=weight, tol=tol, maxiter=maxiter,
+        xr, fr, nit, ncalls, ccode = recfunsolvty(A, b, consistency='uni', x0=x0, weight=weight, tol=tol, maxiter=maxiter, linear_constraint=linear_constraint,
                                                   alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2, tolx=tolx, tolg=tolg, tolf=tolf)
 
         ccode = False if (ccode==4 or ccode==5) else True

@@ -96,7 +96,7 @@ def rastrigin(x):
     return 10*len(x) + sum([xx**2 - 10 * imath.cos(2 * np.pi * xx) for xx in x])
 # +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
 
-def shaffner(x):
+def schaffer(x):
     return 0.5 + (imath.cos(imath.sin(mag(x[0]**2 - x[1]**2)))**2 - 0.5) / (1 + 0.001*(x[0]**2 + x[1]**2))**2
 # +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
 
@@ -119,7 +119,7 @@ test_opt = [
     [easom,           [interval[-100, 100] for _ in range(2)]],
     [eggholder,       [interval[-512, 512] for _ in range(2)]],
     [rastrigin,       [interval[-2.56, 5.12] for _ in range(4)]],
-    [shaffner,        [interval[-100, 100] for _ in range(2)]],
+    [schaffer,        [interval[-100, 100] for _ in range(2)]],
     [levy13,          [interval[-10, 10] for _ in range(2)]]
 ]
 

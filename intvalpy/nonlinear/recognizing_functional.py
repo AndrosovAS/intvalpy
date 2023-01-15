@@ -72,43 +72,90 @@ def _tol_tsopt(model, grad, a, b, x0, weight=None, tol=1e-12, maxiter=2000, alph
 def _tol_iopt(model, a, b, grad, x0, tol, maxiter, stepwise):
     def tol_globopt(func, x0, grad, tol, maxiter):
         def insert(zeroS, Y, v, vmag, bmm, nit_mon):
+            # print(Y)
+
             if zeroS or True:
                 newcol = (Y, v.a)
                 bslindex = bisect_left(KeyWrapper(L, key=lambda c: c[1]), newcol[1])
                 L.insert(bslindex, newcol)
             else:
                 mm = model(a, Y)
-                infs, sups = mm.a, mm.b
+                # tol = br - abs(bm - mm)
+                # itm = tol.a <= min(tol.b)
 
-                index = []
-                for k in range(len(infs)):
-                    inf = infs[k]
-                    if not (inf > sups).any():
-                        index.append(k)
-                bars = a[index]
-                BM = bm[index]
+                tol = br - (bm - mm).mag
+                itm = np.array([True for _ in tol])
+                # infs, sups = mm.a, mm.b
+                #
+                # index = []
+                # for k in range(len(infs)):
+                #     inf = infs[k]
+                #     if not (inf > sups).any():
+                #         index.append(k)
+                bars = a[itm]
+                BM = bm[itm]
+
+                # bars = a
+                # BM = bm
 
                 nbars = len(bars)
                 g = zeros(nbars)
+                yres = []
                 for k in range(m):
                     # print('k: ', k)
                     # print('grad: ', -grad[k](bars, Y) * sgn(BM - model(bars, Y)) )
+                    # g = grad[k](bars, x0) * sgn(BM - model(bars, x0))
+                    # sign = sgn(g)
+                    # if (0 in g) or
                     zeroG = False
                     for l in range(nbars):
                         g[l] = -grad[k](bars[l], Y) * sgn(BM[l] - model(bars[l], Y))
-                        if 0 in g[l]:
+                        if (0 in g[l]) or ( l > 0 and sgn(g[l-1]) != sgn(g[l]) ):
+                        # if (0 in g[l]):
                             zeroG = True
                             break
 
                     if not zeroG:
+                        # print('haha')
                         nit_mon += 1
+                        # if len(yres) > 0:
+                        #     # print('k: ', k)
+                        #     print('yres: ', yres)
+                        #
+                        #     yres_tmp = []
+                        #     for yy in yres:
+                        #         y1, y2 = yy.copy, yy.copy
+                        #         y1[k], y2[k] = y1[k].a, y2[k].b
+                        #         yres_tmp.append(y1)
+                        #         yres_tmp.append(y2)
+                        #     yres = yres_tmp[:]
+                        #     print('len(yres): ', len(yres))
+                        # else:
+                        #     y1, y2 = Y.copy, Y.copy
+                        #     y1[k], y2[k] = y1[k].a, y2[k].b
+                        #     yres.append(y1)
+                        #     yres.append(y2)
+
                         y1, y2 = Y.copy, Y.copy
                         y1[k], y2[k] = Y[k].a, Y[k].b
                         v1, v2 = func(y1).a, func(y2).a
                         if v1 < v2:
-                            Y = y1
+                            Y = y1.copy
                         else:
-                            Y = y2
+                            Y = y2.copy
+
+                # if len(yres) > 0:
+                #     for yy in yres:
+                #         v = func(yy).a
+                #         newcol = (yy.copy, v)
+                #         bslindex = bisect_left(KeyWrapper(L, key=lambda c: c[1]), newcol[1])
+                #         L.insert(bslindex, newcol)
+                #
+                # else:
+                #     v = func(Y).a
+                #     newcol = (Y, v)
+                #     bslindex = bisect_left(KeyWrapper(L, key=lambda c: c[1]), newcol[1])
+                #     L.insert(bslindex, newcol)
 
                 v = func(Y).a
                 newcol = (Y, v)
@@ -126,12 +173,12 @@ def _tol_iopt(model, a, b, grad, x0, tol, maxiter, stepwise):
         gamma = float('inf')
         nit = 1
         while func(Y).wid >= tol and nit <= maxiter:
-            if nit % stepwise == 0:
-                print('nit: ', nit)
-                print('len(L): ', len(L))
-                print('x: ', Y)
-                print('tol: ', -func(Y))
-                print('+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+\n\n')
+            # if nit % stepwise == 0:
+            #     print('nit: ', nit)
+            #     print('len(L): ', len(L))
+            #     print('x: ', Y)
+            #     print('tol: ', -func(Y))
+            #     print('+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+\n\n')
 
             gg = np.array([np.max((grad[k](a, Y)).mag) * Y[k].wid for k in range(m)])
             l = np.argmax(gg)
@@ -158,13 +205,18 @@ def _tol_iopt(model, a, b, grad, x0, tol, maxiter, stepwise):
             if gamma2 < gamma:
                 gamma = gamma2
 
-            L = [l for l in L if l[1] <= gamma]
+            # L = [l for l in L if l[1] <= gamma]
 
             Y = L[0][0]
             nit += 1
 
-        print('nit: ', nit)
-        print('len(L): ', len(L))
+        # print('nit: ', nit)
+        # print('len(L): ', len(L))
+
+        # print('##########################################################################\n\n')
+        # for l in L:
+        #     print('l[0]: ', l[0], '\n')
+
         return L[0][0], func(L[0][0]), nit
 
     a = asinterval(a)
@@ -172,6 +224,7 @@ def _tol_iopt(model, a, b, grad, x0, tol, maxiter, stepwise):
     bm = b.mid
 
     minus_tol_interval = lambda x: -min(br - abs(bm - model(a, x)))
+    # minus_tol_interval = lambda x: -Interval(min(br - (bm - model(a, x)).mag), -float('inf'))
     xx, ff, nit = tol_globopt(minus_tol_interval, x0, grad, tol, maxiter)
     success = nit <= maxiter
 
