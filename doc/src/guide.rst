@@ -1,323 +1,213 @@
-Реализация класса Interval
+Interval data
 ===============
 
-В данном разделе представлен обзор использования класса Interval.
+This section gives an overview of the use of interval classes and examples of working with interval data.
 
-Выполните инструкцию:
+Follow the instructions:
 
+    >>> import numpy as np
     >>> from intvalpy import Interval, precision
 
-С помощью неё подключается интервальный класс `Interval` из реализованной библиотеки `intvalpy`, которая была предварительно
-установлена с помощью команды `pip install intvalpy`.
+It connects the interval function `Interval` from the implemented `IntvalPy` library, which was previously installed
+with the command `pip install intvalpy`.
 
-.. Содержание::
-
-Cоздание
-------------
-Класс `Interval` был создан в соответствии со стандартом IEEE 754-2008, где округление происходит к ближайшему чётному числу.
-Это позволяет в значительной степени ускорить вычислительные верхнеуровневые функции и сократить время вычислений.
-Однако в задачах, где требуется повышенная точность, Вы можете перейти от стандартного представления числа в виде `double float` к типу `mpf`.
-Для этого выполните следующую команду:
+The class `Interval` was created in accordance with IEEE Standard 754-2008, where rounding occurs to the nearest even number.
+This allows significantly to accelerate the computational upper-level functions and reduce the computation time.
+However, in tasks where you need more precision, you can switch from the standard representation of the number as
+`double float` type to `mpf` type. To do this, run the following command:
 
     >>> precision.extendedPrecisionQ = True
 
-Также Вы можете задать рабочую точность (после какого знака после запятой будет происходить округление):
+You can also set the working precision (after which decimal place rounding will take place):
 
     >>> precision.dps(50)
 
-По умолчанию точность выставлена до 36-го знака после запятой.
+The default setting is increased accuracy to 36th decimal place.
 
-Одиночный интервал
-~~~~~~~~~~~~~~~~~~
 
-Для создания объекта представляющего собой математический промежуток, который содержит все значения между 1 и 2,
-необходимо написать следующее:
+The IntvalPy library supports classical arithmetic and full Kaucher interval arithmetic.
+Each arithmetic has different types of intervals (for example, classical arithmetic considers only "correct" intervals),
+which means that the arithmetic operations can differ from each other. Therefore, it was decided to develop two different classes
+for each of the arithmetics. However, there are not few common characteristics that these classes could inherit
+from some third class. These could be the operations of taking the ends of an interval, the width or radius, and many other things.
+This is why the parent class ``BaseTools'' was made separately.
 
-    >>> data = Interval(1, 2)
-    >>> print(data)
 
-После запуска кода, в окне вывода появится результат [1, 2]. Для проверки типа созданного объекта можно воспользоваться
-командой `type(data)` которая выдаст ``intvalpy.RealInterval.ClassicalArithmetic``.
+.. Content::
 
-Массив из интервалов
-~~~~~~~~~~~~~~~~~~
 
-В случае, когда пользователь хочет создать массив интервалов, то ему следует указать массивы правых и левых концов.
-Например:
+class BaseTools
+------------
+A parent class that contains methods that can be used to calculate the basic interval characteristics of any interval arithmetic.
+Used in the ClassicalArithmetic and KaucherArithmetic classes.
 
-    >>> a = [2, 7, -3]
-    >>> b = [4, 5, 1]
-    >>> data = Interval(a, b)
-    # Interval(['[2, 4]', '[5, 7]', '[-3, 1]'])
+**Parameters**:
 
-Можно увидеть, что второй интервал не таков, каким он был введён пользователем (левый конец больше правого),
-а значит вводится неправильный интревал. Программа автоматически конвертировала его в <<правильный>>.
+* left : int, float
+          The lower (left) limit of the interval.
 
-В рамках модуля `intvalpy` она может как применяться, так и отключаться с переходом в польную интервальную арифметику.
+* right : int, float
+          The upper (right) limit of the interval.
 
-    >>> data = Interval(a, b, sortQ=False)
-    # Interval(['[2, 4]', '[7, 5]', '[-3, 1]'])
-    >>> print(type(data))
-    # <class 'intvalpy.RealInterval.KauherArithmetic'>
 
-Пустой интервал
-~~~~~~~~~~~~~~~~~~
+**Methods**:
 
-Наконец рассмотрим реализацию пустого интервала, который реализуется обычно как [NaN, NaN]. Это позволяет
-использовать для реализации проверки пустоты/непустоты интервалов стандартные функции распознавания NaN
-из популярных языков программирования.
+1. a, inf:              The operation of taking the lower (left) bound of the interval.
 
-Итак, пустой интервал создаётся таким образом:
+2. b, sup:              The operation of taking the upper (right) bound of the interval.
 
-    >>> data = Interval(None, None)
-    # Interval(['[nan, nan]'])
+3. copy:                Creates a deep copy of the interval.
 
-Альтернативные способы создания
-~~~~~~~~~~~~~~~~~~
+4. to_float:            If increased accuracy is enabled, it is sometimes necessary to convert to standard accuracy (float64)
 
-Реализованный класс также поддерживает другие способы задания интервальных данных. Например, через середину и радиус интервала:
+5. wid:                 Width of the non-empty interval.
 
->>> mid = [3, 6, -2]
->>> rad = [0.2, 1, 5]
->>> Interval(mid, rad, midRadQ=True)
-# Interval(['[2.8, 3.2]', '[5, 7]', '[-7, 3]'])
+6. rad:                 Radius of the non-empty interval.
 
-Или же последовательная пара чисел, которая общепринята для написания интервала на бумаге:
+7. mid:                 Midpoint of the non-empty interval.
 
->>> data = [
->>>     [[2, 4], [-2, 1]],
->>>     [[-1, 2], [2, 4]]
->>> ]
->>> Interval(data)
-# Interval([['[2, 4]', '[-2, 1]'],
-            ['[-1, 2]', '[2, 4]']])
+8. mig:                 The smallest absolute value in the non-empty interval.
 
-Операции между интервалами
-----------
+9. mag:                 The greatest absolute value in the non-empty interval.
 
+10. dual:               Dual interval.
 
-Арифметические операции
-~~~~~~~~~~~~~~~~~~
+11. pro:                Correct projection of an interval.
 
-Все арифметические операции между интервалами происходят в соответсвии с конструктивными определениями,
-которые Вы можете найти в `монографии <http://www.nsc.ru/interval/Library/InteBooks/SharyBook.pdf>`_ Шарого С.П.
+12. opp:                Algebraically opposite interval.
 
-Для большей ясности рассмотрим на конкретных примерах.
+13. inv:                Algebraically opposite interval.
 
-Итак, первый пример рассмотрим, как сложение двух массивов состоящих из интеровалов:
+14. khi:                Ratschek's functional of an interval.
 
-    >>> f = Interval([-8, -6, -4], [3, -2, -1])
-    >>> s = Interval([-8, -8, 4], [-1, -3, 4])
-    >>> f + s
-    interval(['[-16.0, 2.0]', '[-14.0, -5.0]', '[0.0, 3.0]'])
 
-Другие два примера показывают, что можно проводить такие поэлементные операции даже когда один из элементов
-является простым типом или списком:
 
-    >>> s = 2
-    >>> s + f
-    # interval(['[-6.0, 5.0]', '[-4.0, 0.0]', '[-2.0, 1.0]'])
-    >>> s = [3, 5, -2]
-    >>> s + f
-    # interval(['[-5.0, 6.0]', '[-1.0, 3.0]', '[-6.0, -3.0]'])
+class ArrayInterval
+------------
+It is often necessary to consider intervals not as separate objects, but as interval vectors or matrices.
+It is important to note that different intervals can be from different interval arithmetics, which leads to additional
+checks when performing arithmetic operations. The IntvalPy library, using the ArrayInterval class, allows you to create
+such arrays of any nesting. In fact, we use arrays created using the `numpy` library.
 
-Также подобные действия можно производить и с остальными арифметическими операциями. Единственным исключением является
-деление на нуль содержащие интервалы. Подобную функциональность данный класс не поддерживает.
+This class uses all the methods of the BaseTools class, but there are additional features that are common to
+interval vectors and matrices.
 
-В случае, когда один из интервалов является <<правильным>>, а другой нет, тогда результирующий ответ автоматически
-переходит в полную интервальную арифметику:
-
-    >>> f = Interval(2, 3)
-    >>> s = Interval(2, -3, sortQ=False)
-    >>> difference = f - s
-    # Interval(['[5, 1]'])
-    >>> type(difference)
-    # <class 'intvalpy.RealInterval.KauherArithmetic'>
 
+**Parameters**:
 
-Другие операции
-~~~~~~~~~~~~~~~~~~
+* intervals : ndarray
+          The numpy array with objects of type ClassicalArithmetic and KaucherArithmetic.
 
-Для взятия модуля интервала или возведения в степень с натуральным показателем можно воспользоваться
-стандартным и привычным синтаксисом:
 
-    >>> abs(Interval(-2, 3))
-    # Interval(['[0, 3]'])
-    >>> Interval(-2, 3) ** 2
-    # Interval(['[0, 9]'])
+**Methods**:
 
-Финальным аккордом данного параграфа станет демонстрация реализованного матричного и скалярного произведений:
+1. data:                An array of interval data of type `ndarray`.
 
-    >>> inf1 = [[-1., -2.],[-7., -5.]]
-    >>> sup1 = [[ 3., 5.],[-4., 7.]]
-    >>> f = Interval(inf1, sup1)
-    >>> inf2 = [[-3., 4.],[-7., -8.]]
-    >>> sup2 = [[-2., 4.],[ 3., 0.]]
-    >>> s = Interval(inf2, sup2)
-    >>> f @ s
-    # Interval([['[-44.0, 18.0]', '[-44.0, 28.0]']
-                ['[-41.0, 56.0]', '[-84.0, 24.0]']])
+2. shape:               The elements of the shape tuple give the lengths of the corresponding interval array dimensions.
 
-Для вызова разных произведений не нужно прописывать отдельные строчки кода. Достаточно просто поменять глубину
-одного из массивов. Допустим, если f интервальная матрица, а s интервальный вектор, то всё также будет работать.
+3. ndim:                Number of interval array dimensions.
 
+4. ranges:              A list of indexes for each dimension.
 
-Методы класса Interval
-----------
+5. vertex:              The set of extreme points of an interval vector.
 
-При работе с интервальными величинами зачастую полезно, а порой и необходимо отдельно рассматривать некоторые атрибуты.
-К примеру, пользователю может понадобиться вывести только левые или правые концы интервалов, или же вычислить
-середину интервала. Все эти операции, а также некоторые другие, которые описаны ниже, достаточно часто встречаются
-по ходу работы. Поэтому целесообразно включить в данный класс уже реализованные функции для описанных действий.
+6. T:                   View of the transposed interval array.
 
+7. reshape(new_shape):  Gives a new shape to an interval array without changing its data.
 
-Концы интервала
-~~~~~~~~~~~~~~~~~~
 
-Итак, для начала рассмотрим самые тривильные методы для вывода концов интервала:
+**Examples**:
 
-    >>> f = Interval([-8., -1., 1.], [-1., 0., 4.])
-    interval([’[-8.0, -1.0]’, ’[-1.0, 0.0]’, ’[1.0, 4.0]’])
-    >>> f.a
-    # array([-8., -1., 1.])
-    >>> f.b
-    # array([-1., 0., 4.])
+Matrix product
 
-Отметим, что выводимый результат является типом ```ndarray``, поскольку концы внутри класса содержаться именно таким образом.
+>>> f = Interval([
+      [[-1, 3], [-2, 5]],
+      [[-7, -4], [-5, 7]]
+    ])
+>>> s = Interval([
+      [[-3, -2], [4, 4]],
+      [[-7, 3], [-8, 0]]
+    ])
+>>> f @ s
+# Interval([['[-44.0, 18.0]', '[-44.0, 28.0]']
+            ['[-41.0, 56.0]', '[-84.0, 24.0]']])
 
-Абсолютные характеристики интервалов
-~~~~~~~~~~~~~~~~~~
-
-Для получения радиуса, ширины, середины или мигнитуды интервалов необходимо вызвать метода, названия которых
-совпадают с общепринятыми обозначениями:
-
-    >>> f = Interval([-8., -1., 1.], [-1., 0., 4.])
-    >>> f.rad
-    # array([3.5, 0.5, 1.5])
-    >>> f.wid
-    # array([7., 1., 3.])
-    >>> f.mid
-    # array([-4.5, -0.5, 2.5])
-    >>> f.mig
-    # array([1., 0., 1.])
 
-Копирование интервальных массивов
-~~~~~~~~~~~~~~~~~~
+Transpose
 
-Для простейшего копирования элементов, т.е. получения объекта равному исходному, за исключением индетификатора,
-можно воспользоваться срезом изначального изменяемого объекта, например:
+>>> f.T
+# Interval([['[-1, 3]', '[-7, -4]'],
+            ['[-2, 5]', '[-5, 7]']])
 
-    >>> f = Interval([1, 2], [3, 4])
-    >>> s = f[:]
-    >>> s
-    # interval([’[1, 3]’, ’[2, 4]’])
-    >>> s == f
-    # [True True]
-    >>> s is f
-    # False
 
-Однако при таком подходе будет получена поверхностная копия (т.е. копируются самые общие значения, которые заполняются
-точно такими же ссылками на элементы, что находятся в корневом объекте). При неизменяемости элементов это не вызывает
-никаких проблем и экономит память, но созданный класс изменяем, а потому необходимо глубокая копия.
+Interval
+------------
 
-Для этого был реализован метод `copy`:
+**def Interval(*args, sortQ=True, midRadQ=False)**
 
-    >>> s = f.copy
-    >>> print(s == f)
-    # [True True]
-    >>> s[0] += 1000
-    >>> print(s == f)
-    # [False True]
+When creating an interval, you must consider which interval arithmetic it belongs to, and how it is defined:
+by means of the left and right values, through the middle and radius, or as a single object.
+For this purpose, a universal function `Interval` has been implemented, which can take into account all the aspects described above.
+In addition, it has a parameter for automatic conversion of the ends of an interval, so that when the user creates it, he can be sure,
+that he works with the classical type of intervals.
 
-Другие методы
-~~~~~~~~~~~~~~~~~~
 
-Последними реализованными методами данного класса являются алгебраически обратные и противоположные интервалы:
+**Parameters**:
 
-    >>> f = Interval([-8., -1., 1.], [-1., 0., 4.])
-    >>> f.invbar
-    # interval([’[-1.0, -8.0]’, ’[0.0, -1.0]’, ’[4.0, 1.0]’])
-    >>> f.opp
-    # interval([’[8.0, 1.0]’, ’[1.0, 0.0]’, ’[-1.0, -4.0]’])
+* args : int, float, list, ndarray
+          If the argument is a single one, then the intervals are set as single objects. To do this you must create
+          array, each element of which is an ordered pair of the lower and upper bound of the interval.
 
-Применение этих методов приводит к необратимому переходу к полной интервальной арифметики Каухера.
+          If the arguments are two, then the flag of the `midRadQ` parameter is taken into account. If the value is `True`,
+          then the interval is set through the middle of the interval and its radius. Otherwise, the first argument will
+          stand for the lower ends, and the second argument the upper ends.
 
+* sortQ : bool, optional
+          Parameter determines whether the automatic conversion of the interval ends should be performed.
+          The default is `True`.
 
-Эмуляция коллекций
-----------
+* midRadQ : bool, optional
+          The parameter defines whether the interval is set through its middle and radius.
+          The default is `False`.
 
-Принадлежность интервалу
-~~~~~~~~~~~~~~~~~~
 
-Во время работы и реализации интервальных алгоритмов порой крайне необходимо обладать информацией,
-принадлежит ли точка или интервал другому интервалу. Для этого был переопределён оператор ``in``
-которй предназначен именно для этих целей:
+**Examples**:
 
-    >>> f = Interval(-5, 8)
-    >>> -4 in f
-    True
-    >>> f = Interval(-5, 8)
-    >>> Interval(-2, 1) in f
-    True
-    >>> Interval(-5.2, 1) in f
-    False
+Creating intervals by specifying arrays of left and right ends of intervals
 
+>>> a = [2, 5, -3]
+>>> b = [4, 7, 1]
+>>> Interval(a, b)
+# Interval(['[2, 4]', '[5, 7]', '[-3, 1]'])
 
-Длина коллекции, срезы и удаление элементов
-~~~~~~~~~~~~~~~~~~
+Now let's create the same interval vector, but in a different way
 
-Как уже упоминалось ранее, одной из главных особенностей реализованного класса является возможность
-работать с векторами и матрицами. Это автоматически порождает необходимость вычисления длины массива,
-а также возможность работы с коллекциями.
+>>> Interval([ [2, 4], [5, 7], [-3, 1] ])
+# Interval(['[2, 4]', '[5, 7]', '[-3, 1]'])
 
-    >>> f = Interval([-8., -1., 1.], [-1., 0., 4.])
-    >>> len(f)
-    # 3
+In case it is necessary to work with an interval object from Kaucher arithmetic, it is necessary to disable
+automatic converting ends
 
-Для получения N-го значения или нескольких значений (в будущем будем называть это срезом массива)
-можно воспользоваться вполне привычными инструментами. Более того, поскольку класс `Interval` изменяемый,
-то существует возможность также изменять или удалять элементы:
+>>> Interval(5, -2, sortQ=False)
+# '[5, -2]'
 
-    >>> f[1]
-    # [-1.0, 0.0]
-    >>> f[1:]
-    # interval([’[-1.0, 0.0]’, ’[1.0, 4.0]’])
-    >>> f[1:] = Interval([-5,-10], [5, 10])
-    >>> f
-    # interval([’[-8.0, -1.0]’, ’[-5.0, 5.0]’, ’[-10.0, 10.0]’])
-    >>> del f[1]
-    >>> f
-    # interval([’[-8.0, -1.0]’, ’[-10.0, 10.0]’])
+As mentioned earlier, the IntvalPy library allows you to work with vectors and matrices. This automatically generates
+the need to calculate the length of the array, as well as the possibility of working with collections.
 
-Для изменения порядка элементов на противоположный следует воспользоваться следующей инструкцией:
+>>> f = Interval([ [2, 4], [5, 7], [-3, 1] ])
+>>> len(f)
+# 3
 
-    >>> f = Interval([-8., -1., 1.], [-1., 0., 4.])
-    >>> f[::-1]
-    # interval(['[1.0, 4.0]', '[-1.0, 0.0]', '[-8.0, -1.0]'])
+To get the N-th value or several values (in the future we will call it a slice of the array) you can use quite usual tools.
+Moreover, since the class `ArrayInterval` is changeable, it is also possible to change or delete elements:
 
-
-Согласование с другими библиотеками на Python
-----------
-
-В случае, если пользователь захочет выйти за пределы данного модуля, например, создать массив с помощью
-библиотеки `numpy` и сложить с интервальным вектором, или преобразовать в массив типа ``ndarray``, то для этого
-специально прописано согласование данного класса с другими библиотеками:
-
-    >>> import numpy as np
-    >>> f = Interval([-8., -1., 1.], [-1., 0., 4.])
-    >>> s = np.array(f)
-    >>> s
-    # array([[-8.0, -1.0], [-1.0, 0.0], [1.0, 4.0]], dtype=object)
-
-Также с помощью библиотеки `numpy` возможно вычислить такие функции, как ``sin``, ``cos`` и ``exp``:
-
-    >>> np.sin(f)
-    # interval([’[-1.0, 1.0]’, ’[-0.841471, 0.0]’, ’[-0.756802, 1.0]’])
-    >>> np.cos(f)
-    # interval([’[-1.0, 1.0]’, ’[0.540302, 1.0]’, ’[-1.0, 0.540302]’])
-    >>> np.exp(f)
-    # interval([’[0.000335, 0.367879]’, ’[0.367879, 1.0]’, ’[2.718282, 54.598150]’])
-
-Для всех перечисленных выше функций область значений на любом вещественном интервале может быть несложно найдена
-на основе информации об их монотонности на тех или иных участках области определения. Поэтому их оптимальные
-интервальные расширения строятся без проблем.
+>>> f[1]
+# [5, 7]
+>>> f[1:]
+# Interval(['[5, 7]', '[-3, 1]'])
+>>> f[1:] = Interval([ [-5, 5], [-10, 10] ])
+>>> f
+# Interval(['[2, 4]', '[-5, 5]', '[-10, 10]'])
+>>> del f[1]
+>>> f
+# Interval([’[2, 4]’, ’[-10, 10]’])
