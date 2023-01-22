@@ -124,7 +124,21 @@ def Gauss_Seidel(A, b, x0=None, P=True, tol=1e-8, maxiter=10**3):
 
 def HBR(A, b):
     """
-    Процедура Хансена-Блика-Рона
+    Procedure Hansen-Bliek-Rohn.
+
+    Parameters:
+
+        A: Interval
+            The input interval matrix of ISLAE, which can be either square or rectangular.
+
+        b: Interval
+            The interval vector of the right part of the ISLAE.
+
+    Returns:
+
+        out: Interval
+            Returns an interval vector, which means an external estimate of the united solution set.
+
     """
 
     n, m = A.shape
@@ -164,6 +178,36 @@ def HBR(A, b):
 
 
 def Subdiff(A, b, tol=1e-12, maxiter=500, tau=1, norm_min_val=1e-12):
+    """
+    Subdifferential Newton method.
+
+    Parameters:
+
+        A: Interval
+            The input interval matrix of ISLAE, which can be either square or rectangular.
+
+        b: Interval
+            The interval vector of the right part of the ISLAE.
+
+        tol: float, optional
+            An error that determines when further iterations of the algorithm are not required,
+            i.e. their distance between the solution at iteration k and the solution at iteration k+1
+            is "close enough" to zero.
+
+
+        maxiter: int, optional
+            The maximum number of iterations.
+
+        ...
+
+    Returns:
+
+        out: Interval
+            Returns an interval vector, which, after substituting into the system of equations
+            and performing all operations according to the rules of arithmetic and analysis,
+            turns the equations into true equalities.
+    """
+
 
     def superMatrix(A):
         Amid = A.mid
@@ -337,9 +381,7 @@ def PPS(A, b, tol=1e-12, maxiter=2000, nu=None):
     Returns:
 
         out: Interval
-            Returns an interval vector, which, after substituting into the system of equations
-            and performing all operations according to the rules of arithmetic and analysis,
-            turns the equations into true equalities.
+            Returns an optimal interval vector, which means an external estimate of the united solution set.
     """
 
     class KeyWrapper:
@@ -637,7 +679,7 @@ def PPS(A, b, tol=1e-12, maxiter=2000, nu=None):
     assert n == len(b), 'Inconsistent dimensions of matrix and right-hand side vector'
 
     assert np.linalg.det(A.mid) != 0, 'Matrix is singular'
-    # assert max(abs(np.linalg.svd(abs(np.linalg.inv(A.mid)) @ A.rad, compute_uv=False))) < 1, 'Matrix is singular'
+    assert max(abs(np.linalg.svd(abs(np.linalg.inv(A.mid)) @ A.rad, compute_uv=False))) < 1, 'Matrix is singular'
 
     A, b = A.copy, b.copy
     I = eye(n)

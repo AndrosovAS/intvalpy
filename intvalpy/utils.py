@@ -7,6 +7,96 @@ from .RealInterval import ClassicalArithmetic, KaucherArithmetic, ArrayInterval,
 infinity = float('inf')
 nan = float('nan')
 
+################################################################################
+################################################################################
+import itertools
+
+class LinearConstraint:
+    """
+    Linear constraint on the variables.
+
+    The constraint has the general inequality form:
+        lb <= C <= ub
+
+
+    Parameters:
+        C: array_like, shape (n, m)
+            Matrix defining the constraint.
+
+        lb: array_like, shape (n, ), optional
+            Lower limits on the constraint. Defaults to lb = -np.inf (no limits).
+
+        ub: array_like, shape (n, ), optional
+            Upper limits on the constraint. Defaults to ub = np.inf (no limits).
+    """
+
+
+    def __init__(self, C, lb=None, ub=None, mu=None):
+        # TODO
+        # идёт преобразование C x <= b
+        # надо удалить все строки, где значение inf, а также, где нет зависимости от x
+
+        assert C.shape[0] >= 1, 'Inconsistent dimension of matrix'
+        if (not lb is None) or (not ub is None):
+            self.C, self.b = [], []
+            if (not lb is None):
+                assert C.shape[0] == len(lb), 'Inconsistent dimensions of matrix and left-hand side vector'
+                for k in range(C.shape[0]):
+                    if abs(lb[k]) != np.inf and C[k].any():
+                        self.C.append(-C[k])
+                        self.b.append(-lb[k])
+
+            if (not ub is None):
+                assert C.shape[0] == len(ub), 'Inconsistent dimensions of matrix and left-hand side vector'
+                for k in range(C.shape[0]):
+                    if abs(ub[k]) != np.inf and C[k].any():
+                        self.C.append(C[k])
+                        self.b.append(ub[k])
+
+            n = len(self.C)
+            if n == 0:
+                self.C.append(C[0])
+                self.b.append(ub[0])
+            else:
+                w = np.random.uniform(1, 2, n)
+                # TODO
+                # переписать более оптимальным способом
+                W = np.zeros( (n, C.shape[1]), dtype=np.float64)
+                for k in range(W.shape[1]):
+                    W[:, k] = w
+
+            self.C, self.b = np.array(self.C)*W, np.array(self.b)*w
+
+
+        else:
+            self.C, self.b = C[0], np.array([np.inf])
+
+        self.mu = mu
+
+    def largeCondQ(self, x, i):
+        Cix = self.C[i] @ x
+        return Cix, Cix > self.b[i]
+
+    def find_mu(self, numerator):
+        # solve |sum(C[:, k] * x)| -> min, for x
+        # sum(x) >= 1, x_i \in {0, 1} \forall i = 1,..., len(C)
+        denominator = []
+        for c in self.C.T:
+            c = c[ c!=0 ]
+            n = c.shape[0]
+
+            dot = np.zeros(2**n)
+            k = 0
+            for x in itertools.product([0, 1], repeat=n):
+                dot[k] = c @ x
+                k += 1
+            denominator.append(min(abs(dot[1:])))
+
+        return numerator / min(denominator)
+
+################################################################################
+################################################################################
+
 
 def get_shape(lst, shape=()):
     """

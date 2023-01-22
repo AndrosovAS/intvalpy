@@ -13,7 +13,6 @@ from intvalpy.linear.recognizing_functional import Tol
 cvxopt.solvers.options['show_progress'] = False
 cvxopt.solvers.options['glpk'] = {'msg_lev': 'GLP_MSG_OFF'}
 
-
 def _Rohn_Tol(A, b, nu=None):
 
     def solve_lp(c, A_ub, b_ub):
@@ -161,9 +160,7 @@ def PSS(A, b, tol=1e-12, maxiter=2000, nu=None):
     Returns:
 
         out: Interval
-            Returns an interval vector, which, after substituting into the system of equations
-            and performing all operations according to the rules of arithmetic and analysis,
-            turns the equations into true equalities.
+            Returns an optimal interval vector, which means an external estimate of the united solution set.
     """
 
 

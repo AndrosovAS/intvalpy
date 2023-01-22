@@ -1,6 +1,6 @@
 import numpy as np
 
-def ralgb5(calcfg, x0, tol=1e-12, maxiter=2000, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
+def ralgb5(calcfg, x0, tolx=1e-12, tolg=1e-12, tolf=1e-12, maxiter=2000, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1):
 
     m = len(x0)
     hs = h0
