@@ -1,4 +1,4 @@
-Interval data
+Using intervals
 ===============
 
 This section gives an overview of the use of interval classes and examples of working with interval data.
@@ -36,10 +36,13 @@ This is why the parent class ``BaseTools'' was made separately.
 .. Content::
 
 
-class BaseTools
+Basic сharacteristics
 ------------
+
+**class BaseTools(left, right)**
+
 A parent class that contains methods that can be used to calculate the basic interval characteristics of any interval arithmetic.
-Used in the ClassicalArithmetic and KaucherArithmetic classes.
+Used in the `ClassicalArithmetic` and `KaucherArithmetic` classes.
 
 **Parameters**:
 
@@ -82,8 +85,11 @@ Used in the ClassicalArithmetic and KaucherArithmetic classes.
 
 
 
-class ArrayInterval
+Interval vectors and matrices
 ------------
+
+**class ArrayInterval(intervals)**
+
 It is often necessary to consider intervals not as separate objects, but as interval vectors or matrices.
 It is important to note that different intervals can be from different interval arithmetics, which leads to additional
 checks when performing arithmetic operations. The IntvalPy library, using the ArrayInterval class, allows you to create
@@ -140,7 +146,7 @@ Transpose
             ['[-2, 5]', '[-5, 7]']])
 
 
-Interval
+Create intervals
 ------------
 
 **def Interval(*args, sortQ=True, midRadQ=False)**
