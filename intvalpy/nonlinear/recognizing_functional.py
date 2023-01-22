@@ -57,7 +57,7 @@ def recfunsolvty(model, grad, a, b, x0, consistency='uni', weight=None, tol=1e-1
 
         return -tt[mc], -dd
 
-    xr, fr, nit, ncalls, ccode = ralgb5(calcfg, x0, tol=tol, maxiter=maxiter, alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2, tolx=tolx, tolg=tolg, tolf=tolf)
+    xr, fr, nit, ncalls, ccode = ralgb5(calcfg, x0, maxiter=maxiter, alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2, tolx=tolx, tolg=tolg, tolf=tolf)
     return xr, -fr, nit, ncalls, ccode
 
 
