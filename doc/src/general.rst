@@ -1,9 +1,9 @@
-Общие функции
-===============
+General purpose functions
+=========================
 
-В данном параграфе представлен обзор функций для работы с интервальными величинами, а также для создания интервальных данных.
+In this section, we present an overview of functions for working with interval quantities as well as some functions for creating interval objects.
 
-Выполните инструкцию для подключения необходимых модулей
+Run the following commands to connect the necessary modules
 
     >>> import intvalpy as ip
     >>> import numpy as np
@@ -162,14 +162,14 @@ interval([['[0.0, 0.0]', '[0.0, 0.0]', '[0.0, 0.0]'],
           ['[0.0, 0.0]', '[0.0, 0.0]', '[0.0, 0.0]']])
 
 
-Тестовые системы
-------------
+Test interval systems
+---------------------
 Для проверки работоспособности каждый реализованный алгоритм тестируется на хорошо изученных тестовых системах. В данном подразделе предложены
 некоторые из таких систем, в каждой из которых известны свойства, аналитическое решение, а также трудоёмкость решения.
 
 
-Система Шарого
-~~~~~~~~~~~~~~~~~~
+The Shary system
+~~~~~~~~~~~~~~~~
 
 Первой предложенной системой является система С.П. Шарого. В силу симметрии достаточно просто определить структуру объединённого множества решений.
 А с помощью изменения значений параметров системы можно получить обширный набор ИСЛАУ для тестирования реализованных алгоритмов. Видно, что при
@@ -178,24 +178,24 @@ interval([['[0.0, 0.0]', '[0.0, 0.0]', '[0.0, 0.0]'],
 **Parameters**:
 
 * n : int
-            Размерность интервальной системы. Может быть больше либо равным двум.
+            Dimension of the interval system. It may be greater than or equal to two. 
 
 * N : float, optional
-            Вещественное число, не меньшее (n − 1). По умолчанию N = n.
+            A real number not less than (n − 1). By default, N = n. 
 
 * alpha : float, optional
-            Параметр участвующий при задании левых концов в интервальной матрице. На данный параметр накладывается ограничение 0 < alpha <= beta <= 1.
-            По умолчанию alpha = 0.23.
+            A parameter used for specifying the lower endpoints of the elements in the interval matrix. The parameter is limited 
+            to 0 < alpha <= beta <= 1. By default, alpha = 0.23. 
 
 * beta : float, optional
-            Параметр участвующий при задании правых концов в интервальной матрице. На данный параметр накладывается ограничение 0 < alpha <= beta <= 1.
-            По умолчанию beta = 0.35.
-
+            A parameter used for specifying the upper endpoints of the elements in the interval matrix. The parameter is limited 
+            to 0 < alpha <= beta <= 1. By default, beta = 0.35. 
+          
 
 **Returns**:
 
 * out: Interval, tuple
-            Возвращаются интервальная матрица и интервальный вектор правой части соответсвенно.
+            The interval matrix and interval vector of the right side are returned, respectively.
 
 
 **Examples**:
@@ -248,11 +248,12 @@ b:  Interval(['[-1, 1]', '[-1, 1]'])
 
 
 
-Список использованной литературы
-~~~~~~~~~~~~~~~~~~
+References
+~~~~~~~~~~
 
 [1] S.P. Shary - `On optimal solution of interval linear equations <http://www-sbras.nsc.ru/interval/shary/Papers/SharySINUM.pdf>`_ // SIAM Journal on Numerical Analysis. – 1995. – Vol. 32, No. 2. – P. 68–630.
 
 [2] Reichmann K. Abbruch beim Intervall-Gauß-Algorithmus // Computing. – 1979. – Vol. 22, Issue 4. – P. 355–361.
 
 [3] С.П. Шарый - `Конечномерный интервальный анализ <http://www.nsc.ru/interval/Library/InteBooks/SharyBook.pdf>`_.
+    Sergey P. Shary, `Finite-Dimensional Interval Analysis`_. 
