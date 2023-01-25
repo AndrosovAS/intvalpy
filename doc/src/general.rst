@@ -148,13 +148,13 @@ Returns:
 >>> ip.dist(f, s)
 1.0
 
-Наиболее подробную информацию о различных метриках можно узнать из указанной `монографии <http://www.nsc.ru/interval/Library/InteBooks/SharyBook.pdf>`_.
+The detailed information about various metrics can be found in the referenced `monograph <http://www.nsc.ru/interval/Library/InteBooks/SharyBook.pdf>`_.
 
 
-Интервал из нулей
-------------
+Zero intervals 
+--------------
 
-Для создания интервального массива данных, где каждый интервал точечный и имеет значение нуль, предусмотрена функция ``zeros``:
+To create an interval array where each element is point and equal to zero, the function ``zeros`` is provided: 
 
 >>> import intvalpy as ip
 >>> ip.zeros((2, 3))
@@ -164,16 +164,13 @@ interval([['[0.0, 0.0]', '[0.0, 0.0]', '[0.0, 0.0]'],
 
 Test interval systems
 ---------------------
-Для проверки работоспособности каждый реализованный алгоритм тестируется на хорошо изученных тестовых системах. В данном подразделе предложены
-некоторые из таких систем, в каждой из которых известны свойства, аналитическое решение, а также трудоёмкость решения.
+To check the performance of each implemented algorithm, it is tested on well-studied test systems. This subsection describes some of these systems, for which the properties of the solution sets are known, and their analytical characteristics and the complexity of numerical procedures have been previously studied. 
 
 
 The Shary system
 ~~~~~~~~~~~~~~~~
 
-Первой предложенной системой является система С.П. Шарого. В силу симметрии достаточно просто определить структуру объединённого множества решений.
-А с помощью изменения значений параметров системы можно получить обширный набор ИСЛАУ для тестирования реализованных алгоритмов. Видно, что при
-уменьшении параметра beta матрица становится все больше особенной, а множество решений неограниченно увеличивается.
+One of the popular test systems is the Shary system. Due to its symmetry, it is quite simple to determine the structure of its united solution set as well as other solution sets. Changing the values of the system parameters, you can get an extensive family of interval linear systems for testing the numerical algorithms. As the parameter beta decreases, the matrix of the system becomes more and more singular, and the united solution set enlarges  indefinitely. 
 
 **Parameters**:
 
