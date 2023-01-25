@@ -5,10 +5,10 @@
 intvalpy
 *******
 
-Добро пожаловать в документацию intvalpy! Этот модуль Python реализует алгебраически замкнутую систему для работы с интервалами, решения интервальных систем как линейных, так и нелинейных уравнений, а также визуализирует множество решений.
+Welcome to the intvalpy documentation! This Python module implements an algebraically closed interval arithmetic for working with intervals, solving interval systems of both linear and non-linear equations, and visualizing a set of solutions. 
 
 
-Содержание
+Contents
 --------
 
 .. toctree::
