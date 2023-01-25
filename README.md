@@ -1,6 +1,6 @@
 # Interval library in Python
 
-The Python module implements an algebraically closed system for working with intervals, solving interval systems of both
+The Python module implements an algebraically closed interval arithmetic for interval computations, solving interval systems of both
 linear and nonlinear equations, and visualizing solution sets for interval systems of equations.
 
 For details, see the complete documentation on [API](https://intvalpy.readthedocs.io/ru/latest/index.html).
@@ -14,10 +14,10 @@ pip install intvalpy
 
 ## Examples
 
-### Visualizing solutions
+### Visualizing solution sets
 
-We can calculate the list of vertices of the convex set described by a point the system of inequalities ``A * x >= b`` or
-if an interval system of equations is considered ``A * x = b`` as well as visualize this set:
+For a system of linear inequalities of the form ``A * x >= b`` or for an interval system of linear algebraic equations ``A * x = b``, 
+the solution sets are known to be polyhedral sets, convex or non-convex. We can visualize them and display all their vertices:
 
 ```python
 import intvalpy as ip
