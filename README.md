@@ -58,7 +58,7 @@ for k in range(len(vertices2)):
         ax[0].fill(x, y, linestyle = '-', linewidth = 1, color='blue', alpha=0.3)
         ax[0].scatter(x, y, s=10, color='black', alpha=1)
 
-ax[0].text(-4.5, -5.5, 'United and Tolerance sets of the system Shary',
+ax[0].text(-4.5, -5.5, 'United and tolerable solution sets fot the Shary interval system',
            rotation = 0,
            fontsize = 15)      
 
