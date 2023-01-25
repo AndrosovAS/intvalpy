@@ -1,7 +1,7 @@
 # Interval library in Python
 
 The Python module implements an algebraically closed system for working with intervals, solving interval systems of both
-linear and nonlinear equations, and visualizing multiple solutions.
+linear and nonlinear equations, and visualizing solution sets for interval systems of equations.
 
 For details, see the complete documentation on [API](https://intvalpy.readthedocs.io/ru/latest/index.html).
 
