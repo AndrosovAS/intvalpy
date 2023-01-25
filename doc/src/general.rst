@@ -8,25 +8,26 @@ Run the following commands to connect the necessary modules
     >>> import intvalpy as ip
     >>> import numpy as np
 
-.. Содержание::
+.. Contents::
 
-Преобразование данных в интервальный тип
-------------
+Converting data to interval type
+--------------------------------
 
-Для того, чтобы преобразовать входные данные в интервальный тип следует воспользоваться функцией ``asinterval``:
-
+To convert the input data to the interval type, use the ``asinterval`` function:
+  
 Parameters:
             a: ``array_like``
-                Входные данные, в любой форме, которые могут быть преобразованы в массив интервалов.
-                Это включает в себя ``int``, ``float``, ``list`` и ``ndarrays``.
+                Input data, in any form, that can be converted to an array of intervals. 
+                These include ``int``, ``float``, ``list`` and ``ndarrays``. 
 
 Returns:
             out: ``Interval``
-                Преобразование не выполняется, если входные данные уже являются типом ``Interval``.
-                Если a - ``int``, ``float``, ``list`` или ``ndarrays``, то возвращается
-                базовый класс ``Interval``.
+                The conversion is not performed if the input is already of type ``Interval``.
+                If a is ``int``, ``float``, ``list`` or ``ndarrays``, then an object is returned 
+                of the base class ``Interval``.
+                
 
-Примеры:
+Examples: 
 
 >>> import intvalpy as ip
 >>> data = 3
@@ -38,8 +39,8 @@ Returns:
 interval(['[0.333333, 0.333333]', '[-2.0, 5.0]', '[2.0, 2.0]'])
 
 
-Интервальная диаграмма рассеяния
-------------
+Interval scatterplot
+--------------------
 
 Математическая диаграмма, изображающая значения двух переменных в виде брусов на декартовой плоскости.
 
@@ -73,7 +74,7 @@ interval(['[0.333333, 0.333333]', '[-2.0, 5.0]', '[2.0, 2.0]'])
 **Returns**:
 
 * out: None
-            Отображается диаграмма рассеяния.
+            A scatterplot is displayed.
 
 
 **Examples**:
@@ -85,8 +86,8 @@ interval(['[0.333333, 0.333333]', '[-2.0, 5.0]', '[2.0, 2.0]'])
 >>> ip.scatter_plot(x, y)
 
 
-Пересечение интервалов
-------------
+Intersection of intervals
+-------------------------
 
 Функция ``intersection`` осуществляет пересечение интервальных данных. В случае, если на вход поданы массивы, то осуществляется покомпонентное пересечение.
 
@@ -206,32 +207,31 @@ A:  Interval([['[2, 3]', '[-0.77, 0.65]', '[-0.77, 0.65]'],
 b:  Interval(['[-2, 2]', '[-2, 2]', '[-2, 2]'])
 
 
-Система Ноймайера-Райхмана
-~~~~~~~~~~~~~~~~~~
+Neumaier-Reichmann system
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Данная система является параметрической системой, которая была предложена Ноймайером-Райхманом. Класс матриц, которые составляют левую часть,
-способны продемонстрировать, что результат произведения двух неособенных матриц может дать особенную матрицу — невозможная ситуация в классической линейной алгебре.
-Показано, что матрицы чётных размеров n × n неособенны при theta > n, а для нечётного порядка n матрицы неособенны при theta > sqrt(n^2 - 1).
-
+This system is a parametric interval linear system, first proposed by K. Reichmann, and then slightly modified by A. Neumeier. The matrix of the system can be both regular and not strongly regular for some values of the diagonal parameter. 
+It is shown that n × n matrices are non-singular for theta > n provided that n is even, and, for odd order n, the matrices are non-singular for theta > sqrt(n^2 - 1). 
+  
 **Parameters**:
 
 * n : int
-            Размерность интервальной системы. Может быть больше либо равным двум.
+            Dimension of the interval system. It may be greater than or equal to two. 
 
 * theta : float, optional
-            Неотрицательный вещественный параметр, который является значением стоящим на главной диагонали матрицы А.
+            Nonnegative real parameter, which is the number that stands on the main diagonal of the matrix А.
 
 * infb : float, optional
-            Вещественный параметр который совпадает с каждым левым концом из вектора правой части. По умолчанию infb = -1.
+            A real parameter that specifies the lower endpoints of the components of the right-hand side vector. By default, infb = -1.
 
 * supb : float, optional
-            Вещественный параметр который совпадает с каждым правым концом из вектора правой части. По умолчанию supb = 1.
+            A real parameter that specifies the upper endpoints of the components of the right-hand side vector. By default, supb = 1. 
 
 
 **Returns**:
 
 * out: Interval, tuple
-            Возвращаются интервальная матрица и интервальный вектор правой части соответсвенно.
+            The interval matrix and interval vector of the right side are returned, respectively.
 
 
 **Examples**:
