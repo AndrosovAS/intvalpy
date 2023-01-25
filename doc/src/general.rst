@@ -210,7 +210,7 @@ b:  Interval(['[-2, 2]', '[-2, 2]', '[-2, 2]'])
 Neumaier-Reichmann system
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This system is a parametric interval linear system, first proposed by K. Reichmann, and then slightly modified by A. Neumeier. The matrix of the system can be both regular and not strongly regular for some values of the diagonal parameter. 
+This system is a parametric interval linear system, first proposed by K. Reichmann [2], and then slightly modified by A. Neumaier. The matrix of the system can be both regular and not strongly regular for some values of the diagonal parameter. 
 It is shown that n × n matrices are non-singular for theta > n provided that n is even, and, for odd order n, the matrices are non-singular for theta > sqrt(n^2 - 1). 
   
 **Parameters**:
