@@ -11,6 +11,8 @@ Follow the instructions:
 It connects the interval function `Interval` from the implemented `IntvalPy` library, which was previously installed
 with the command `pip install intvalpy`.
 
+.. Contents::
+
 The class `Interval` was created in accordance with IEEE Standard 754-2008, where rounding occurs to the nearest even number.
 This allows significantly to accelerate the computational upper-level functions and reduce the computation time.
 However, in tasks where you need more precision, you can switch from the standard representation of the number as
@@ -31,9 +33,6 @@ which means that the arithmetic operations can differ from each other. Therefore
 for each of the arithmetics. However, there are not few common characteristics that these classes could inherit
 from some third class. These could be the operations of taking the ends of an interval, the width or radius, and many other things.
 This is why the parent class ``BaseTools'' was made separately.
-
-
-.. Content::
 
 
 Basic сharacteristics
