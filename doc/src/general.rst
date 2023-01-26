@@ -199,7 +199,7 @@ Identity interval matrix
 
 Return a 2-D interval array with ones on the diagonal and zeros elsewhere.
 
-*Parameters**:
+**Parameters**:
 
 * N : int
           Shape of the new interval array, e.g., (2, 3) or 4.
@@ -215,7 +215,8 @@ Return a 2-D interval array with ones on the diagonal and zeros elsewhere.
 **Returns**:
 
 * out : Interval of shape (N, M)
-          An interval array where all elements are equal to zero, except for the k-th diagonal, whose values are equal to one.
+          An interval array where all elements are equal to zero, except for the k-th diagonal,
+          whose values are equal to one.
 
 
 **Examples**:
@@ -259,6 +260,148 @@ Interval(['[2, 3]', '[2, 3]', '[2, 3]'])
 Interval([['[-2, 2]', '[0, 0]', '[0, 0]'],
           ['[0, 0]', '[-2, 2]', '[0, 0]'],
           ['[0, 0]', '[0, 0]', '[-2, 2]']])
+
+
+Elementary mathematical functions
+---------------------
+This section presents the basic elementary mathematical functions that are most commonly encountered
+in various kinds of applied problems.
+
+
+The square root
+~~~~~~~~~~~~~~~~
+
+**def sqrt(x)**
+
+Interval enclosure of the square root intrinsic over an interval.
+
+**Parameters**:
+
+* x : Interval
+        The values whose square-roots are required.
+
+
+**Returns**:
+
+* out : Interval
+        An array of the same shape as x, containing the interval enclosure of the square root
+        of each element in x.
+
+
+**Examples**:
+
+>>> f = ip.Interval([[-3, -1], [-3, 2], [0, 4]])
+>>> ip.sqrt(f)
+Interval(['[nan, nan]', '[0, 1.41421]', '[0, 2]'])
+
+
+The exponent
+~~~~~~~~~~~~~~~~
+
+**def exp(x)**
+
+Interval enclosure of the exponential intrinsic over an interval.
+
+**Parameters**:
+
+* x : Interval
+        The values to take the exponent from.
+
+
+**Returns**:
+
+* out : Interval
+        An array of the same shape as x, containing the interval enclosure of the exponential
+        of each element in x.
+
+
+**Examples**:
+
+>>> f = ip.Interval([[-3, -1], [-3, 2], [0, 4]])
+>>> ip.exp(f)
+Interval(['[0.0497871, 0.367879]', '[0.0497871, 7.38906]', '[1, 54.5982]'])
+
+
+The natural logarithm
+~~~~~~~~~~~~~~~~
+
+**def log(x)**
+
+Interval enclosure of the natural logarithm intrinsic over an interval.
+
+**Parameters**:
+
+* x : Interval
+        The values to take the natural logarithm from.
+
+
+**Returns**:
+
+* out : Interval
+        An array of the same shape as x, containing the interval enclosure of the natural logarithm
+        of each element in x.
+
+
+**Examples**:
+
+>>> f = ip.Interval([[-3, -1], [-3, 2], [1, 4]])
+>>> ip.log(f)
+Interval(['[nan, nan]', '[-inf, 0.693147]', '[0, 1.38629]'])
+
+
+The sine function
+~~~~~~~~~~~~~~~~
+
+**def sin(x)**
+
+Interval enclosure of the sin intrinsic over an interval.
+
+**Parameters**:
+
+* x : Interval
+        The values to take the sin from.
+
+
+**Returns**:
+
+* out : Interval
+        An array of the same shape as x, containing the interval enclosure of the sin
+        of each element in x.
+
+
+**Examples**:
+
+>>> f = ip.Interval([[-3, -1], [-3, 2], [0, 4]])
+>>> ip.sin(f)
+Interval(['[-1, -0.14112]', '[-1, 1]', '[-0.756802, 1]'])
+
+
+The cosine function
+~~~~~~~~~~~~~~~~
+
+**def cos(x)**
+
+Interval enclosure of the cos intrinsic over an interval.
+
+**Parameters**:
+
+* x : Interval
+        The values to take the cos from.
+
+
+**Returns**:
+
+* out : Interval
+        An array of the same shape as x, containing the interval enclosure of the cos
+        of each element in x.
+
+
+**Examples**:
+
+>>> f = ip.Interval([[-3, -1], [-3, 2], [0, 4]])
+>>> ip.cos(f)
+Interval(['[-0.989992, 0.540302]', '[-0.989992, 1]', '[-1, 1]'])
+
 
 
 Test interval systems
