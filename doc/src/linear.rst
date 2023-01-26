@@ -1,4 +1,4 @@
-Линейные системы
+Interval linear systems
 ===============
 
 В данном параграфе представлен обзор функций для исследования разрешимости и получения оценки
@@ -70,46 +70,56 @@ Returns:
 поэтому был предложен *метод распознающего функционала*.
 
 
-Распознающий функционал Uni
+Recognizing functional Uni
 ~~~~~~~~~~~~~~~~~~
 
-В случае, когда необходимо проверить интервальную систему линейных уравнений на её слабую разрешимость
-следует воспользоваться функционалом ``Uni``. Для его оптимизации используется широко известный метод Нелдера-Мида,
-который не использует градиенты, поскольку в функции присутствует взятие абсолютного значения.
+When it is necessary to check an interval system of linear equations for its weak solvability
+you should use the Uni functionality. If maxQ=True, then the maximum of the functional is found,
+otherwise, the value at point x is calculated.
+
+To optimize it, the well-known Nelder-Mead method is used, which does not use gradients,
+since there is an absolute value in the function.
+
 
 **Parameters**:
 
 * A : Interval
-            Входная интервальная матрица ИСЛАУ, которая может быть как квадратной, так и прямоугольной.
+        The input interval matrix of ISLAE, which can be either square or rectangular.
 
 * b : Interval
-            Интервальной вектор правой части ИСЛАУ.
+    The interval vector of the right part of the ISLAE.
 
 * x : float, array_like, optional
-            Точка в которой вычисляется распознающий функционал.
-            По умолчанию x равен массиву из нулей.
+    The point at which the recognizing functional is calculated. By default, x is equal to an array of zeros.
 
 * maxQ : bool, optional
-            Если значение параметра равно True, то производится максимизация функционала.
+    If the parameter value is True, then the functional is maximized.
 
 * x0 : float, array_like, optional
-            Первоначальная догадка для поиска глобального максимума.
+    The initial guess for finding the global maximum.
 
-* tol : float, optional
-            Погрешность для прекращения оптимизационного процесса.
+* tolx : float, optional
+    Absolute error in xopt between iterations that is acceptable for convergence.
+
+* tolg : float, optional
+    Absolute error in unigrad between iterations that is acceptable for convergence.
+
+* tolf : float, optional
+    Absolute error in unimax between iterations that is acceptable for convergence.
 
 * maxiter : int, optional
-            Максимальное количество итераций.
+    The maximum number of iterations.
 
+* linear_constraint : LinearConstraint, optional
+    System (lb <= C <= ub) describing linear dependence between parameters.
 
 **Returns**:
 
-* out: float, tuple
-            Возвращается значение распознающего функционала в точке x.
-            В случае, если maxQ=True, то возвращается кортеж, где
-            первый элемент -- корректность завершения оптимизации,
-            второй элемент -- точка оптимума,
-            третий элемент -- значение функции в этой точке.
+* out : float, tuple
+    The value of the recognizing functional at point x is returned.
+    If maxQ=True, then a tuple is returned, where the first element is the correctness of the optimization completion,
+    the second element is the optimum point, and the third element is the value of the function at this point.
+
 
 **Examples**:
 
@@ -136,46 +146,53 @@ Returns:
 Это также может ускорить процесс поиска глобального максимума.
 
 
-Распознающий функционал Tol
+Recognizing functional Tol
 ~~~~~~~~~~~~~~~~~~
 
-В случае, когда необходимо проверить интервальную систему линейных уравнений на её сильную разрешимость
-следует воспользоваться функционалом ``Tol``. Для его оптимизации используется проверенная временем программа `tolsolvty`,
-которая пригодна для решения практических задач.
+When it is necessary to check the interval system of linear equations for its strong
+solvability you should use the Tol functionality. If maxQ=True, then the maximum
+of the functional is found, otherwise, the value at point x is calculated.
+To optimize it, a proven the tolsolvty program, which is suitable for solving practical problems.
 
 **Parameters**:
 
 * A : Interval
-            Входная интервальная матрица ИСЛАУ, которая может быть как квадратной, так и прямоугольной.
+        The input interval matrix of ISLAE, which can be either square or rectangular.
 
 * b : Interval
-            Интервальной вектор правой части ИСЛАУ.
+    The interval vector of the right part of the ISLAE.
 
 * x : float, array_like, optional
-            Точка в которой вычисляется распознающий функционал.
-            По умолчанию x равен массиву из нулей.
+    The point at which the recognizing functional is calculated. By default, x is equal to an array of zeros.
 
 * maxQ : bool, optional
-            Если значение параметра равно True, то производится максимизация функционала.
+    If the parameter value is True, then the functional is maximized.
 
 * x0 : float, array_like, optional
-            Первоначальная догадка для поиска глобального максимума.
+    The initial guess for finding the global maximum.
 
-* tol : float, optional
-            Погрешность для прекращения оптимизационного процесса.
+* tolx : float, optional
+    Absolute error in xopt between iterations that is acceptable for convergence.
+
+* tolg : float, optional
+    Absolute error in unigrad between iterations that is acceptable for convergence.
+
+* tolf : float, optional
+    Absolute error in unimax between iterations that is acceptable for convergence.
 
 * maxiter : int, optional
-            Максимальное количество итераций.
+    The maximum number of iterations.
 
+* linear_constraint : LinearConstraint, optional
+    System (lb <= C <= ub) describing linear dependence between parameters.
 
 **Returns**:
 
-* out: float, tuple
-            Возвращается значение распознающего функционала в точке x.
-            В случае, если maxQ=True, то возвращается кортеж, где
-            первый элемент -- корректность завершения оптимизации,
-            второй элемент -- точка оптимума,
-            третий элемент -- значение функции в этой точке.
+* out : float, tuple
+    The value of the recognizing functional at point x is returned.
+    If maxQ=True, then a tuple is returned, where the first element is the correctness of the optimization completion,
+    the second element is the optimum point, and the third element is the value of the function at this point.
+    
 
 **Examples**:
 
