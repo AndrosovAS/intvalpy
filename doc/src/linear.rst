@@ -1,73 +1,77 @@
 Interval linear systems
 ===============
 
-В данном параграфе представлен обзор функций для исследования разрешимости и получения оценки
-множества решений интервальных линейных систем.
+This paragraph presents an overview of functions for investigating solvability
+and obtaining estimates of the set of solutions of interval linear systems.
 
-Выполните инструкцию для подключения необходимых модулей:
+Follow the instructions for connecting the required modules:
 
     >>> import intvalpy as ip
     >>> import numpy as np
 
-.. Содержание::
+.. Content::
 
-Вариабельность системы
+Variability of the system
 ------------
 
-При решении системы мы обычно получаем множество различных оценок, одинаково пригодных в качестве ответов к задаче
-и согласующихся с её данными. Именно вариабельность характеризует то насколько мало или велико это множество.
+**def ive(A, b, N=40)**
 
-Для получения количественной меры воспользуйтесь функцией ``ive``:
+When solving the system, we usually get many different estimates, equally suitable
+as answers to the problem and consistent with its data. It is the variability that characterizes
+how small or large this set is.
 
-Parameters:
-            A: Interval
-                Матрица ИСЛАУ.
+To get a quantitative measure, use the `ive` function:
 
-            b: Interval
-                Вектор правой части ИСЛАУ.
+**Parameters**:
 
-Optional Parameters:
-            N: int
-                Количество угловых матриц для которых вычисляется обусловленность.
+* A : Interval
+        The input interval matrix of ISLAE, which can be either square or rectangular.
 
-Returns:
-            out: float
-                Возвращается мера вариабельности IVE.
+* b : Interval
+        The interval vector of the right part of the ISLAE.
 
-Пример:
+* N : int, optional
+        The number of corner matrices for which the conditionality is calculated.
 
->>> import intvalpy as ip
->>>
->>> inf = [[98, 99],
->>>        [97, 98],
->>>        [96, 97]]
->>>
->>> sup = [[100, 101],
->>>        [99, 100],
->>>        [98, 99]]
->>>
->>> A = ip.Interval(inf, sup)
->>> b = ip.Interval([190, 200, 190], [210, 220, 210])
->>>
->>> ip.linear.ive(A, b)
+
+**Returns**:
+
+* out : float
+    A measure of the variability of an interval system of linear equations IVE.
+
+
+**Examples**:
+
+A randomized algorithm was used to speed up the calculations, so there is a chance
+that a non-optimal value will be found.  To overcome this problem we can increase
+the value of the parameter N.
+
+>>> A = ip.Interval([
+        [[98, 100], [99, 101]],
+        [[97, 99], [98, 100]],
+        [[96, 98], [97, 99]]
+    ])
+>>> b = ip.Interval([[190, 210], [200, 220], [190, 210]])
+>>> ip.linear.ive(A, b, N=60)
 1.56304
 
-Для ускорения расчётов был использован рандомизированный алгоритм.
 
-Более подробную информацию Вы можете узнать из `статьи <http://www.nsc.ru/interval/shary/Papers/SShary-VariabMeasure-JCT.pdf>`_ Шарого С.П.
+For more information, see the `article <http://www.nsc.ru/interval/shary/Papers/SShary-VariabMeasure-JCT.pdf>`_ Shary S.P.
 
 
-Распознающие функционалы
+Recognizing functionals
 ------------
 
-Перед тем, как приступить к решению системы уравнений с интервальными данными необходимо понять, а разрешима ли она.
-Для этого рассматривается задача о распознавании разрешимости, т.е. непустоты множества решений.
-В случае интервальной линейной (m x n)-системы уравнений потребуется решить не более чем 2\ :sup:`n`
-линейных неравенств размера 2m+n. Это следует из факта о выпуклости и многогранности пересечения множеств решений
-интервальной системы линейных алгебраических уравнений (ИСЛАУ) с каждым из ортантов пространства **R**\ :sup:`n`.
-Уменьшение количества неравенств принципиально невозможно, что следует из факта труднорешаемости задачи,
-т.е. её NP-трудности. Ясно, что выше описанный метод применим лишь при малой размерности задачи,
-поэтому был предложен *метод распознающего функционала*.
+Before we start solving a system of equations with interval data it is necessary to understand
+whether it is solvable or not. To do this we consider the problem of decidability recognition,
+i.e. non-emptiness of the set of solutions. In the case of an interval linear (m x n)-system
+of equations, we will need to solve no more than 2\ :sup:`n` linear inequalities of size 2m+n.
+This follows from the fact of convexity and polyhedra of the intersection of the sets of solutions
+interval system of linear algebraic equations (ISLAU) with each of the orthants of **R**\ :sup:`n` space.
+Reducing the number of inequalities is fundamentally impossible, which follows from the fact
+that the problem is intractable, i.e. its NP-hardness. It is clear that the above described
+method is applicable only for small dimensionality of the problem, that is why the *recognizing
+functional method* was proposed.
 
 
 Recognizing functional Uni
@@ -123,27 +127,57 @@ since there is an absolute value in the function.
 
 **Examples**:
 
-В качестве примера рассмотрим широко известную интервальную систему, предложенную Бартом-Нудингом:
+As an example, consider the well-known interval system proposed by Barth-Nuding:
 
->>> A = ip.Interval([[2, -2],[-1, 2]], [[4,1],[2,4]])
->>> b = ip.Interval([-2, -2], [2, 2])
+>>> A = ip.Interval([
+        [[2, 4], [-1, 2]],
+        [[-2, 1], [2, 4]]
+    ])
+>>> b = ip.Interval([[-2, 2], [-2, 2]])
 
 
-Для получения значения функции в конкретной точке необходимо выполнить следующую инструкцию
+To get the value of a function at a specific point, perform the following instruction
 
->>> x = np.array([1,2])
+>>> x = np.array([1, 2])
 >>> ip.linear.Uni(A, b, x)
 -1.0
 
-Таким образом видно, что точка не лежит в множестве решений системы, т.к. значение распознающего функционала отрицательно.
-Для получения глобального максимума функции, чтобы понять разрешима или не разрешима система, следует указать истинность значения параметра `maxQ`:
+Thus it is clear that the point does not lie in the set of solutions of the system,
+because the value of the recognizing functional is negative. In order to obtain a global
+maximum of the function to understand whether the system is solvable or not, we should
+specify the truth value of the parameter `maxQ`:
 
 >>> ip.linear.Uni(A, b, maxQ=True)
 (True, array([0., 0.]), 2.0)
 
-Поскольку интервальная система линейна, но матрица **А** не является точечной, то нет гарантий, что был достигнут глобальный максимум функции.
-В качестве некоторого решения пользователь может указать первоначальную догадку, исходя, например, из особенностей матрицы.
-Это также может ускорить процесс поиска глобального максимума.
+
+However, we know from theory that even in the linear case the recognizing function Uni
+is not a concave function on the whole investigated space. Thus, there is no guarantee
+that the global maximum of the function, and not the local extremum, was found using
+the optimization algorithm.
+
+As some solution, the user can specify an initial guess, based, for example, on the features
+of the matrix. This can also speed up the process of finding the global maximum.
+
+In addition, conditional optimization with linear constraints has been implemented using
+the penalty function method.
+
+>>> A = ip.Interval([
+        [[2, 4], [10, 11.99999]],
+        [[-2, 1], [2, 4]]
+    ])
+>>> b = ip.Interval([[-2, 2], [-2, 2]]) + 0.15
+
+>>> C = np.array([
+        [1, 0],
+        [0, 1]
+    ])
+>>> ub = np.array([5, 5])
+>>> lb = np.array([0, 0.1])
+
+>>> linear_constraint = ip.LinearConstraint(C, ub=ub, lb=lb)
+>>> ip.linear.Uni(A, b, linear_constraint=linear_constraint, maxQ=True, tolx=1e-20)
+(True, array([1.05421808e-17, 1.00000000e-01]), 1.15)
 
 
 Recognizing functional Tol
@@ -192,34 +226,60 @@ To optimize it, a proven the tolsolvty program, which is suitable for solving pr
     The value of the recognizing functional at point x is returned.
     If maxQ=True, then a tuple is returned, where the first element is the correctness of the optimization completion,
     the second element is the optimum point, and the third element is the value of the function at this point.
-    
+
 
 **Examples**:
 
-В качестве примера рассмотрим широко известную интервальную систему, предложенную Бартом-Нудингом:
+As an example, consider the well-known interval system proposed by Barth-Nuding:
 
->>> A = ip.Interval([[2, -2],[-1, 2]], [[4,1],[2,4]])
->>> b = ip.Interval([-2, -2], [2, 2])
+>>> A = ip.Interval([
+        [[2, 4], [-1, 2]],
+        [[-2, 1], [2, 4]]
+    ])
+>>> b = ip.Interval([[-2, 2], [-2, 2]])
 
 
-Для получения значения функции в конкретной точке необходимо выполнить следующую инструкцию
+To get the value of a function at a specific point, perform the following instruction
 
->>> x = np.array([1,2])
+>>> x = np.array([1, 2])
 >>> ip.linear.Tol(A, b, x)
 -8.0
 
-Таким образом видно, что точка не лежит в множестве решений системы, т.к. значение распознающего функционала отрицательно.
-Для получения глобального максимума функции, чтобы понять разрешима или не разрешима система, следует указать истинность значения параметра `maxQ`:
+Thus it is clear that the point does not lie in the set of solutions of the system,
+because the value of the recognizing functional is negative. In order to obtain a global
+maximum of the function to understand whether the system is solvable or not, we should
+specify the truth value of the parameter `maxQ`:
 
 >>> ip.linear.Tol(A, b, maxQ=True)
 (True, array([0., 0.]), 2.0)
 
-Отличительным свойством функционала `Tol` от функционалов `Uni` и `Uss` является то, что вне зависимости от того является ли матрица **A**
-интервальной или точечной, функционал всегда имеет только один экстремум. Таким образом не важно с какой начальной догадки начинать поиск.
-Однако, если указать начальную точку, то поиск глобального максимума может ускориться.
+The distinguishing feature of the `Tol` functional from the `Uni` and `Uss` functional
+is that regardless of whether the matrix **A** interval or point matrix, the functional
+always has only one extremum. Thus it does not matter which initial guess to start the search with.
+However, if one specifies an initial point, the search for a global maximum can be accelerated.
+
+In addition, conditional optimization with linear constraints has been implemented using
+the penalty function method.
+
+>>> A = ip.Interval([
+        [[2, 4], [10, 11.99999]],
+        [[-2, 1], [2, 4]]
+    ])
+>>> b = ip.Interval([[-2, 2], [-2, 2]]) + 0.15
+
+>>> C = np.array([
+        [1, 0],
+        [0, 1]
+    ])
+>>> ub = np.array([5, 5])
+>>> lb = np.array([0, 0.1])
+
+>>> linear_constraint = ip.LinearConstraint(C, ub=ub, lb=lb)
+>>> ip.linear.Tol(A, b, linear_constraint=linear_constraint, maxQ=True, tolx=1e-20)
+(True, array([3.65546736e-17, 1.00000000e-01]), 0.9500009999999999)
 
 
-Список использованной литературы
+References
 ~~~~~~~~~~~~~~~~~~
 
 [1] С.П. Шарый - `Разрешимость интервальных линейных уравнений и анализ данных с неопределённостями <http://www.nsc.ru/interval/shary/Papers/SharyAiT.pdf>`_ // Автоматика и Телемеханика, No 2, 2012
