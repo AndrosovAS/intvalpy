@@ -9,7 +9,7 @@ Follow the instructions for connecting the required modules:
     >>> import intvalpy as ip
     >>> import numpy as np
 
-.. Content::
+.. Contents::
 
 Variability of the system
 ------------
