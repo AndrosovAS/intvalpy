@@ -1,7 +1,8 @@
 General purpose functions
 =========================
 
-In this section, we present an overview of functions for working with interval quantities as well as some functions for creating interval objects.
+In this section, we present an overview of functions for working with interval quantities as well as some functions
+for creating interval objects.
 
 Run the following commands to connect the necessary modules
 
@@ -14,7 +15,7 @@ Run the following commands to connect the necessary modules
 Converting data to interval type
 --------------------------------
 
-*def asinterval(a)*
+**def asinterval(a)**
 
 To convert the input data to the interval type, use the `asinterval` function:
 
@@ -121,31 +122,43 @@ interval(['[-2.0, -2.0]', '[-2.0, -2.0]', '[-2.0, -2.0]'])
 interval(['[-inf, -inf]', '[-6.0, 5.0]', '[-2.0, 0.0]'])
 
 
-Метрика
+Distance
 ------------
 
-Для вычисления метрики или мультиметрики в интервальных пространствах предусмотрена функция ``dist``:
+**def dist(x, y, order=float('inf'))**
+
+To calculate metrics or multimetrics in interval spaces, the `dist` function is provided.
+The mathematical formula for distance is given as follows:
+dist\ :sub:`order` = (sum\ :sub:`ij` ||x\ :sub:`ij` - y\ :sub:`ij` ||\ :sup:`order` )\ :sup:`1/order`.
+
+It is important to note that this formula involves an algebraic difference, not the usual interval difference.
+
+**Parameters**:
+
+* a, b : Interval
+          The intervals between which you need to calculate the distance. In the case of multidimensional
+          operands a multimetric is calculated.
+
+* order : int, optional
+          The order of the metric is set. By default, setting is Chebyshev distance.
 
 
-Parameters:
-            a, b: ``Interval``
-                Интервалы между которыми необходимо рассчитать ``dist``.
-                В случае многомерности операндов вычисляется мультиметрика.
+**Returns**:
 
-            order: ``int``
-                Задаются различные метрики. По умолчанию используется Чебышёвское расстояние.
+* out: float
+          The distance between the input operands is returned.
 
-Returns:
-            out: ``float``
-                Возвращается расстояние между входными операндами.
 
-Пример:
+**Examples**:
 
->>> import intvalpy as ip
->>> f = ip.Interval([[0, 2], [4, 6]],
->>>                 [[1, 3], [5, 7]])
->>> s = ip.Interval([[1, 3], [5, 7]],
->>>                 [[2, 4], [6, 8]])
+>>> f = ip.Interval([
+        [[0, 1], [2, 3]],
+        [[4, 5], [6, 7]],
+    ])
+>>> s = ip.Interval([
+        [[1, 2], [3, 4]],
+        [[5, 6], [7, 8]],
+    ])
 >>> ip.dist(f, s)
 1.0
 
@@ -159,7 +172,7 @@ Zero intervals
 
 To create an interval array where each element is point and equal to zero, the function `zeros` is provided:
 
-*Parameters**:
+**Parameters**:
 
 * shape : int, tuple
             Shape of the new interval array, e.g., (2, 3) or 4.
