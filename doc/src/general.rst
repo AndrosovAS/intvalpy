@@ -10,33 +10,33 @@ Run the following commands to connect the necessary modules
 
 .. Contents::
 
+
 Converting data to interval type
 --------------------------------
 
-To convert the input data to the interval type, use the ``asinterval`` function:
-  
-Parameters:
-            a: ``array_like``
-                Input data, in any form, that can be converted to an array of intervals. 
-                These include ``int``, ``float``, ``list`` and ``ndarrays``. 
+*def asinterval(a)*
 
-Returns:
-            out: ``Interval``
-                The conversion is not performed if the input is already of type ``Interval``.
-                If a is ``int``, ``float``, ``list`` or ``ndarrays``, then an object is returned 
-                of the base class ``Interval``.
-                
+To convert the input data to the interval type, use the `asinterval` function:
 
-Examples: 
+**Parameters**:
 
->>> import intvalpy as ip
->>> data = 3
->>> ip.asinterval(data)
-[3.000000, 3.000000]
+* a : int, float, array_like
+        Input data in any form that can be converted to an interval data type.
+        These include int, float, list and ndarrays.
 
->>> data = [1/3, ip.Interval(-2, 5), 2]
->>> ip.asinterval(data)
-interval(['[0.333333, 0.333333]', '[-2.0, 5.0]', '[2.0, 2.0]'])
+**Returns**:
+
+* out : Interval
+    The conversion is not performed if the input is already of type Interval.
+    Otherwise an object of interval type is returned.
+
+
+**Examples**:
+
+>>> ip.asinterval(3)
+'[3, 3]'
+>>> ip.asinterval([1/2, ip.Interval(-2, 5), 2])
+Interval(['[0.5, 0.5]', '[-2, 5]', '[2, 2]'])
 
 
 Interval scatterplot
@@ -152,43 +152,136 @@ Returns:
 The detailed information about various metrics can be found in the referenced `monograph <http://www.nsc.ru/interval/Library/InteBooks/SharyBook.pdf>`_.
 
 
-Zero intervals 
+Zero intervals
 --------------
 
-To create an interval array where each element is point and equal to zero, the function ``zeros`` is provided: 
+**def zeros(shape)**
 
->>> import intvalpy as ip
+To create an interval array where each element is point and equal to zero, the function `zeros` is provided:
+
+*Parameters**:
+
+* shape : int, tuple
+            Shape of the new interval array, e.g., (2, 3) or 4.
+
+**Returns**:
+
+* out : Interval
+            An interval array of zeros with a given shape
+
+
+**Examples**:
+
 >>> ip.zeros((2, 3))
-interval([['[0.0, 0.0]', '[0.0, 0.0]', '[0.0, 0.0]'],
-          ['[0.0, 0.0]', '[0.0, 0.0]', '[0.0, 0.0]']])
+Interval([['[0, 0]', '[0, 0]', '[0, 0]'],
+          ['[0, 0]', '[0, 0]', '[0, 0]']])
+>>> ip.zeros(4)
+Interval(['[0, 0]', '[0, 0]', '[0, 0]', '[0, 0]'])
+
+
+Identity interval matrix
+--------------
+
+**def eye(N, M=None, k=0)**
+
+Return a 2-D interval array with ones on the diagonal and zeros elsewhere.
+
+*Parameters**:
+
+* N : int
+          Shape of the new interval array, e.g., (2, 3) or 4.
+
+* M : int, optional
+          Number of columns in the output. By default, M = N.
+
+* k : int, optional
+          Index of the diagonal: 0 refers to the main diagonal, a positive value refers
+          to an upper diagonal, and a negative value to a lower diagonal. By default, k = 0.
+
+
+**Returns**:
+
+* out : Interval of shape (N, M)
+          An interval array where all elements are equal to zero, except for the k-th diagonal, whose values are equal to one.
+
+
+**Examples**:
+
+>>> ip.eye(3, M=2, k=-1)
+Interval([['[0, 0]', '[0, 0]'],
+          ['[1, 1]', '[0, 0]'],
+          ['[0, 0]', '[1, 1]']])
+
+
+Diagonal of the interval matrix
+--------------
+
+**def diag(v, k=0)**
+
+Extract a diagonal or construct a diagonal interval array.
+
+**Parameters**:
+
+* v : Interval
+          If v is a 2-D interval array, return a copy of its k-th diagonal.
+          If v is a 1-D interval array, return a 2-D interval array with v on the k-th diagonal.
+
+* k : int, optional
+          Diagonal in question. Use k>0 for diagonals above the main diagonal, and k<0 for diagonals
+          below the main diagonal. By default, k=0.
+
+
+**Returns**:
+
+* out : Interval
+          The extracted diagonal or constructed diagonal interval array.
+
+
+**Examples**:
+
+>>> A, b = ip.Shary(3)
+>>> ip.diag(A)
+Interval(['[2, 3]', '[2, 3]', '[2, 3]'])
+>>> ip.diag(b)
+Interval([['[-2, 2]', '[0, 0]', '[0, 0]'],
+          ['[0, 0]', '[-2, 2]', '[0, 0]'],
+          ['[0, 0]', '[0, 0]', '[-2, 2]']])
 
 
 Test interval systems
 ---------------------
-To check the performance of each implemented algorithm, it is tested on well-studied test systems. This subsection describes some of these systems, for which the properties of the solution sets are known, and their analytical characteristics and the complexity of numerical procedures have been previously studied. 
+To check the performance of each implemented algorithm, it is tested on well-studied test systems.
+This subsection describes some of these systems, for which the properties of the solution sets are known,
+and their analytical characteristics and the complexity of numerical procedures have been previously studied.
 
 
 The Shary system
 ~~~~~~~~~~~~~~~~
 
-One of the popular test systems is the Shary system. Due to its symmetry, it is quite simple to determine the structure of its united solution set as well as other solution sets. Changing the values of the system parameters, you can get an extensive family of interval linear systems for testing the numerical algorithms. As the parameter beta decreases, the matrix of the system becomes more and more singular, and the united solution set enlarges  indefinitely. 
+**def Shary(n, N=None, alpha=0.23, beta=0.35)**
+
+One of the popular test systems is the Shary system. Due to its symmetry, it is quite simple to determine
+the structure of its united solution set as well as other solution sets. Changing the values of the system
+parameters, you can get an extensive family of interval linear systems for testing the numerical algorithms.
+As the parameter beta decreases, the matrix of the system becomes more and more singular, and the united solution
+set enlarges  indefinitely.
 
 **Parameters**:
 
 * n : int
-            Dimension of the interval system. It may be greater than or equal to two. 
+            Dimension of the interval system. It may be greater than or equal to two.
 
 * N : float, optional
-            A real number not less than (n − 1). By default, N = n. 
+            A real number not less than (n − 1). By default, N = n.
 
 * alpha : float, optional
-            A parameter used for specifying the lower endpoints of the elements in the interval matrix. The parameter is limited 
-            to 0 < alpha <= beta <= 1. By default, alpha = 0.23. 
+            A parameter used for specifying the lower endpoints of the elements in the interval matrix.
+            The parameter is limited to 0 < alpha <= beta <= 1. By default, alpha = 0.23.
 
 * beta : float, optional
-            A parameter used for specifying the upper endpoints of the elements in the interval matrix. The parameter is limited 
-            to 0 < alpha <= beta <= 1. By default, beta = 0.35. 
-          
+            A parameter used for specifying the upper endpoints of the elements in the interval matrix.
+            The parameter is limited to 0 < alpha <= beta <= 1. By default, beta = 0.35.
+
 
 **Returns**:
 
@@ -207,25 +300,32 @@ A:  Interval([['[2, 3]', '[-0.77, 0.65]', '[-0.77, 0.65]'],
 b:  Interval(['[-2, 2]', '[-2, 2]', '[-2, 2]'])
 
 
-Neumaier-Reichmann system
+Neumeier-Reichmann system
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This system is a parametric interval linear system, first proposed by K. Reichmann [2], and then slightly modified by A. Neumaier. The matrix of the system can be both regular and not strongly regular for some values of the diagonal parameter. 
-It is shown that n × n matrices are non-singular for theta > n provided that n is even, and, for odd order n, the matrices are non-singular for theta > sqrt(n^2 - 1). 
-  
+**def Neumeier(n, theta, infb=None, supb=None)**
+
+This system is a parametric interval linear system, first proposed by K. Reichmann [2], and then
+slightly modified by A. Neumeier. The matrix of the system can be both regular and not strongly
+regular for some values of the diagonal parameter. It is shown that n × n matrices are non-singular
+for theta > n provided that n is even, and, for odd order n, the matrices are non-singular
+for theta > sqrt(n^2 - 1).
+
 **Parameters**:
 
 * n : int
-            Dimension of the interval system. It may be greater than or equal to two. 
+            Dimension of the interval system. It may be greater than or equal to two.
 
 * theta : float, optional
             Nonnegative real parameter, which is the number that stands on the main diagonal of the matrix А.
 
 * infb : float, optional
-            A real parameter that specifies the lower endpoints of the components of the right-hand side vector. By default, infb = -1.
+            A real parameter that specifies the lower endpoints of the components of the right-hand
+            side vector. By default, infb = -1.
 
 * supb : float, optional
-            A real parameter that specifies the upper endpoints of the components of the right-hand side vector. By default, supb = 1. 
+            A real parameter that specifies the upper endpoints of the components of the right-hand
+            side vector. By default, supb = 1.
 
 
 **Returns**:
@@ -253,4 +353,4 @@ References
 [2] Reichmann K. Abbruch beim Intervall-Gauß-Algorithmus // Computing. – 1979. – Vol. 22, Issue 4. – P. 355–361.
 
 [3] С.П. Шарый - `Конечномерный интервальный анализ <http://www.nsc.ru/interval/Library/InteBooks/SharyBook.pdf>`_.
-    Sergey P. Shary, `Finite-Dimensional Interval Analysis`_. 
+    Sergey P. Shary, `Finite-Dimensional Interval Analysis`_.
