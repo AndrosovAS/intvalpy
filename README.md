@@ -16,21 +16,44 @@ pip install intvalpy
 
 ### Visualizing solution sets
 
-For a system of linear inequalities of the form ``A * x >= b`` or for an interval system of linear algebraic equations ``A * x = b``, 
+For a system of linear inequalities of the form ``A * x >= b`` or for an interval system of linear algebraic equations ``A * x = b``,
 the solution sets are known to be polyhedral sets, convex or non-convex. We can visualize them and display all their vertices:
 
 ```python
 import intvalpy as ip
-
+ip.precision.extendedPrecisionQ = False
 import numpy as np
-import matplotlib.pyplot as plt
 
-fig, ax = plt.subplots(ncols=2, figsize=(15,8))
 
+iplt = ip.IPlot(figsize=(15, 15))
+fig, ax = iplt.subplots(nrows=2, ncols=2)
+
+
+#########################################################################
 A, b = ip.Shary(2)
-vertices1 = ip.IntLinIncR2(A, b, show=False)
-vertices2 = ip.IntLinIncR2(A, b, consistency='tol', show=False)
+shary_uni = ip.IntLinIncR2(A, b, show=False)
+shary_tol = ip.IntLinIncR2(A, b, consistency='tol', show=False)
 
+axindex = (0, 0)
+ax[axindex].set_title('United and tolerable solution sets for the Shary interval system')
+ax[axindex].title.set_size(15)
+iplt.IntLinIncR2(shary_uni, color='gray', alpha=0.5, s=0, axindex=axindex)
+iplt.IntLinIncR2(shary_tol, color='blue', alpha=0.3, s=10, axindex=axindex)
+
+#########################################################################
+A = ip.Interval([
+    [[-1, 1], [-1, 1]],
+    [[-1, -1], [-1, 1]]
+])
+b = ip.Interval([[1, 1], [-2, 2]])
+unconstrained_set = ip.IntLinIncR2(A, b, show=False)
+
+axindex = (0, 1)
+ax[axindex].set_title('Unbounded set')
+ax[axindex].title.set_size(15)
+iplt.IntLinIncR2(unconstrained_set, color='darkolivegreen', alpha=0.3, s=10, axindex=axindex)
+
+#########################################################################
 A = -np.array([[-3, -1],
               [-2, -2],
               [-1, -3],
@@ -44,30 +67,23 @@ A = -np.array([[-3, -1],
               [-2, 2],
               [-3, 1]])
 b = -np.array([18,16,18,18,16,18,18,16,18,18,16,18])
-vertices3 = ip.lineqs(A, b, show=False)
+duodecagon = ip.lineqs(A, b, show=False)
 
-for k in range(len(vertices1)):
-    if len(vertices1[k])>0:
-        x, y = vertices1[k][:,0], vertices1[k][:,1]
-        ax[0].fill(x, y, linestyle = '-', linewidth = 1, color='gray', alpha=0.5)
-        ax[0].scatter(x, y, s=0, color='black', alpha=1)
+axindex = (1, 0)
+ax[axindex].set_title('Duodecagon')
+ax[axindex].title.set_size(15)
+iplt.lineqs(duodecagon, color='peru', alpha=0.3, s=10, axindex=axindex)
 
-for k in range(len(vertices2)):
-    if len(vertices2[k])>0:
-        x, y = vertices2[k][:,0], vertices2[k][:,1]
-        ax[0].fill(x, y, linestyle = '-', linewidth = 1, color='blue', alpha=0.3)
-        ax[0].scatter(x, y, s=10, color='black', alpha=1)
+#########################################################################
+x = ip.Interval([[1, 1.2], [1.9, 2.7], [1.7, 1.95], [3.5, 3.5],
+                 [4.5, 5.5], [6, 6], [6.5, 7.5], [7, 7.8]])
+y = ip.Interval([[4, 4.3], [4.5, 5.3], [4.6, 4.8], [5.1, 6],
+                 [6, 6.5], [7, 7], [6.7, 7.4], [6.8, 8]])
 
-ax[0].text(-4.5, -5.5, 'United and tolerable solution sets fot the Shary interval system',
-           rotation = 0,
-           fontsize = 15)      
-
-x, y = vertices3[:,0], vertices3[:,1]
-ax[1].fill(x, y, linestyle = '-', linewidth = 1, color='peru', alpha=0.3)
-ax[1].scatter(x, y, s=10, color='black', alpha=1)
-ax[1].text(-1.5, -7.77, 'Duodecagon',
-           rotation = 0,
-           fontsize = 15)
+axindex = (1, 1)
+ax[axindex].set_title('Interval scatterplot')
+ax[axindex].title.set_size(15)
+iplt.scatter(x, y, color='gray', alpha=0.7, s=10, axindex=axindex)
 ```
 ![SolSet](https://raw.githubusercontent.com/AndrosovAS/intvalpy/master/examples/SolSet.png)
 
@@ -160,12 +176,12 @@ ip.nonlinear.globopt(levy, x, tol=1e-14)
 Links
 -----
 
+* [Article](<https://www.researchgate.net/publication/361560329_IntvalPy_-_biblioteka_intervalnyh_vycislenij_na_azyke_Python>)
+
 * [Homepage](<https://github.com/AndrosovAS/intvalpy>)
 
 * [Online documentation](<https://intvalpy.readthedocs.io/ru/latest/#>)
 
 * [PyPI package](<https://pypi.org/project/intvalpy/>)
-
-* [Article](<https://www.researchgate.net/publication/361560329_IntvalPy_-_biblioteka_intervalnyh_vycislenij_na_azyke_Python>)
 
 * A detailed [monograph](<http://www.nsc.ru/interval/Library/InteBooks/SharyBook.pdf>) on interval theory
