@@ -350,7 +350,7 @@ Interval(['[nan, nan]', '[-inf, 0.693147]', '[0, 1.38629]'])
 
 
 The sine function
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 
 **def sin(x)**
 
@@ -377,7 +377,7 @@ Interval(['[-1, -0.14112]', '[-1, 1]', '[-0.756802, 1]'])
 
 
 The cosine function
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 **def cos(x)**
 
@@ -456,14 +456,14 @@ A:  Interval([['[2, 3]', '[-0.77, 0.65]', '[-0.77, 0.65]'],
 b:  Interval(['[-2, 2]', '[-2, 2]', '[-2, 2]'])
 
 
-Neumeier-Reichmann system
-~~~~~~~~~~~~~~~~~~~~~~~~~
+The Neumaier-Reichmann system
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **def Neumeier(n, theta, infb=None, supb=None)**
 
 This system is a parametric interval linear system, first proposed by K. Reichmann [2], and then
-slightly modified by A. Neumeier. The matrix of the system can be both regular and not strongly
-regular for some values of the diagonal parameter. It is shown that n × n matrices are non-singular
+slightly modified by A. Neumaier. The matrix of the system can be regular, but not strongly regular 
+for some values of the diagonal parameter. It is shown that n × n matrices are non-singular 
 for theta > n provided that n is even, and, for odd order n, the matrices are non-singular
 for theta > sqrt(n^2 - 1).
 
@@ -492,7 +492,7 @@ for theta > sqrt(n^2 - 1).
 
 **Examples**:
 
->>> A, b = ip.Neumeier(2, 3.5)
+>>> A, b = ip.Neumaier(2, 3.5)
 >>> print('A: ', A)
 >>> print('b: ', b)
 A:  Interval([['[3.5, 3.5]', '[0, 2]'],
