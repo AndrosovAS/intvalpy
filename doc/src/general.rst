@@ -462,8 +462,8 @@ The Neumaier-Reichmann system
 **def Neumeier(n, theta, infb=None, supb=None)**
 
 This system is a parametric interval linear system, first proposed by K. Reichmann [2], and then
-slightly modified by A. Neumaier. The matrix of the system can be regular, but not strongly regular
-for some values of the diagonal parameter. It is shown that n × n matrices are non-singular
+slightly modified by A. Neumaier. The matrix of the system can be regular, but not strongly regular 
+for some values of the diagonal parameter. It is shown that n × n matrices are non-singular 
 for theta > n provided that n is even, and, for odd order n, the matrices are non-singular
 for theta > sqrt(n^2 - 1).
 
