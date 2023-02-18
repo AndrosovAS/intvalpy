@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from intvalpy import Interval, precision
 
-precision.increasedPrecisionQ = False
+precision.extendedPrecisionQ = False
 
 class TestArithmeticsOperation(unittest.TestCase):
 
@@ -51,22 +51,22 @@ class TestArithmeticsOperation(unittest.TestCase):
         assert Interval(3, -2, sortQ=False) / Interval(-1, -2)                   == Interval(1, -1.5, sortQ=False)
         assert Interval(3, -2, sortQ=False) / Interval(2, 1, sortQ=False)        == Interval(3, -2, sortQ=False)
 
-    # def test_pow(self):
-    #     assert Interval(-2, 3) ** 2                                              == Interval(0, 9)
-    #     assert Interval(2, 3) ** 2                                               == Interval(4, 9)
-    #     assert Interval(-3, -2) ** 2                                             == Interval(4, 9)
-    #
-    #     assert Interval(-2, 3) ** 3                                              == Interval(-8, 27)
-    #     assert Interval(2, 3) ** 3                                               == Interval(8, 27)
-    #     assert Interval(-3, -2) ** 3                                             == Interval(-27, -8)
-    #
-    #     assert Interval(3, -2, sortQ=False) ** 2                                 == Interval(9, 4, sortQ=False)     # уточнить
-    #     assert Interval(3, 2, sortQ=False) ** 2                                  == Interval(9, 4, sortQ=False)
-    #     assert Interval(-2, -3, sortQ=False) ** 2                                == Interval(4, 9, sortQ=False)
-    #
-    #     assert Interval(3, -2, sortQ=False) ** 3                                 == Interval(27, -8, sortQ=False)
-    #     assert Interval(3, 2, sortQ=False) ** 3                                  == Interval(27, 8, sortQ=False)
-    #     assert Interval(-2, -3, sortQ=False) ** 3                                == Interval(-8, -27, sortQ=False)
+    def test_pow(self):
+        assert Interval(-2, 3) ** 2                                              == Interval(0, 9)
+        assert Interval(2, 3) ** 2                                               == Interval(4, 9)
+        assert Interval(-3, -2) ** 2                                             == Interval(4, 9)
+
+        assert Interval(-2, 3) ** 3                                              == Interval(-8, 27)
+        assert Interval(2, 3) ** 3                                               == Interval(8, 27)
+        assert Interval(-3, -2) ** 3                                             == Interval(-27, -8)
+
+        assert Interval(3, -2, sortQ=False) ** 2                                 == Interval(9, 0, sortQ=False)     # уточнить
+        assert Interval(3, 2, sortQ=False) ** 2                                  == Interval(9, 4, sortQ=False)
+        assert Interval(-2, -3, sortQ=False) ** 2                                == Interval(4, 9, sortQ=False)
+
+        assert Interval(3, -2, sortQ=False) ** 3                                 == Interval(27, -8, sortQ=False)
+        assert Interval(3, 2, sortQ=False) ** 3                                  == Interval(27, 8, sortQ=False)
+        assert Interval(-2, -3, sortQ=False) ** 3                                == Interval(-8, -27, sortQ=False)
 
     def test_matmul(self):
         A = Interval([

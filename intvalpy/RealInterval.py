@@ -425,9 +425,14 @@ class KaucherArithmetic(BaseTools):
         if isinstance(other, (int, np.int_)) and other >= 0:
             inf, sup = self._a**other, self._b**other
             if other % 2 == 0 and 0 in self:
-                return KaucherArithmetic(0, max(inf, sup))
+                return ClassicalArithmetic(0, max(inf, sup))
+            elif other % 2 == 0 and 0 in self.pro:
+                return KaucherArithmetic(max(inf, sup), 0)
             else:
-                return KaucherArithmetic(inf, sup)
+                if inf > sup:
+                    return KaucherArithmetic(inf, sup)
+                else:
+                    return ClassicalArithmetic(inf, sup)
         elif self >= 0:
             return np.exp(other * np.log(self))
         else:

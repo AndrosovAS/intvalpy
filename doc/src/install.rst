@@ -1,19 +1,18 @@
-Установка
+Installation
 ============
 
 .. highlight: shell
 
-Наиболее удобный способ установки этой библиотеки - с помощью pip_::
+The most convenient way to install this library is with pip_::
 
     pip install --upgrade pip
     pip install intvalpy
 
 
-Установка из источников
+Installation from sources
 -----------------------
 
-Вы можете либо скачать исходные тексты из PyPI_ либо клонировать репозиторий
-размещённый на GitHub_::
+You can either download the source code from PyPI_ or clone the repository hosted on GitHub_::
 
     git clone https://github.com/AndrosovAS/intvalpy.git
     cd intvalpy

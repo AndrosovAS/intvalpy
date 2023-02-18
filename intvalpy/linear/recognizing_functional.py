@@ -1,293 +1,356 @@
 import numpy as np
 
-from intvalpy.RealInterval import Interval, INTERVAL_CLASSES
+from intvalpy.RealInterval import Interval
 from intvalpy.ralgb5 import ralgb5
 
 
-################################################################################
-################################################################################
-# define calcfg
-# tol
-def calcfg_tol(x, infA, supA, Ac, Ar, bc, functional, weight):
-    index = x>=0
-    Ac_x = Ac @ x
-    Ar_absx = Ar @ np.abs(x)
-    infs = bc - (Ac_x + Ar_absx)
-    sups = bc - (Ac_x - Ar_absx)
-    tt = functional(infs, sups)
-    mc = np.argmin(tt)
-    if -infs[mc] <= sups[mc]:
-        dd = weight[mc] * (infA[mc] * index + supA[mc] * (~index))
-    else:
-        dd = -weight[mc] * (supA[mc] * index + infA[mc] * (~index))
-    return -tt[mc], -dd
+class BaseRecFun:
 
-def calcfg_tol_constraint(x, infA, supA, Ac, Ar, bc, functional, weight, linear_constraint):
-    n, m = linear_constraint.C.shape
-    alphai, dalphai = np.zeros(n), np.zeros((n, m))
-    for i in range(n):
-        Cix, condQ = linear_constraint.largeCondQ(x, i)
-        if condQ:
-            alphai[i] = Cix - linear_constraint.b[i]
-            dalphai[i] = linear_constraint.C[i]
+    def linear_penalty(x, linear_constraint):
+        C, b = linear_constraint.C, linear_constraint.b
+        mu = linear_constraint.mu
 
-    alpha = linear_constraint.mu * sum(alphai)
-    grad_alpha = linear_constraint.mu * np.array([ sum(dalphai[:, k]) for k in range(m)])
+        n, m = C.shape
+        # the arrays to store the values of the penalty function
+        # and its Jacobian are initialized.
+        arr_p, arr_dp = np.zeros(n), np.zeros((n, m))
+        for i in range(n):
+            #the condition that the vector x is within the specified bounds is tested.
+            Cix, beyondQ = linear_constraint.largeCondQ(x, i)
+            if beyondQ:
+                arr_p[i] = Cix - b[i]
+                arr_dp[i] = C[i]
 
-    index = x>=0
-    Ac_x = Ac @ x
-    Ar_absx = Ar @ np.abs(x)
-    infs = bc - (Ac_x + Ar_absx)
-    sups = bc - (Ac_x - Ar_absx)
-    tt = functional(infs, sups) - alpha
-    mc = np.argmin(tt)
-    if -infs[mc] <= sups[mc]:
-        dd = weight[mc] * (infA[mc] * index + supA[mc] * (~index)) - grad_alpha
-    else:
-        dd = -weight[mc] * (supA[mc] * index + infA[mc] * (~index)) - grad_alpha
-    return -tt[mc], -dd
-
-################################################################################
-# uni
-def calcfg_uni(x, infA, supA, Ac, Ar, bc, functional, weight):
-    index = x>=0
-    Ac_x = Ac @ x
-    Ar_absx = Ar @ np.abs(x)
-    infs = bc - (Ac_x + Ar_absx)
-    sups = bc - (Ac_x - Ar_absx)
-    tt = functional(infs, sups)
-    mc = np.argmin(tt)
-    if -infs[mc] <= sups[mc]:
-        dd = weight[mc] * (supA[mc] * index + infA[mc] * (~index))
-    else:
-        dd = -weight[mc] * (infA[mc] * index + supA[mc] * (~index))
-    return -tt[mc], -dd
-
-def calcfg_uni_constraint(x, infA, supA, Ac, Ar, bc, functional, weight, linear_constraint):
-    n, m = linear_constraint.C.shape
-    alphai, dalphai = np.zeros(n), np.zeros((n, m))
-    for i in range(n):
-        Cix, condQ = linear_constraint.largeCondQ(x, i)
-        if condQ:
-            alphai[i] = Cix - linear_constraint.b[i]
-            dalphai[i] = linear_constraint.C[i]
-
-    alpha = linear_constraint.mu * sum(alphai)
-    grad_alpha = linear_constraint.mu * np.array([ sum(dalphai[:, k]) for k in range(m)])
-
-    index = x>=0
-    Ac_x = Ac @ x
-    Ar_absx = Ar @ np.abs(x)
-    infs = bc - (Ac_x + Ar_absx)
-    sups = bc - (Ac_x - Ar_absx)
-    tt = functional(infs, sups) - alpha
-    mc = np.argmin(tt)
-    if -infs[mc] <= sups[mc]:
-        dd = weight[mc] * (supA[mc] * index + infA[mc] * (~index)) - grad_alpha
-    else:
-        dd = -weight[mc] * (infA[mc] * index + supA[mc] * (~index)) - grad_alpha
-    return -tt[mc], -dd
-
-################################################################################
-################################################################################
+        #the final value of the penalty function and its gradient vector are obtained.
+        p = mu * np.sum(arr_p)
+        dp = mu * np.sum(arr_dp, axis=0)
+        return p, dp
 
 
-def recfunsolvty(A, b, consistency='uni', x0=None, weight=None, tolx=1e-12, tolg=1e-12, tolf=1e-12, maxiter=2000, linear_constraint=None, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1):
+    def optimize(A, b, recfunc, x0=None, weight=None, linear_constraint=None, **kwargs):
 
-    n, m = A.shape
-    A = A.to_float()
-    b = b.to_float()
-
-    infA, supA = A.a, A.b
-    infb, supb = b.a, b.b
-
-    Ac = 0.5 * (infA + supA)
-    Ar = 0.5 * (supA - infA)
-    bc = 0.5 * (infb + supb)
-    br = 0.5 * (supb - infb)
-
-    if weight is None:
-        weight = np.ones(n)
-
-    # для штрафной функции alpha = sum G x - c, где G-матрица ограничений, c-вектор ограничений
-    # находим значение весового коэффициента mu, чтобы гарантировано не выходить за пределы ограничений
-    if (not linear_constraint is None) and (linear_constraint.mu is None):
-        linear_constraint.mu = linear_constraint.find_mu(np.max(A.mag))
+        n, m = A.shape
+        assert n == len(b), 'Inconsistent dimensions of matrix and right-hand side vector'
 
 
-    if x0 is None:
-        sv = np.linalg.svd(Ac, compute_uv=False)
-        minsv, maxsv = np.min(sv), np.max(sv)
+        infA, supA = A.a, A.b
+        Am, Ar = A.mid, A.rad
+        bm, br = b.mid, b.rad
 
-        if (minsv != 0 and maxsv/minsv < 1e15):
-            x0 = np.linalg.lstsq(Ac, bc, rcond=-1)[0]
-        else:
-            x0 = np.zeros(m)
-    else:
-        x0 = np.copy(x0)
+        if weight is None:
+            weight = np.ones(n)
 
-
-    def mig(inf, sup):
-        if inf*sup <= 0:
-            return 0.0
-        else:
-            return min(abs(inf), abs(sup))
-
-    if consistency=='uni':
-        functional = lambda infs, sups: weight * (br - np.vectorize(mig)(infs, sups))
+        # для штрафной функции alpha = sum G x - c, где G-матрица ограничений, c-вектор ограничений
+        # находим значение весового коэффициента mu, чтобы гарантировано не выходить за пределы ограничений
         if linear_constraint is None:
-            def calcfg(x):
-                return calcfg_uni(x, infA, supA, Ac, Ar, bc, functional, weight)
+            calcfg = lambda x: recfunc.calcfg(x, infA, supA, Am, Ar, bm, br, weight)
         else:
-            def calcfg(x):
-                return calcfg_uni_constraint(x, infA, supA, Ac, Ar, bc, functional, weight, linear_constraint)
+            if linear_constraint.mu is None:
+                linear_constraint.mu = linear_constraint.find_mu(np.max(A.mag))
 
-    else:
-        functional = lambda infs, sups: weight * (br - np.maximum(np.abs(infs), np.abs(sups)))
-        if linear_constraint is None:
-            def calcfg(x):
-                return calcfg_tol(x, infA, supA, Ac, Ar, bc, functional, weight)
+            calcfg = lambda x: recfunc.calcfg_constr(x, infA, supA, Am, Ar, bm, br, weight, linear_constraint)
+
+
+        if x0 is None:
+            Ac = np.array(Am, dtype=np.float64)
+            bc = np.array(bm, dtype=np.float64)
+
+            sv = np.linalg.svd(Ac, compute_uv=False)
+            minsv, maxsv = np.min(sv), np.max(sv)
+
+            if (minsv != 0 and maxsv/minsv < 1e15):
+                x0 = np.linalg.lstsq(Ac, bc, rcond=-1)[0]
+            else:
+                x0 = np.zeros(m)
         else:
-            def calcfg(x):
-                return calcfg_tol_constraint(x, infA, supA, Ac, Ar, bc, functional, weight, linear_constraint)
+            x0 = np.copy(x0)
+
+        return ralgb5(calcfg, x0, **kwargs)
 
 
-    xr, fr, nit, ncalls, ccode = ralgb5(calcfg, x0, tolx=tolx, tolg=tolg, tolf=tolf, maxiter=maxiter, alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2)
-    return xr, -fr, nit, ncalls, ccode
-
-
-def dot(midA, radA, x):
-    midAx = midA @ x
-    radAabsx = radA @ abs(x)
-    return Interval(midAx - radAabsx, midAx + radAabsx, sortQ=False)
-
-
-def Tol(A, b, x=None, maxQ=False, x0=None, weight=None, tolx=1e-12, tolg=1e-12, tolf=1e-12, maxiter=2000, linear_constraint=None, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1):
+class Tol:
     """
-    When it is necessary to check the interval system of linear equations for its strong
-    solvability you should use the Tol functionality. If maxQ=True, then the maximum
-    of the functional is found, otherwise, the value at point x is calculated.
-    To optimize it, a proven the tolsolvty program, which is suitable for solving practical problems.
-
-
-    Parameters:
-
-        A: Interval
-            The input interval matrix of ISLAE, which can be either square or rectangular.
-
-        b: Interval
-            The interval vector of the right part of the ISLAE.
-
-        x: float, array_like, optional
-            The point at which the recognizing functional is calculated. By default, x is equal to an array of zeros.
-
-        maxQ: bool, optional
-            If the parameter value is True, then the functional is maximized.
-
-        x0: float, array_like, optional
-            The initial guess for finding the global maximum.
-
-        tolx: float, optional
-            Absolute error in xopt between iterations that is acceptable for convergence.
-
-        tolg: float, optional
-            Absolute error in tolgrad between iterations that is acceptable for convergence.
-
-        tolf: float, optional
-            Absolute error in tolmax between iterations that is acceptable for convergence.
-
-        maxiter: int, optional
-            The maximum number of iterations.
-
-        linear_constraint: LinearConstraint, optional
-            System (lb <= C <= ub) describing linear dependence between parameters.
-
-    Returns:
-
-        out: float, tuple
-            The value of the recognizing functional at point x is returned.
-            If maxQ=True, then a tuple is returned, where the first element is the correctness of the optimization completion,
-            the second element is the optimum point, and the third element is the value of the function at this point.
+    To check the interval system of linear equations for its strong compatibility,
+    the recognizing functional Tol should be used.
     """
 
-    if not maxQ:
-        if isinstance(x, INTERVAL_CLASSES):
-            return min(b.rad - abs(b.mid - (A @ x)))
+    def form(A, b, x, weight=None):
+        """
+        The function computes all the formings of the recognizing functional and returns them.
+
+        Parameters:
+
+            A: Interval
+                The input interval matrix of ISLAE, which can be either square or rectangular.
+
+            b: Interval
+                The interval vector of the right part of the ISLAE.
+
+            x: np.array, optional
+                The point at which the recognizing functional is calculated.
+
+            weight: float, np.array, optional
+                The vector of weight coefficients for each forming of the recognizing functional.
+                By default, it is a vector consisting of ones.
+
+
+        Returns:
+
+            out: float
+                The values of each forming of the recognizing functional at the point x are returned.
+        """
+        if weight is None:
+            weight = np.ones(len(b))
+        return weight * (b.rad - (b.mid - A @ x).mag)
+
+
+    def value(A, b, x, weight=None):
+        """
+        The function computes the value of the recognizing functional at the point x.
+
+        Parameters:
+
+            A: Interval
+                The input interval matrix of ISLAE, which can be either square or rectangular.
+
+            b: Interval
+                The interval vector of the right part of the ISLAE.
+
+            x: np.array, optional
+                The point at which the recognizing functional is calculated.
+
+            weight: float, np.array, optional
+                The vector of weight coefficients for each forming of the recognizing functional.
+                By default, it is a vector consisting of ones.
+
+
+        Returns:
+
+            out: float
+                The value of the recognizing functional at the point x.
+        """
+
+        return np.min(Tol.form(A, b, x, weight=weight))
+
+
+    def calcfg(x, infA, supA, Am, Ar, bm, br, weight):
+        index = x>=0
+        Am_x = Am @ x
+        Ar_absx = Ar @ np.abs(x)
+        infs = bm - (Am_x + Ar_absx)
+        sups = bm - (Am_x - Ar_absx)
+        tol = weight * (br - np.maximum(abs(infs), abs(sups)))
+        mc = np.argmin(tol)
+        if -infs[mc] <= sups[mc]:
+            dtol = weight[mc] * (infA[mc] * index + supA[mc] * (~index))
         else:
-            x = np.zeros(A.shape[1]) if x is None else x
-            return min(b.rad - (b.mid - (A @ x)).mag)
-    else:
-        xr, fr, nit, ncalls, ccode = recfunsolvty(A, b, consistency='tol', x0=x0, weight=weight, tolx=tolx, tolg=tolg, tolf=tolf, maxiter=maxiter, linear_constraint=linear_constraint,
-                                                  alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2)
-        ccode = False if (ccode==4 or ccode==5) else True
-        return ccode, xr, fr
+            dtol = -weight[mc] * (supA[mc] * index + infA[mc] * (~index))
+        return -tol[mc], -dtol
 
 
-def Uni(A, b, x=None, maxQ=False, x0=None, weight=None, tolx=1e-12, tolg=1e-12, tolf=1e-12, maxiter=2000, linear_constraint=None, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1):
+    def calcfg_constr(x, infA, supA, Am, Ar, bm, br, weight, linear_constraint):
+        p, dp = BaseRecFun.linear_penalty(x, linear_constraint)
+        tol, dtol = Tol.calcfg(x, infA, supA, Am, Ar, bm, br, weight)
+
+        return tol + p, dtol + dp
+
+
+    def maximize(A, b, x0=None, weight=None, linear_constraint=None, **kwargs):
+        """
+        The function is intended for finding the global maximum of the recognizing functional.
+        The ralgb5 subgradient method is used for optimization.
+
+        Parameters:
+
+            A: Interval
+                The input interval matrix of ISLAE, which can be either square or rectangular.
+
+            b: Interval
+                The interval vector of the right part of the ISLAE.
+
+            x0: np.array, optional
+                The initial assumption is at what point the maximum is reached. By default, x0
+                is equal to the vector which is the solution (pseudo-solution) of the system
+                mid(A) x = mid(b).
+
+            weight: float, np.array, optional
+                The vector of weight coefficients for each forming of the recognizing functional.
+                By default, it is a vector consisting of ones.
+
+            linear_constraint: LinearConstraint, optional
+                System (lb <= C <= ub) describing linear dependence between parameters.
+                By default, the problem of unconditional maximization is being solved.
+
+            kwargs: optional params
+                The ralgb5 function uses additional parameters to adjust its performance.
+                These parameters include the step size, the stopping criteria, the maximum number
+                of iterations and others. Specified in the function description ralgb5.
+
+
+        Returns:
+
+            out: tuple
+                The function returns the following values in the specified order:
+                1. the vector solution at which the recognition functional reaches its maximum,
+                2. the value of the recognition functional,
+                3. the number of iterations taken by the algorithm,
+                4. the number of calls to the calcfg function,
+                5. the exit code of the algorithm (1 = tolf, 2 = tolg, 3 = tolx, 4 = maxiter, 5 = error).
+        """
+
+        xr, fr, nit, ncalls, ccode = BaseRecFun.optimize(
+            A, b,
+            Tol,
+            x0=x0,
+            weight=weight,
+            linear_constraint=linear_constraint,
+            **kwargs
+        )
+        return xr, -fr, nit, ncalls, ccode
+
+
+class Uni:
     """
-    When it is necessary to check an interval system of linear equations for its weak solvability
-    you should use the Uni functionality. If maxQ=True, then the maximum of the functional is found,
-    otherwise, the value at point x is calculated.
-
-    To optimize it, the well-known Nelder-Mead method is used, which does not use gradients,
-    since there is an absolute value in the function.
-
-
-    Parameters:
-
-        A: Interval
-            The input interval matrix of ISLAE, which can be either square or rectangular.
-
-        b: Interval
-            The interval vector of the right part of the ISLAE.
-
-        x: float, array_like, optional
-            The point at which the recognizing functional is calculated. By default, x is equal to an array of zeros.
-
-        maxQ: bool, optional
-            If the parameter value is True, then the functional is maximized.
-
-        x0: float, array_like, optional
-            The initial guess for finding the global maximum.
-
-        tolx: float, optional
-            Absolute error in xopt between iterations that is acceptable for convergence.
-
-        tolg: float, optional
-            Absolute error in unigrad between iterations that is acceptable for convergence.
-
-        tolf: float, optional
-            Absolute error in unimax between iterations that is acceptable for convergence.
-
-        maxiter: int, optional
-            The maximum number of iterations.
-
-        linear_constraint: LinearConstraint, optional
-            System (lb <= C <= ub) describing linear dependence between parameters.
-
-    Returns:
-
-        out: float, tuple
-            The value of the recognizing functional at point x is returned.
-            If maxQ=True, then a tuple is returned, where the first element is the correctness of the optimization completion,
-            the second element is the optimum point, and the third element is the value of the function at this point.
+    To check the interval system of linear equations for its weak compatibility,
+    the recognizing functional Uni should be used.
     """
 
-    def ext_mig(x):
-        if 0 in x:
-            return Interval(0, 0, sortQ=False)
-        else:
-            return Interval(0, x.mig, sortQ=False)
+    def form(A, b, x, weight=None):
+        """
+        The function computes all the formings of the recognizing functional and returns them.
 
-    if not maxQ:
-        if isinstance(x, INTERVAL_CLASSES):
-            return min(b.rad - np.vectorize(ext_mig)( (b.mid - (A @ x)).data ))
-        else:
-            x = np.zeros(A.shape[1]) if x is None else x
-            return min(b.rad - (b.mid - (A @ x)).mig)
-    else:
-        xr, fr, nit, ncalls, ccode = recfunsolvty(A, b, consistency='uni', x0=x0, weight=weight, tolx=tolx, tolg=tolg, tolf=tolf, maxiter=maxiter, linear_constraint=linear_constraint,
-                                                  alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2)
+        Parameters:
 
-        ccode = False if (ccode==4 or ccode==5) else True
-        return ccode, xr, fr
+            A: Interval
+                The input interval matrix of ISLAE, which can be either square or rectangular.
+
+            b: Interval
+                The interval vector of the right part of the ISLAE.
+
+            x: np.array, optional
+                The point at which the recognizing functional is calculated.
+
+            weight: float, np.array, optional
+                The vector of weight coefficients for each forming of the recognizing functional.
+                By default, it is a vector consisting of ones.
+
+
+        Returns:
+
+            out: float
+                The values of each forming of the recognizing functional at the point x are returned.
+        """
+        if weight is None:
+            weight = np.ones(len(b))
+        return weight * (b.rad - (b.mid - A @ x).mig)
+
+
+    def value(A, b, x, weight=None):
+        """
+        The function computes the value of the recognizing functional at the point x.
+
+        Parameters:
+
+            A: Interval
+                The input interval matrix of ISLAE, which can be either square or rectangular.
+
+            b: Interval
+                The interval vector of the right part of the ISLAE.
+
+            x: np.array, optional
+                The point at which the recognizing functional is calculated.
+
+            weight: float, np.array, optional
+                The vector of weight coefficients for each forming of the recognizing functional.
+                By default, it is a vector consisting of ones.
+
+
+        Returns:
+
+            out: float
+                The value of the recognizing functional at the point x.
+        """
+        return np.min(Uni.form(A, b, x, weight=weight))
+
+
+    def calcfg(x, infA, supA, Am, Ar, bm, br, weight):
+        index = x>=0
+        Am_x = Am @ x
+        Ar_absx = Ar @ np.abs(x)
+        infs = bm - (Am_x + Ar_absx)
+        sups = bm - (Am_x - Ar_absx)
+        mig = np.array([
+            0.0 if inf*sup <= 0 else min(abs(inf), abs(sup))
+            for inf, sup in zip(infs, sups)
+        ])
+        uni = weight * (br - mig)
+        mc = np.argmin(uni)
+        if -infs[mc] <= sups[mc]:
+            duni = weight[mc] * (supA[mc] * index + infA[mc] * (~index))
+        else:
+            duni = -weight[mc] * (infA[mc] * index + supA[mc] * (~index))
+        return -uni[mc], -duni
+
+
+    def calcfg_constr(x, infA, supA, Am, Ar, bm, br, weight, linear_constraint):
+        p, dp = BaseRecFun.linear_penalty(x, linear_constraint)
+        uni, duni = Uni.calcfg(x, infA, supA, Am, Ar, bm, br, weight)
+
+        return uni + p, duni + dp
+
+
+    def maximize(A, b, x0=None, weight=None, linear_constraint=None, **kwargs):
+        """
+        The function is intended for finding the global maximum of the recognizing functional.
+        The ralgb5 subgradient method is used for optimization.
+        It is important to note that Uni is not a convex function, so there is a possibility
+        of obtaining an incorrect point at which the maximum is reached. However, the function
+        is convex in each of the orthants, so constrained optimization can be used.
+
+        Parameters:
+
+            A: Interval
+                The input interval matrix of ISLAE, which can be either square or rectangular.
+
+            b: Interval
+                The interval vector of the right part of the ISLAE.
+
+            x0: np.array, optional
+                The initial assumption is at what point the maximum is reached. By default, x0
+                is equal to the vector which is the solution (pseudo-solution) of the system
+                mid(A) x = mid(b).
+
+            weight: float, np.array, optional
+                The vector of weight coefficients for each forming of the recognizing functional.
+                By default, it is a vector consisting of ones.
+
+            linear_constraint: LinearConstraint, optional
+                System (lb <= C <= ub) describing linear dependence between parameters.
+                By default, the problem of unconditional maximization is being solved.
+
+            kwargs: optional params
+                The ralgb5 function uses additional parameters to adjust its performance.
+                These parameters include the step size, the stopping criteria, the maximum number
+                of iterations and others. Specified in the function description ralgb5.
+
+
+        Returns:
+
+            out: tuple
+                The function returns the following values in the specified order:
+                1. the vector solution at which the recognition functional reaches its maximum,
+                2. the value of the recognition functional,
+                3. the number of iterations taken by the algorithm,
+                4. the number of calls to the calcfg function,
+                5. the exit code of the algorithm (1 = tolf, 2 = tolg, 3 = tolx, 4 = maxiter, 5 = error).
+        """
+
+        xr, fr, nit, ncalls, ccode = BaseRecFun.optimize(
+            A, b,
+            Uni,
+            x0=x0,
+            weight=weight,
+            linear_constraint=linear_constraint,
+            **kwargs
+        )
+        return xr, -fr, nit, ncalls, ccode

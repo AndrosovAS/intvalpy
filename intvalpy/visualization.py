@@ -7,54 +7,65 @@ from .RealInterval import INTERVAL_CLASSES
 from .utils import infinity
 
 
-def scatter_plot(x, y, title="Box", color='gray', alpha=0.5, s=10, size=(15, 15), save=False):
-    """
-    A mathematical diagram depicting the values of two variables in the form of bars on a Cartesian plane.
+class IPlot:
 
-    Parameters:
+    def __init__(self, figsize=(8, 8)):
+        self.figsize = figsize
 
-        x: Interval
-            Interval vector of the data position on the OX axis.
 
-        y: Interval
-            Interval vector of the data position on the OY axis.
+    def subplots(self, nrows=None, ncols=None, figsize=None):
+        self.nrows = 1 if nrows is None else nrows
+        self.ncols = 1 if ncols is None else ncols
+        if not figsize is None:
+            self.figsize = figsize
 
-        title: str, optional
-            The top legend of the graph.
+        self.fig, self.ax = plt.subplots(nrows=self.nrows, ncols=self.ncols, figsize=self.figsize)
+        return self.fig, self.ax
 
-        color: str, optional
-            The color of the display of the bars.
+    def set_ax(self, axindex):
+        if self.nrows == 1 and self.ncols == 1:
+            return self.ax
+        else:
+            if axindex is None:
+                if self.nrows > 1 and self.ncols > 1:
+                    axindex = (0, 0)
+                else:
+                    axindex = 0
+            return self.ax[axindex]
 
-        alpha: float, optional
-            Transparency of the graph.
 
-        s: float, optional
-            How big are the points of the vertices.
+    def scatter(self, x, y, color='gray', alpha=0.5, s=10, axindex=None):
+        ax = self.set_ax(axindex)
 
-        size: tuple, optional
-            The size of the drawing window.
+        flatx = x.a == x.b
+        flaty = y.a == y.b
 
-        save: bool, optional
-            If the value is True, the graph is saved.
+        index_dot = flatx & flaty
+        if index_dot.any():
+            ax.scatter(x.a[index_dot], y.a[index_dot], s=s, color=color, alpha=alpha)
 
-    Returns:
 
-        out: None
-            A scatter plot is displayed.
-    """
+        full_fill = (flatx | flaty) & (~index_dot)
+        scinny_fill = ~(flatx | flaty) & (~index_dot)
+        ox = np.array([x.a, x.a, x.b, x.b])
+        oy = np.array([y.a, y.b, y.b, y.a])
 
-    ox = np.array([x.a, x.a, x.b, x.b])
-    oy = np.array([y.a, y.b, y.b, y.a])
+        ax.fill(ox[:, full_fill], oy[:, full_fill], alpha=alpha, fill=False, color=color)
+        ax.fill(ox[:, scinny_fill], oy[:, scinny_fill], alpha=alpha, color=color)
 
-    fig = plt.figure(figsize=size)
-    ax = fig.add_subplot(111, title=title)
 
-    plt.fill(ox, oy, color=color, alpha=alpha)
-    index = ((x.a - x.b) == 0) & ((y.a - y.b) == 0)
-    ax.scatter(ox[:, index], oy[:, index], s=s, color=color, alpha=alpha)
+    def lineqs(self, vertices, color='gray', alpha=0.5, s=10, axindex=None):
+        ax = self.set_ax(axindex)
 
-    if save:
-        fig.savefig(title + ".png")
+        x, y = vertices[:, 0], vertices[:, 1]
+        ax.fill(x, y, linestyle='-', linewidth=1, color=color, alpha=alpha)
+        ax.scatter(x, y, s=s, color='black', alpha=1)
+
+
+    def IntLinIncR2(self, vertices, color='gray', alpha=0.5, s=10, axindex=None):
+        for v in vertices:
+            if len(v)>0:
+                self.lineqs(v, color=color, alpha=alpha, s=s, axindex=axindex)
 
 
 def Unique(a, decimals=12):
@@ -290,53 +301,6 @@ def lineqs(A, b, show=True, title="Solution Set", color='gray',
         if save:
             fig.savefig(title + ".png")
     return Unique(vertices)
-
-
-def OneShotVisual2D(*args, title="Solution Set", grid=True, size=(15, 15), labelsize=None, save=False):
-
-    fig = plt.figure(figsize=size)
-    ax = fig.add_subplot(111, title=title)
-
-    if grid:
-        ax.grid()
-
-    if labelsize is None:
-        ax.xaxis.set_tick_params(labelsize=size[0])
-        ax.yaxis.set_tick_params(labelsize=size[0])
-    else:
-        ax.xaxis.set_tick_params(labelsize=labelsize)
-        ax.yaxis.set_tick_params(labelsize=labelsize)
-
-    for v in args:
-        alpha = 0.5
-        s = 10
-        color = 'gray'
-        vertices = None
-        for key in v.keys():
-            if key == "vertices":
-                vertices = v["vertices"]
-            elif key == "alpha":
-                alpha = v["alpha"]
-            elif key == "s":
-                s = v["s"]
-            elif key == "color":
-                color = v["color"]
-
-        if not (vertices is None):
-            if isinstance(vertices, list):
-                for k in range(4):
-                    if len(vertices[k]) > 0:
-                        x, y = vertices[k][:, 0], vertices[k][:, 1]
-                        ax.fill(x, y, linestyle='-', linewidth=1, color=color, alpha=alpha)
-                        ax.scatter(x, y, s=s, color='black', alpha=1)
-            else:
-                if len(vertices) > 0:
-                    x, y = vertices[:, 0], vertices[:, 1]
-                    ax.fill(x, y, linestyle='-', linewidth=1, color=color, alpha=alpha)
-                    ax.scatter(x, y, s=s, color='black', alpha=1)
-
-    if save:
-        fig.savefig(title + ".png")
 
 
 def IntLinIncR2(A, b, show=True, title="Solution Set", consistency='uni',
