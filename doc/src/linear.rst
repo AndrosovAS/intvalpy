@@ -1,215 +1,63 @@
-Линейные системы
+Interval linear systems
 ===============
 
-В данном параграфе представлен обзор функций для исследования разрешимости и получения оценки
-множества решений интервальных линейных систем.
+This paragraph presents an overview of functions for obtaining estimates of the set
+of solutions of interval linear systems.
 
-Выполните инструкцию для подключения необходимых модулей:
+Run the following commands to connect the necessary modules
 
     >>> import intvalpy as ip
     >>> import numpy as np
 
-.. Содержание::
+.. Content::
 
-Вариабельность системы
+Variability of the solution
 ------------
 
-При решении системы мы обычно получаем множество различных оценок, одинаково пригодных в качестве ответов к задаче
-и согласующихся с её данными. Именно вариабельность характеризует то насколько мало или велико это множество.
+**def ive(A, b, N=40)**
 
-Для получения количественной меры воспользуйтесь функцией ``ive``:
+When solving the system, we usually get many different estimates, equally suitable
+as answers to the problem and consistent with its data. It is the variability that characterizes
+how small or large this set is.
 
-Parameters:
-            A: Interval
-                Матрица ИСЛАУ.
+To get a quantitative measure, use the `ive` function:
 
-            b: Interval
-                Вектор правой части ИСЛАУ.
+**Parameters**:
 
-Optional Parameters:
-            N: int
-                Количество угловых матриц для которых вычисляется обусловленность.
+* A : Interval
+        The input interval matrix of ISLAE, which can be either square or rectangular.
 
-Returns:
-            out: float
-                Возвращается мера вариабельности IVE.
+* b : Interval
+        The interval vector of the right part of the ISLAE.
 
-Пример:
+* N : int, optional
+        The number of corner matrices for which the conditionality is calculated.
+        By default, N = 40.
 
->>> import intvalpy as ip
->>>
->>> inf = [[98, 99],
->>>        [97, 98],
->>>        [96, 97]]
->>>
->>> sup = [[100, 101],
->>>        [99, 100],
->>>        [98, 99]]
->>>
->>> A = ip.Interval(inf, sup)
->>> b = ip.Interval([190, 200, 190], [210, 220, 210])
->>>
->>> ip.linear.ive(A, b)
+
+**Returns**:
+
+* out : float
+    A measure of the variability of an interval system of linear equations IVE.
+
+
+**Examples**:
+
+A randomized algorithm was used to speed up the calculations, so there is a chance
+that a non-optimal value will be found.  To overcome this problem we can increase
+the value of the parameter N.
+
+>>> A = ip.Interval([
+        [[98, 100], [99, 101]],
+        [[97, 99], [98, 100]],
+        [[96, 98], [97, 99]]
+    ])
+>>> b = ip.Interval([[190, 210], [200, 220], [190, 210]])
+>>> ip.linear.ive(A, b, N=60)
 1.56304
 
-Для ускорения расчётов был использован рандомизированный алгоритм.
 
-Более подробную информацию Вы можете узнать из `статьи <http://www.nsc.ru/interval/shary/Papers/SShary-VariabMeasure-JCT.pdf>`_ Шарого С.П.
-
-
-Распознающие функционалы
-------------
-
-Перед тем, как приступить к решению системы уравнений с интервальными данными необходимо понять, а разрешима ли она.
-Для этого рассматривается задача о распознавании разрешимости, т.е. непустоты множества решений.
-В случае интервальной линейной (m x n)-системы уравнений потребуется решить не более чем 2\ :sup:`n`
-линейных неравенств размера 2m+n. Это следует из факта о выпуклости и многогранности пересечения множеств решений
-интервальной системы линейных алгебраических уравнений (ИСЛАУ) с каждым из ортантов пространства **R**\ :sup:`n`.
-Уменьшение количества неравенств принципиально невозможно, что следует из факта труднорешаемости задачи,
-т.е. её NP-трудности. Ясно, что выше описанный метод применим лишь при малой размерности задачи,
-поэтому был предложен *метод распознающего функционала*.
-
-
-Распознающий функционал Uni
-~~~~~~~~~~~~~~~~~~
-
-В случае, когда необходимо проверить интервальную систему линейных уравнений на её слабую разрешимость
-следует воспользоваться функционалом ``Uni``. Для его оптимизации используется широко известный метод Нелдера-Мида,
-который не использует градиенты, поскольку в функции присутствует взятие абсолютного значения.
-
-**Parameters**:
-
-* A : Interval
-            Входная интервальная матрица ИСЛАУ, которая может быть как квадратной, так и прямоугольной.
-
-* b : Interval
-            Интервальной вектор правой части ИСЛАУ.
-
-* x : float, array_like, optional
-            Точка в которой вычисляется распознающий функционал.
-            По умолчанию x равен массиву из нулей.
-
-* maxQ : bool, optional
-            Если значение параметра равно True, то производится максимизация функционала.
-
-* x0 : float, array_like, optional
-            Первоначальная догадка для поиска глобального максимума.
-
-* tol : float, optional
-            Погрешность для прекращения оптимизационного процесса.
-
-* maxiter : int, optional
-            Максимальное количество итераций.
-
-
-**Returns**:
-
-* out: float, tuple
-            Возвращается значение распознающего функционала в точке x.
-            В случае, если maxQ=True, то возвращается кортеж, где
-            первый элемент -- корректность завершения оптимизации,
-            второй элемент -- точка оптимума,
-            третий элемент -- значение функции в этой точке.
-
-**Examples**:
-
-В качестве примера рассмотрим широко известную интервальную систему, предложенную Бартом-Нудингом:
-
->>> A = ip.Interval([[2, -2],[-1, 2]], [[4,1],[2,4]])
->>> b = ip.Interval([-2, -2], [2, 2])
-
-
-Для получения значения функции в конкретной точке необходимо выполнить следующую инструкцию
-
->>> x = np.array([1,2])
->>> ip.linear.Uni(A, b, x)
--1.0
-
-Таким образом видно, что точка не лежит в множестве решений системы, т.к. значение распознающего функционала отрицательно.
-Для получения глобального максимума функции, чтобы понять разрешима или не разрешима система, следует указать истинность значения параметра `maxQ`:
-
->>> ip.linear.Uni(A, b, maxQ=True)
-(True, array([0., 0.]), 2.0)
-
-Поскольку интервальная система линейна, но матрица **А** не является точечной, то нет гарантий, что был достигнут глобальный максимум функции.
-В качестве некоторого решения пользователь может указать первоначальную догадку, исходя, например, из особенностей матрицы.
-Это также может ускорить процесс поиска глобального максимума.
-
-
-Распознающий функционал Tol
-~~~~~~~~~~~~~~~~~~
-
-В случае, когда необходимо проверить интервальную систему линейных уравнений на её сильную разрешимость
-следует воспользоваться функционалом ``Tol``. Для его оптимизации используется проверенная временем программа `tolsolvty`,
-которая пригодна для решения практических задач.
-
-**Parameters**:
-
-* A : Interval
-            Входная интервальная матрица ИСЛАУ, которая может быть как квадратной, так и прямоугольной.
-
-* b : Interval
-            Интервальной вектор правой части ИСЛАУ.
-
-* x : float, array_like, optional
-            Точка в которой вычисляется распознающий функционал.
-            По умолчанию x равен массиву из нулей.
-
-* maxQ : bool, optional
-            Если значение параметра равно True, то производится максимизация функционала.
-
-* x0 : float, array_like, optional
-            Первоначальная догадка для поиска глобального максимума.
-
-* tol : float, optional
-            Погрешность для прекращения оптимизационного процесса.
-
-* maxiter : int, optional
-            Максимальное количество итераций.
-
-
-**Returns**:
-
-* out: float, tuple
-            Возвращается значение распознающего функционала в точке x.
-            В случае, если maxQ=True, то возвращается кортеж, где
-            первый элемент -- корректность завершения оптимизации,
-            второй элемент -- точка оптимума,
-            третий элемент -- значение функции в этой точке.
-
-**Examples**:
-
-В качестве примера рассмотрим широко известную интервальную систему, предложенную Бартом-Нудингом:
-
->>> A = ip.Interval([[2, -2],[-1, 2]], [[4,1],[2,4]])
->>> b = ip.Interval([-2, -2], [2, 2])
-
-
-Для получения значения функции в конкретной точке необходимо выполнить следующую инструкцию
-
->>> x = np.array([1,2])
->>> ip.linear.Tol(A, b, x)
--8.0
-
-Таким образом видно, что точка не лежит в множестве решений системы, т.к. значение распознающего функционала отрицательно.
-Для получения глобального максимума функции, чтобы понять разрешима или не разрешима система, следует указать истинность значения параметра `maxQ`:
-
->>> ip.linear.Tol(A, b, maxQ=True)
-(True, array([0., 0.]), 2.0)
-
-Отличительным свойством функционала `Tol` от функционалов `Uni` и `Uss` является то, что вне зависимости от того является ли матрица **A**
-интервальной или точечной, функционал всегда имеет только один экстремум. Таким образом не важно с какой начальной догадки начинать поиск.
-Однако, если указать начальную точку, то поиск глобального максимума может ускориться.
-
-
-Список использованной литературы
-~~~~~~~~~~~~~~~~~~
-
-[1] С.П. Шарый - `Разрешимость интервальных линейных уравнений и анализ данных с неопределённостями <http://www.nsc.ru/interval/shary/Papers/SharyAiT.pdf>`_ // Автоматика и Телемеханика, No 2, 2012
-
-[2] С.П. Шарый, И.А. Шарая - `Распознавание разрешимости интервальных уравнений и его приложения к анализу данных <http://www.nsc.ru/interval/shary/Papers/Sharys-JCT2013.pdf>`_ // Вычислительные технологии, Том 18, No 3, 2013, стр. 80-109.
-
-[3] С.П. Шарый - `Сильная согласованность в задаче восстановления зависимостей при интервальной неопределённости данных <http://www.nsc.ru/interval/shary/Papers/SShary-JCT-2017.pdf>`_ // Вычислительные технологии, Том 22, No 2, 2017, стр. 150-172.
+For more information, see the `article <http://www.nsc.ru/interval/shary/Papers/SShary-VariabMeasure-JCT.pdf>`_ Shary S.P.
 
 
 Метод граничных интервалов
@@ -583,61 +431,70 @@ array([[-5., -3.], [-6., -0.], [-5.,  3.], [-3.,  5.], [-0.,  6.], [ 3.,  5.],
 interval(['[-5.0, 5.0]', '[-4.0, 4.0]'])
 
 
-Метод Гаусса-Зейделя
+Interval Gauss-Seidel method
 ~~~~~~~~~~~~~~~~~~
 
-Итерационный метод Гаусса-Зейделя для решения ИСЛАУ.
+**def Gauss_Seidel(A, b, x0=None, C=None, tol=1e-12, maxiter=2000)**
+
+The iterative Gauss-Seidel method for obtaining external evaluations of the united solution set
+for an interval system of linear algebraic equations (ISLAE).
 
 
 **Parameters**:
 
 * A : Interval
-            Входная интервальная матрица ИСЛАУ, которая должна быть квадратной.
+        The input interval matrix of ISLAE, which can be either only square.
 
 * b : Interval
-            Интервальной вектор правой части ИСЛАУ.
+        The interval vector of the right part of the ISLAE.
 
-* x0: Interval, optional
-            Первоначальная догадка для поиска решения.
+* X: Interval, optional
+        An initial guess within which to search for external evaluation is suggested.
+        By default, X is an interval vector consisting of the elements [-1000, 1000].
 
-* P: Interval, optional
-            Матрица предобуславливания.
-            В случае, если параметр не задан, то берётся обратное среднее.
+* C: np.array, Interval
+        A matrix for preconditioning the system. By default, C = inv(mid(A)).
 
-* tol : float, optional
-            Погрешность, определающая, когда дальнейшее дробление брусов излишне, т.е. их ширина "достаточно близка" к нулю, что может считаться точно нулевой.
+* tol: float, optional
+        The error that determines when further crushing of the bars is unnecessary,
+        i.e. their width is "close enough" to zero, which can be considered exactly zero.
 
-* maxiter : int, optional
-            Максимальное количество итераций для выполнения алгоритма.
+* maxiter: int, optional
+        The maximum number of iterations.
 
 
 **Returns**:
 
 * out : Interval
-    Интервальный вектор, который после подстановки в систему уравнений и выполнения всех операций по правилам арифметики и анализа обращает уравнения в инстинные равенства.
+        Returns an interval vector, which means an external estimate of the united solution set.
 
 
 **Examples**:
 
-Рассмотрим интервальную линейную систему:
-
->>> A = ip.Interval([[2, -2],[-1, 2]], [[4, 1],[2, 4]])
->>> b = ip.Interval([1, 1], [2, 2])
+>>> A = ip.Interval([
+        [[2, 4], [-2, 1]],
+        [[-1, 2], [2, 4]]
+    ])
+>>> b = ip.Interval([[1, 2], [1, 2]])
 >>> ip.linear.Gauss_Seidel(A, b)
 Interval(['[-10.6623, 12.5714]', '[-11.0649, 12.4286]'])
 
-При предобуславливании системы обратным среднем полученный вектор внешнего оценивания несколько шире, чем если заранее позаботиться и подобрать специального вида матрицу для предобуславливания.
-Ниже предложена таже самая система, но уже предобуславлена иным способом:
+Preconditioning the system with the inverse mean yields a vector of external evaluations
+that is wider than if a special type of preconditioning matrix were carefully selected in advance.
+The system presented below is the same system as described above, but preconditioned with a specially
+selected matrix.
 
 >>> A = ip.Interval([[0.5, -0.456], [-0.438, 0.624]],
->>>                  [[1.176, 0.448], [0.596, 1.36]])
+                     [[1.176, 0.448], [0.596, 1.36]])
 >>> b = ip.Interval([0.316, 0.27], [0.632, 0.624])
->>> ip.linear.Gauss_Seidel(A, b, P=False)
-interval(['[-4.266757, 6.076814]', '[-5.371444, 5.265456]'])
+>>> ip.linear.Gauss_Seidel(A, b, C=ip.eye(A.shape[0]))
+Interval(['[-4.26676, 6.07681]', '[-5.37144, 5.26546]'])
 
 
 Parameter partitioning methods
 ~~~~~~~~~~~~~~~~~~
+
+**def PPS(A, b, tol=1e-12, maxiter=2000, nu=None)**
 
 PPS - optimal (exact) componentwise estimation of the united solution
 set to interval linear system of equations.

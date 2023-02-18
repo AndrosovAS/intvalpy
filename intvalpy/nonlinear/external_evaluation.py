@@ -26,7 +26,7 @@ def HansenSengupta(func, J, x0, maxiter=2000, tol=1e-12):
             A = LAMBDA @ L
             b = -LAMBDA @ func(c)
 
-            pss = PSS(A, b, tol=tol)
+            pss = Gauss_Seidel(A, b, tol=tol, x0=X-c)
             return c + pss
 
     if not (0 in func(x0)):

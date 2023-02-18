@@ -18,8 +18,7 @@ INSTALL_REQUIRES = [
 setup(
     name='intvalpy',
     version='1.5.9',
-    description='An interval library in Python that uses classical interval ' + \
-                'arithmetic and Kauсher arithmetic + Kahan division in some functions',
+    description='IntvalPy - a Python interval computation library',
     long_description=README,
     long_description_content_type='text/markdown',
     license='MIT License',

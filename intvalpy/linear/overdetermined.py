@@ -47,8 +47,8 @@ def _Rohn_Tol(A, b, nu=None):
         return inf, sup
 
     n, m = A.shape
-    tol = Tol(A, b, maxQ=True)
-    if tol[2] < 0:
+    _, tolval, _, _, _ = Tol.maximize(A, b)
+    if tolval < 0:
         raise Exception('Допусковое множество решений пусто!')
 
     _inf, _sup = [], []
@@ -127,7 +127,7 @@ def Rohn(A, b, tol=1e-12, maxiter=2000, consistency='uni'):
         raise Exception('Нахождение данного множества решений не предусмотрено.')
 
 
-def PSS(A, b, tol=1e-12, maxiter=2000, nu=None):
+def PSS(A, b, x0=None, tol=1e-12, maxiter=2000, nu=None):
     """
     A hybrid method of crushing PSS solutions designed to find an external optimal estimate
     of the united set of solutions of interval systems of linear algebraic equations (ISLAE) A x = b.
@@ -146,6 +146,10 @@ def PSS(A, b, tol=1e-12, maxiter=2000, nu=None):
 
         b: Interval
             The interval vector of the right part of the ISLAE.
+
+        x0: Interval, optional
+            An initial guess within which to search for external evaluation is suggested.
+            By default, x0 = None.
 
         tol: float, optional
             The error that determines when further crushing of the bars is unnecessary,
@@ -242,6 +246,9 @@ def PSS(A, b, tol=1e-12, maxiter=2000, nu=None):
     radA = A.rad
 
     def StartBar(A, b):
+        if not (x0 is None):
+            return x0.copy
+
         if n > m:
             try:
                 V = Rohn(A, b)
