@@ -20,12 +20,82 @@ class KeyWrapper:
         return len(self.it)
 
 
-def recfunsolvty(model, grad, a, b, x0, consistency='uni', weight=None, tol=1e-12, maxiter=2000, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
+#######################################################################################
+#penalty
+def penalty(x, linear_constraint):
+    n, m = linear_constraint.C.shape
+    alphai, dalphai = np.zeros(n), np.zeros((n, m))
+    for i in range(n):
+        Cix, condQ = linear_constraint.largeCondQ(x, i)
+        if condQ:
+            alphai[i] = Cix - linear_constraint.b[i]
+            dalphai[i] = linear_constraint.C[i]
+
+    alpha = linear_constraint.mu * sum(alphai)
+    grad_alpha = linear_constraint.mu * np.array([ sum(dalphai[:, k]) for k in range(m)])
+    return alpha, grad_alpha
+
+
+# define calcfg
+# tol
+def calcfg_tol(x, model, a, bm, functional, grad, weight):
+    index = x >= 0
+    infsup = bm - model(a, x)
+
+    tt = functional(infsup.a, infsup.b)
+    mc = np.argmin(tt)
+    gg = asinterval([g(a[mc], x) for g in grad])
+
+    if -infsup[mc].a <= infsup[mc].b:
+        dd = weight[mc] * (gg.a * index + gg.b * (~index))
+    else:
+        dd = -weight[mc] * (gg.b * index + gg.a * (~index))
+
+    return -tt[mc], -dd
+
+def calcfg_tol_constraint(x, model, a, bm, functional, grad, weight, linear_constraint):
+    alpha, grad_alpha = penalty(x, linear_constraint)
+    tt, dd = calcfg_tol(x, model, a, bm, functional, grad, weight)
+
+    return tt + alpha, dd + grad_alpha
+
+################################################################################
+# uni
+def calcfg_uni(x, model, a, bm, functional, grad, weight):
+    index = x >= 0
+    infsup = bm - model(a, x)
+
+    tt = functional(infsup.a, infsup.b)
+    mc = np.argmin(tt)
+    gg = asinterval([g(a[mc], x) for g in grad])
+
+    if -infsup[mc].a <= infsup[mc].b:
+        dd = weight[mc] * (gg.b * index + gg.a * (~index))
+    else:
+        dd = -weight[mc] * (gg.a * index + gg.b * (~index))
+    return -tt[mc], -dd
+
+def calcfg_uni_constraint(x, model, a, bm, functional, grad, weight, linear_constraint):
+    alpha, grad_alpha = penalty(x, linear_constraint)
+    tt, dd = calcfg_uni(x, model, a, bm, functional, grad, weightt)
+
+    return tt + alpha, dd + grad_alpha
+
+
+#######################################################################################
+
+
+def recfunsolvty(model, grad, a, b, x0, consistency='uni', weight=None, tol=1e-12, maxiter=2000, linear_constraint=None, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
 
     n, m = len(a), len(grad)
     if weight is None:
         weight = np.ones(n)
     x0 = np.copy(x0)
+
+    # # для штрафной функции alpha = sum G x - c, где G-матрица ограничений, c-вектор ограничений
+    # # находим значение весового коэффициента mu, чтобы гарантировано не выходить за пределы ограничений
+    # if (not linear_constraint is None) and (linear_constraint.mu is None):
+    #     linear_constraint.mu = linear_constraint.find_mu(np.max(A.mag))
 
     bm = b.mid
     br = b.rad
@@ -36,34 +106,38 @@ def recfunsolvty(model, grad, a, b, x0, consistency='uni', weight=None, tol=1e-1
         else:
             return min(abs(inf), abs(sup))
 
+    # if consistency=='uni':
+    #     functional = lambda infs, sups: weight * (br - np.vectorize(mig)(infs, sups))
+    # else:
+    #     functional = lambda infs, sups: weight * (br - np.maximum(np.abs(infs), np.abs(sups)))
+
+
     if consistency=='uni':
         functional = lambda infs, sups: weight * (br - np.vectorize(mig)(infs, sups))
+        if linear_constraint is None:
+            def calcfg(x):
+                return calcfg_uni(x, model, a, bm, functional, grad, weight)
+        else:
+            def calcfg(x):
+                return calcfg_uni_constraint(x, model, a, bm, functional, grad, weight, linear_constraint)
+
     else:
         functional = lambda infs, sups: weight * (br - np.maximum(np.abs(infs), np.abs(sups)))
-
-
-    def calcfg(x):
-        index = x >= 0
-        infsup = bm - model(a, x)
-
-        tt = functional(infsup.a, infsup.b)
-        mc = np.argmin(tt)
-        gg = asinterval([g(a[mc], x) for g in grad])
-
-        if -infsup[mc].a <= infsup[mc].b:
-            dd = weight[mc] * (gg.a * index + gg.b * (~index))
+        if linear_constraint is None:
+            def calcfg(x):
+                return calcfg_tol(x, model, a, bm, functional, grad, weight)
         else:
-            dd = -weight[mc] * (gg.b * index + gg.a * (~index))
+            def calcfg(x):
+                return calcfg_tol_constraint(x, model, a, bm, functional, grad, weight, linear_constraint)
 
-        return -tt[mc], -dd
 
     xr, fr, nit, ncalls, ccode = ralgb5(calcfg, x0, maxiter=maxiter, alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2, tolx=tolx, tolg=tolg, tolf=tolf)
     return xr, -fr, nit, ncalls, ccode
 
 
-def _tol_tsopt(model, grad, a, b, x0, weight=None, tol=1e-12, maxiter=2000, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
+def _tol_tsopt(model, grad, a, b, x0, weight=None, tol=1e-12, maxiter=2000, linear_constraint=None, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
 
-    xr, fr, nit, ncalls, ccode = recfunsolvty(model, grad, a, b, x0, consistency='tol', weight=weight, tol=tol, maxiter=maxiter,
+    xr, fr, nit, ncalls, ccode = recfunsolvty(model, grad, a, b, x0, consistency='tol', weight=weight, tol=tol, maxiter=maxiter, linear_constraint=linear_constraint,
                                                 alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2, tolx=tolx, tolg=tolg, tolf=tolf)
     ccode = False if (ccode==4 or ccode==5) else True
     return ccode, xr, fr
@@ -231,14 +305,14 @@ def _tol_iopt(model, a, b, grad, x0, tol, maxiter, stepwise):
     return success, xx, -ff
 
 
-def Tol(model, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e-12, maxiter=2000, stepwise=float('inf'),
+def Tol(model, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e-12, maxiter=2000, linear_constraint=None, stepwise=float('inf'),
         alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
 
     if maxQ:
         if isinstance(x0, INTERVAL_CLASSES):
             return _tol_iopt(model, a, b, grad, x0, tol, maxiter, stepwise)
         else:
-            return _tol_tsopt(model, grad, a, b, x0, weight=weight, tol=tol, maxiter=maxiter,
+            return _tol_tsopt(model, grad, a, b, x0, weight=weight, tol=tol, maxiter=maxiter, linear_constraint=linear_constraint,
                                 alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2, tolx=tolx, tolg=tolg, tolf=tolf)
     else:
         br = b.rad
@@ -255,15 +329,15 @@ def Tol(model, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e
             return tol_exact(x)
 
 
-def _uni_usopt(model, grad, a, b, x0, weight=None, tol=1e-12, maxiter=2000, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
+def _uni_usopt(model, grad, a, b, x0, weight=None, tol=1e-12, maxiter=2000, linear_constraint=None, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
 
-    xr, fr, nit, ncalls, ccode = recfunsolvty(model, grad, a, b, x0, consistency='uni', weight=weight, tol=tol, maxiter=maxiter,
+    xr, fr, nit, ncalls, ccode = recfunsolvty(model, grad, a, b, x0, consistency='uni', weight=weight, tol=tol, maxiter=maxiter, linear_constraint=linear_constraint,
                                               alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2, tolx=tolx, tolg=tolg, tolf=tolf)
 
     ccode = False if (ccode==4 or ccode==5) else True
     return ccode, xr, fr
 
-def Uni(model, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e-12, maxiter=2000, stepwise=float('inf'),
+def Uni(model, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e-12, maxiter=2000, linear_constraint=None, stepwise=float('inf'),
         alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
 
     br = b.rad
@@ -272,7 +346,7 @@ def Uni(model, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e
     uni_exact = lambda x: min(br - (bm - model(a, x)).mig)
 
     if maxQ:
-        return _uni_usopt(model, grad, a, b, x0, weight=weight, tol=tol, maxiter=maxiter,
+        return _uni_usopt(model, grad, a, b, x0, weight=weight, tol=tol, maxiter=maxiter, linear_constraint=linear_constraint,
                             alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2, tolx=tolx, tolg=tolg, tolf=tolf)
     else:
         if x is None:

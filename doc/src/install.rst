@@ -9,6 +9,7 @@ The most convenient way to install this library is to use the pip_ command::
     pip install intvalpy
 
 
+
 Installation from the source codes
 ----------------------------------
 

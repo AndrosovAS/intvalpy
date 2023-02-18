@@ -2,10 +2,15 @@
 .. title:: Table of Contents
 
 *******
-intvalpy
+IntvalPy
 *******
 
-Welcome to the intvalpy documentation! This Python module implements an algebraically closed interval arithmetic for working with intervals, solving interval systems of both linear and non-linear equations, and visualizing solution sets for interval systems of equation. 
+Welcome to the IntvalPy documentation! This Python module implements an algebraically closed system
+for working with intervals, and provides the ability to work with both classical interval arithmetic
+and full Kaucher interval arithmetic. The top-level functionality of the IntvalPy library implements
+the latest methods for recognizing and evaluating sets of solutions to interval linear systems
+of equations, calculating their formal solutions, and visualizing sets of solutions to interval
+equations and systems of equations.
 
 
 Contents
@@ -17,4 +22,5 @@ Contents
    install
    guide
    general
+   recognizing_functional
    linear
