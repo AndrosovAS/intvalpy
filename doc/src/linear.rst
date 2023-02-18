@@ -1,17 +1,17 @@
 Interval linear systems
 ===============
 
-This paragraph presents an overview of functions for investigating solvability
-and obtaining estimates of the set of solutions of interval linear systems.
+This paragraph presents an overview of functions for obtaining estimates of the set
+of solutions of interval linear systems.
 
-Follow the instructions for connecting the required modules:
+Run the following commands to connect the necessary modules
 
     >>> import intvalpy as ip
     >>> import numpy as np
 
-.. Contents::
+.. Content::
 
-Variability of the system
+Variability of the solution
 ------------
 
 **def ive(A, b, N=40)**
@@ -32,6 +32,7 @@ To get a quantitative measure, use the `ive` function:
 
 * N : int, optional
         The number of corner matrices for which the conditionality is calculated.
+        By default, N = 40.
 
 
 **Returns**:
@@ -57,236 +58,6 @@ the value of the parameter N.
 
 
 For more information, see the `article <http://www.nsc.ru/interval/shary/Papers/SShary-VariabMeasure-JCT.pdf>`_ Shary S.P.
-
-
-Recognizing functionals
-------------
-
-Before we start solving a system of equations with interval data it is necessary to understand
-whether it is solvable or not. To do this we consider the problem of decidability recognition,
-i.e. non-emptiness of the set of solutions. In the case of an interval linear (m x n)-system
-of equations, we will need to solve no more than 2\ :sup:`n` linear inequalities of size 2m+n.
-This follows from the fact of convexity and polyhedra of the intersection of the sets of solutions
-interval system of linear algebraic equations (ISLAU) with each of the orthants of **R**\ :sup:`n` space.
-Reducing the number of inequalities is fundamentally impossible, which follows from the fact
-that the problem is intractable, i.e. its NP-hardness. It is clear that the above described
-method is applicable only for small dimensionality of the problem, that is why the *recognizing
-functional method* was proposed.
-
-
-Recognizing functional Uni
-~~~~~~~~~~~~~~~~~~
-
-When it is necessary to check an interval system of linear equations for its weak solvability
-you should use the Uni functionality. If maxQ=True, then the maximum of the functional is found,
-otherwise, the value at point x is calculated.
-
-To optimize it, the well-known Nelder-Mead method is used, which does not use gradients,
-since there is an absolute value in the function.
-
-
-**Parameters**:
-
-* A : Interval
-        The input interval matrix of ISLAE, which can be either square or rectangular.
-
-* b : Interval
-    The interval vector of the right part of the ISLAE.
-
-* x : float, array_like, optional
-    The point at which the recognizing functional is calculated. By default, x is equal to an array of zeros.
-
-* maxQ : bool, optional
-    If the parameter value is True, then the functional is maximized.
-
-* x0 : float, array_like, optional
-    The initial guess for finding the global maximum.
-
-* tolx : float, optional
-    Absolute error in xopt between iterations that is acceptable for convergence.
-
-* tolg : float, optional
-    Absolute error in unigrad between iterations that is acceptable for convergence.
-
-* tolf : float, optional
-    Absolute error in unimax between iterations that is acceptable for convergence.
-
-* maxiter : int, optional
-    The maximum number of iterations.
-
-* linear_constraint : LinearConstraint, optional
-    System (lb <= C <= ub) describing linear dependence between parameters.
-
-**Returns**:
-
-* out : float, tuple
-    The value of the recognizing functional at point x is returned.
-    If maxQ=True, then a tuple is returned, where the first element is the correctness of the optimization completion,
-    the second element is the optimum point, and the third element is the value of the function at this point.
-
-
-**Examples**:
-
-As an example, consider the well-known interval system proposed by Barth-Nuding:
-
->>> A = ip.Interval([
-        [[2, 4], [-1, 2]],
-        [[-2, 1], [2, 4]]
-    ])
->>> b = ip.Interval([[-2, 2], [-2, 2]])
-
-
-To get the value of a function at a specific point, perform the following instruction
-
->>> x = np.array([1, 2])
->>> ip.linear.Uni(A, b, x)
--1.0
-
-Thus it is clear that the point does not lie in the set of solutions of the system,
-because the value of the recognizing functional is negative. In order to obtain a global
-maximum of the function to understand whether the system is solvable or not, we should
-specify the truth value of the parameter `maxQ`:
-
->>> ip.linear.Uni(A, b, maxQ=True)
-(True, array([0., 0.]), 2.0)
-
-
-However, we know from theory that even in the linear case the recognizing function Uni
-is not a concave function on the whole investigated space. Thus, there is no guarantee
-that the global maximum of the function, and not the local extremum, was found using
-the optimization algorithm.
-
-As some solution, the user can specify an initial guess, based, for example, on the features
-of the matrix. This can also speed up the process of finding the global maximum.
-
-In addition, conditional optimization with linear constraints has been implemented using
-the penalty function method.
-
->>> A = ip.Interval([
-        [[2, 4], [10, 11.99999]],
-        [[-2, 1], [2, 4]]
-    ])
->>> b = ip.Interval([[-2, 2], [-2, 2]]) + 0.15
-
->>> C = np.array([
-        [1, 0],
-        [0, 1]
-    ])
->>> ub = np.array([5, 5])
->>> lb = np.array([0, 0.1])
-
->>> linear_constraint = ip.LinearConstraint(C, ub=ub, lb=lb)
->>> ip.linear.Uni(A, b, linear_constraint=linear_constraint, maxQ=True, tolx=1e-20)
-(True, array([1.05421808e-17, 1.00000000e-01]), 1.15)
-
-
-Recognizing functional Tol
-~~~~~~~~~~~~~~~~~~
-
-When it is necessary to check the interval system of linear equations for its strong
-solvability you should use the Tol functionality. If maxQ=True, then the maximum
-of the functional is found, otherwise, the value at point x is calculated.
-To optimize it, a proven the tolsolvty program, which is suitable for solving practical problems.
-
-**Parameters**:
-
-* A : Interval
-        The input interval matrix of ISLAE, which can be either square or rectangular.
-
-* b : Interval
-    The interval vector of the right part of the ISLAE.
-
-* x : float, array_like, optional
-    The point at which the recognizing functional is calculated. By default, x is equal to an array of zeros.
-
-* maxQ : bool, optional
-    If the parameter value is True, then the functional is maximized.
-
-* x0 : float, array_like, optional
-    The initial guess for finding the global maximum.
-
-* tolx : float, optional
-    Absolute error in xopt between iterations that is acceptable for convergence.
-
-* tolg : float, optional
-    Absolute error in unigrad between iterations that is acceptable for convergence.
-
-* tolf : float, optional
-    Absolute error in unimax between iterations that is acceptable for convergence.
-
-* maxiter : int, optional
-    The maximum number of iterations.
-
-* linear_constraint : LinearConstraint, optional
-    System (lb <= C <= ub) describing linear dependence between parameters.
-
-**Returns**:
-
-* out : float, tuple
-    The value of the recognizing functional at point x is returned.
-    If maxQ=True, then a tuple is returned, where the first element is the correctness of the optimization completion,
-    the second element is the optimum point, and the third element is the value of the function at this point.
-
-
-**Examples**:
-
-As an example, consider the well-known interval system proposed by Barth-Nuding:
-
->>> A = ip.Interval([
-        [[2, 4], [-1, 2]],
-        [[-2, 1], [2, 4]]
-    ])
->>> b = ip.Interval([[-2, 2], [-2, 2]])
-
-
-To get the value of a function at a specific point, perform the following instruction
-
->>> x = np.array([1, 2])
->>> ip.linear.Tol(A, b, x)
--8.0
-
-Thus it is clear that the point does not lie in the set of solutions of the system,
-because the value of the recognizing functional is negative. In order to obtain a global
-maximum of the function to understand whether the system is solvable or not, we should
-specify the truth value of the parameter `maxQ`:
-
->>> ip.linear.Tol(A, b, maxQ=True)
-(True, array([0., 0.]), 2.0)
-
-The distinguishing feature of the `Tol` functional from the `Uni` and `Uss` functional
-is that regardless of whether the matrix **A** interval or point matrix, the functional
-always has only one extremum. Thus it does not matter which initial guess to start the search with.
-However, if one specifies an initial point, the search for a global maximum can be accelerated.
-
-In addition, conditional optimization with linear constraints has been implemented using
-the penalty function method.
-
->>> A = ip.Interval([
-        [[2, 4], [10, 11.99999]],
-        [[-2, 1], [2, 4]]
-    ])
->>> b = ip.Interval([[-2, 2], [-2, 2]]) + 0.15
-
->>> C = np.array([
-        [1, 0],
-        [0, 1]
-    ])
->>> ub = np.array([5, 5])
->>> lb = np.array([0, 0.1])
-
->>> linear_constraint = ip.LinearConstraint(C, ub=ub, lb=lb)
->>> ip.linear.Tol(A, b, linear_constraint=linear_constraint, maxQ=True, tolx=1e-20)
-(True, array([3.65546736e-17, 1.00000000e-01]), 0.9500009999999999)
-
-
-References
-~~~~~~~~~~~~~~~~~~
-
-[1] С.П. Шарый - `Разрешимость интервальных линейных уравнений и анализ данных с неопределённостями <http://www.nsc.ru/interval/shary/Papers/SharyAiT.pdf>`_ // Автоматика и Телемеханика, No 2, 2012
-
-[2] С.П. Шарый, И.А. Шарая - `Распознавание разрешимости интервальных уравнений и его приложения к анализу данных <http://www.nsc.ru/interval/shary/Papers/Sharys-JCT2013.pdf>`_ // Вычислительные технологии, Том 18, No 3, 2013, стр. 80-109.
-
-[3] С.П. Шарый - `Сильная согласованность в задаче восстановления зависимостей при интервальной неопределённости данных <http://www.nsc.ru/interval/shary/Papers/SShary-JCT-2017.pdf>`_ // Вычислительные технологии, Том 22, No 2, 2017, стр. 150-172.
 
 
 Метод граничных интервалов
@@ -660,61 +431,70 @@ array([[-5., -3.], [-6., -0.], [-5.,  3.], [-3.,  5.], [-0.,  6.], [ 3.,  5.],
 interval(['[-5.0, 5.0]', '[-4.0, 4.0]'])
 
 
-Метод Гаусса-Зейделя
+Interval Gauss-Seidel method
 ~~~~~~~~~~~~~~~~~~
 
-Итерационный метод Гаусса-Зейделя для решения ИСЛАУ.
+**def Gauss_Seidel(A, b, x0=None, C=None, tol=1e-12, maxiter=2000)**
+
+The iterative Gauss-Seidel method for obtaining external evaluations of the united solution set
+for an interval system of linear algebraic equations (ISLAE).
 
 
 **Parameters**:
 
 * A : Interval
-            Входная интервальная матрица ИСЛАУ, которая должна быть квадратной.
+        The input interval matrix of ISLAE, which can be either only square.
 
 * b : Interval
-            Интервальной вектор правой части ИСЛАУ.
+        The interval vector of the right part of the ISLAE.
 
-* x0: Interval, optional
-            Первоначальная догадка для поиска решения.
+* X: Interval, optional
+        An initial guess within which to search for external evaluation is suggested.
+        By default, X is an interval vector consisting of the elements [-1000, 1000].
 
-* P: Interval, optional
-            Матрица предобуславливания.
-            В случае, если параметр не задан, то берётся обратное среднее.
+* C: np.array, Interval
+        A matrix for preconditioning the system. By default, C = inv(mid(A)).
 
-* tol : float, optional
-            Погрешность, определающая, когда дальнейшее дробление брусов излишне, т.е. их ширина "достаточно близка" к нулю, что может считаться точно нулевой.
+* tol: float, optional
+        The error that determines when further crushing of the bars is unnecessary,
+        i.e. their width is "close enough" to zero, which can be considered exactly zero.
 
-* maxiter : int, optional
-            Максимальное количество итераций для выполнения алгоритма.
+* maxiter: int, optional
+        The maximum number of iterations.
 
 
 **Returns**:
 
 * out : Interval
-    Интервальный вектор, который после подстановки в систему уравнений и выполнения всех операций по правилам арифметики и анализа обращает уравнения в инстинные равенства.
+        Returns an interval vector, which means an external estimate of the united solution set.
 
 
 **Examples**:
 
-Рассмотрим интервальную линейную систему:
-
->>> A = ip.Interval([[2, -2],[-1, 2]], [[4, 1],[2, 4]])
->>> b = ip.Interval([1, 1], [2, 2])
+>>> A = ip.Interval([
+        [[2, 4], [-2, 1]],
+        [[-1, 2], [2, 4]]
+    ])
+>>> b = ip.Interval([[1, 2], [1, 2]])
 >>> ip.linear.Gauss_Seidel(A, b)
 Interval(['[-10.6623, 12.5714]', '[-11.0649, 12.4286]'])
 
-При предобуславливании системы обратным среднем полученный вектор внешнего оценивания несколько шире, чем если заранее позаботиться и подобрать специального вида матрицу для предобуславливания.
-Ниже предложена таже самая система, но уже предобуславлена иным способом:
+Preconditioning the system with the inverse mean yields a vector of external evaluations
+that is wider than if a special type of preconditioning matrix were carefully selected in advance.
+The system presented below is the same system as described above, but preconditioned with a specially
+selected matrix.
 
 >>> A = ip.Interval([[0.5, -0.456], [-0.438, 0.624]],
->>>                  [[1.176, 0.448], [0.596, 1.36]])
+                     [[1.176, 0.448], [0.596, 1.36]])
 >>> b = ip.Interval([0.316, 0.27], [0.632, 0.624])
->>> ip.linear.Gauss_Seidel(A, b, P=False)
-interval(['[-4.266757, 6.076814]', '[-5.371444, 5.265456]'])
+>>> ip.linear.Gauss_Seidel(A, b, C=ip.eye(A.shape[0]))
+Interval(['[-4.26676, 6.07681]', '[-5.37144, 5.26546]'])
 
 
 Parameter partitioning methods
 ~~~~~~~~~~~~~~~~~~
+
+**def PPS(A, b, tol=1e-12, maxiter=2000, nu=None)**
 
 PPS - optimal (exact) componentwise estimation of the united solution
 set to interval linear system of equations.

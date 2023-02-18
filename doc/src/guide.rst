@@ -3,7 +3,7 @@ Using intervals
 
 This section gives an overview of the use of interval classes and examples of working with interval data.
 
-Follow the instructions:
+Run the following commands to connect the necessary modules
 
     >>> import numpy as np
     >>> from intvalpy import Interval, precision

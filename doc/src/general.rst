@@ -350,7 +350,7 @@ Interval(['[nan, nan]', '[-inf, 0.693147]', '[0, 1.38629]'])
 
 
 The sine function
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 **def sin(x)**
 
@@ -377,7 +377,7 @@ Interval(['[-1, -0.14112]', '[-1, 1]', '[-0.756802, 1]'])
 
 
 The cosine function
-~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 **def cos(x)**
 
@@ -457,7 +457,7 @@ b:  Interval(['[-2, 2]', '[-2, 2]', '[-2, 2]'])
 
 
 The Neumaier-Reichmann system
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **def Neumeier(n, theta, infb=None, supb=None)**
 
