@@ -85,7 +85,7 @@ of the recognizing functional is negative.
 Finding a global maximum
 ~~~~~~~~~~~~~~~~~~
 
-** class Tol.maximize(A, b, x0=None, weight=None, linear_constraint=None, **kwargs)**
+** class Tol.maximize(A, b, x0=None, weight=None, linear_constraint=None, kwargs)**
 
 The function is intended for finding the global maximum of the recognizing functional.
 The ralgb5 subgradient method is used for optimization.
@@ -228,7 +228,7 @@ of the recognizing functional is not negative.
 Finding a global maximum
 ~~~~~~~~~~~~~~~~~~
 
-** class Uni.maximize(A, b, x0=None, weight=None, linear_constraint=None, **kwargs)**
+** class Uni.maximize(A, b, x0=None, weight=None, linear_constraint=None, kwargs)**
 
 The function is intended for finding the global maximum of the recognizing functional.
 The ralgb5 subgradient method is used for optimization.
