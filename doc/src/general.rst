@@ -459,7 +459,7 @@ b:  Interval(['[-2, 2]', '[-2, 2]', '[-2, 2]'])
 The Neumaier-Reichmann system
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**def Neumeier(n, theta, infb=None, supb=None)**
+**def Neumaier(n, theta, infb=None, supb=None)**
 
 This system is a parametric interval linear system, first proposed by K. Reichmann [2], and then
 slightly modified by A. Neumaier. The matrix of the system can be regular, but not strongly regular
