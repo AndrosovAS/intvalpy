@@ -176,7 +176,7 @@ ip.nonlinear.globopt(levy, x, tol=1e-14)
 Links
 -----
 
-* [Article](<https://www.researchgate.net/publication/361560329_IntvalPy_-_biblioteka_intervalnyh_vycislenij_na_azyke_Python>)
+* [Article](<https://www.researchgate.net/publication/371587916_IntvalPy_-_a_Python_Interval_Computation_Library>)
 
 * [Homepage](<https://github.com/AndrosovAS/intvalpy>)
 
