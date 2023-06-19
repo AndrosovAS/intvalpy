@@ -2,7 +2,7 @@ import numpy as np
 
 from intvalpy.RealInterval import Interval
 from intvalpy.ralgb5 import ralgb5
-
+from scipy.optimize import linprog
 
 class BaseRecFun:
 
@@ -205,6 +205,72 @@ class Tol:
                 5. the exit code of the algorithm (1 = tolf, 2 = tolg, 3 = tolx, 4 = maxiter, 5 = error).
         """
 
+        xr, fr, nit, ncalls, ccode = BaseRecFun.optimize(
+            A, b,
+            Tol,
+            x0=x0,
+            weight=weight,
+            linear_constraint=linear_constraint,
+            **kwargs
+        )
+        return xr, -fr, nit, ncalls, ccode
+    
+class Sapprindat:
+
+    @staticmethod
+    def constituent(A, b, x, weight=None):
+        if weight is None:
+            weight = np.ones(len(b))
+
+        A_opt = np.zeros_like(A)
+        for j in range(len(b)):
+            bounds = list(zip(A.a[j], A.b[j]))
+            result = linprog(-x, bounds=bounds)
+            x_max, f_max = result.x, - result.fun
+            result = linprog(x, bounds=bounds)
+            x_min, f_min = result.x, result.fun
+            if b.mid[j] - f_min >= f_max - b.mid[j]:
+                A_opt[j] = x_min
+            else:
+                A_opt[j] = x_max
+
+        return weight * (b.rad.T + abs(b.mid.T - A_opt @ x))
+
+
+    @staticmethod
+    def value(A, b, x, weight=None):
+        return np.max(Sapprindat.constituent(A, b, x, weight=weight))
+
+
+    @staticmethod
+    def calcfg(x, infA, supA, Am, Ar, bm, br, weight):
+        # не готово
+        index = x>=0
+        Am_x = Am @ x
+        Ar_absx = Ar @ np.abs(x)
+        infs = bm - (Am_x + Ar_absx)
+        sups = bm - (Am_x - Ar_absx)
+        tol = weight * (br - np.maximum(abs(infs), abs(sups)))
+        mc = np.argmin(tol)
+        if -infs[mc] <= sups[mc]:
+            dtol = weight[mc] * (infA[mc] * index + supA[mc] * (~index))
+        else:
+            dtol = -weight[mc] * (supA[mc] * index + infA[mc] * (~index))
+        return -tol[mc], -dtol
+
+
+    @staticmethod
+    def calcfg_constr(x, infA, supA, Am, Ar, bm, br, weight, linear_constraint):
+        # не готово
+        p, dp = BaseRecFun.linear_penalty(x, linear_constraint)
+        tol, dtol = Tol.calcfg(x, infA, supA, Am, Ar, bm, br, weight)
+
+        return tol + p, dtol + dp
+
+
+    @staticmethod
+    def maximize(A, b, x0=None, weight=None, linear_constraint=None, **kwargs):
+        # не готово
         xr, fr, nit, ncalls, ccode = BaseRecFun.optimize(
             A, b,
             Tol,
