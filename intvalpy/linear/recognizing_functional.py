@@ -214,20 +214,20 @@ class Tol:
         )
         return xr, -fr, nit, ncalls, ccode
     
-class Sapprindat:
+class ChebNorm:
 
     @staticmethod
     def constituent(A, b, x, weight=None):
         if weight is None:
             weight = np.ones(len(b))
 
-        A_opt = Sapprindat.__calc_opt_A(x, A.a, A.b, b.mid)
+        A_opt = ChebNorm.__calc_opt_A(x, A.a, A.b, b.mid)
         return weight * (b.rad.T + abs(b.mid.T - A_opt @ x))
 
 
     @staticmethod
     def value(A, b, x, weight=None):
-        return np.max(Sapprindat.constituent(A, b, x, weight=weight))
+        return np.max(ChebNorm.constituent(A, b, x, weight=weight))
 
     @staticmethod
     def __calc_lp_on_box(c_, x_min, x_max):
@@ -241,9 +241,9 @@ class Sapprindat:
     def __calc_opt_A(x, infA, supA, bm):
         A_opt = np.zeros_like(infA)
         for j in range(len(bm)):
-            x_min = Sapprindat.__calc_lp_on_box(x, infA[j], supA[j])
+            x_min = ChebNorm.__calc_lp_on_box(x, infA[j], supA[j])
             f_min = x_min @ x
-            x_max = Sapprindat.__calc_lp_on_box(-x, infA[j], supA[j])
+            x_max = ChebNorm.__calc_lp_on_box(-x, infA[j], supA[j])
             f_max = x_max @ (-x)
             if bm[j] - f_min >= f_max - bm[j]:
                 A_opt[j] = x_min
@@ -256,7 +256,7 @@ class Sapprindat:
         if weight is None:
             weight = np.ones(len(bm))
 
-        A_opt = Sapprindat.__calc_opt_A(x, infA, supA, bm)
+        A_opt = ChebNorm.__calc_opt_A(x, infA, supA, bm)
         index = (weight * (br.T + abs(bm.T - A_opt @ x))).argmax()
         val =(weight * (br.T + abs(bm.T - A_opt @ x))).max()
         grad = A_opt[index,:] * np.sign(A_opt[index] @ x - bm[index])
@@ -267,7 +267,7 @@ class Sapprindat:
     @staticmethod
     def calcfg_constr(x, infA, supA, Am, Ar, bm, br, weight, linear_constraint):
         p, dp = BaseRecFun.linear_penalty(x, linear_constraint)
-        tol, dtol = Sapprindat.calcfg(x, infA, supA, Am, Ar, bm, br, weight)
+        tol, dtol = ChebNorm.calcfg(x, infA, supA, Am, Ar, bm, br, weight)
 
         return tol + p, dtol + dp
 
@@ -276,7 +276,7 @@ class Sapprindat:
     def minimize(A, b, x0=None, weight=None, linear_constraint=None, **kwargs):
         xr, fr, nit, ncalls, ccode = BaseRecFun.optimize(
             A, b,
-            Sapprindat,
+            ChebNorm,
             x0=x0,
             weight=weight,
             linear_constraint=linear_constraint,
