@@ -24,7 +24,7 @@ x = np.random.uniform(0, 1, 2)
 
 print('Uni: ', Uni.value(A, b, x))
 print('Tol: ', Tol.value(A, b, x))
-print('Sapprindat: ', ChebNorm.value(A, b, x))
+print('ChebNorm: ', ChebNorm.value(A, b, x))
 
 
 # However, we are interested not just in a random point, but in whether the system
@@ -35,5 +35,5 @@ print('Sapprindat: ', ChebNorm.value(A, b, x))
 
 print('Uni: ', Uni.maximize(A, b))
 print('Tol: ', Tol.maximize(A, b))
-print('Sapprindat: ', ChebNorm.minimize(A, b))
+print('ChebNorm: ', ChebNorm.minimize(A, b))
 
