@@ -2,8 +2,7 @@ import numpy as np
 
 from intvalpy.RealInterval import Interval
 from intvalpy.ralgb5 import ralgb5
-from scipy.optimize import linprog
-
+import cvxopt
 class BaseRecFun:
 
     @staticmethod
@@ -224,11 +223,10 @@ class Sapprindat:
 
         A_opt = np.zeros_like(A)
         for j in range(len(b)):
-            bounds = list(zip(A.a[j], A.b[j]))
-            result = linprog(-x, bounds=bounds)
-            x_max, f_max = result.x, - result.fun
-            result = linprog(x, bounds=bounds)
-            x_min, f_min = result.x, result.fun
+            x_min = Sapprindat.CalcLpOnBox(x, A.a[j], A.b[j])
+            f_min = x_min @ x
+            x_max = Sapprindat.CalcLpOnBox(-x, A.a[j], A.b[j])
+            f_max = x_max @ (-x)
             if b.mid[j] - f_min >= f_max - b.mid[j]:
                 A_opt[j] = x_min
             else:
@@ -241,6 +239,13 @@ class Sapprindat:
     def value(A, b, x, weight=None):
         return np.max(Sapprindat.constituent(A, b, x, weight=weight))
 
+    @staticmethod
+    def CalcLpOnBox(c_, x_min, x_max):
+        c = cvxopt.matrix(c_)
+        G = cvxopt.matrix(np.vstack([-np.eye(len(x_min)), np.eye(len(x_min))]))
+        h = cvxopt.matrix(np.hstack([-x_min, x_max]).astype(np.double))
+        sol = cvxopt.solvers.lp(c, G, h, verbose=True)
+        return np.array(sol['x']).T
 
     @staticmethod
     def calcfg(x, infA, supA, Am, Ar, bm, br, weight):
@@ -249,11 +254,10 @@ class Sapprindat:
 
         A_opt = np.zeros_like(infA)
         for j in range(len(bm)):
-            bounds = list(zip(infA[j], supA[j]))
-            result = linprog(-x, bounds=bounds)
-            x_max, f_max = result.x, - result.fun
-            result = linprog(x, bounds=bounds)
-            x_min, f_min = result.x, result.fun
+            x_min = Sapprindat.CalcLpOnBox(x, infA[j],supA[j] )
+            f_min = x_min @ x
+            x_max = Sapprindat.CalcLpOnBox(-x, infA[j], supA[j])
+            f_max = x_max @ (-x)
             if bm[j] - f_min >= f_max - bm[j]:
                 A_opt[j] = x_min
             else:
