@@ -35,3 +35,5 @@ print('Sapprindat: ', Sapprindat.value(A, b, x))
 
 print('Uni: ', Uni.maximize(A, b))
 print('Tol: ', Tol.maximize(A, b))
+print('Sapprindat: ', Sapprindat.minimize(A, b))
+

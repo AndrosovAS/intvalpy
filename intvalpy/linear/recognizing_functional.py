@@ -223,9 +223,9 @@ class Sapprindat:
 
         A_opt = np.zeros_like(A)
         for j in range(len(b)):
-            x_min = Sapprindat.CalcLpOnBox(x, A.a[j], A.b[j])
+            x_min = Sapprindat.__calc_lp_on_box(x, A.a[j], A.b[j])
             f_min = x_min @ x
-            x_max = Sapprindat.CalcLpOnBox(-x, A.a[j], A.b[j])
+            x_max = Sapprindat.__calc_lp_on_box(-x, A.a[j], A.b[j])
             f_max = x_max @ (-x)
             if b.mid[j] - f_min >= f_max - b.mid[j]:
                 A_opt[j] = x_min
@@ -240,7 +240,7 @@ class Sapprindat:
         return np.max(Sapprindat.constituent(A, b, x, weight=weight))
 
     @staticmethod
-    def CalcLpOnBox(c_, x_min, x_max):
+    def __calc_lp_on_box(c_, x_min, x_max):
         c = cvxopt.matrix(c_)
         G = cvxopt.matrix(np.vstack([-np.eye(len(x_min)), np.eye(len(x_min))]))
         h = cvxopt.matrix(np.hstack([-x_min, x_max]).astype(np.double))
@@ -254,9 +254,9 @@ class Sapprindat:
 
         A_opt = np.zeros_like(infA)
         for j in range(len(bm)):
-            x_min = Sapprindat.CalcLpOnBox(x, infA[j],supA[j] )
+            x_min = Sapprindat.__calc_lp_on_box(x, infA[j],supA[j] )
             f_min = x_min @ x
-            x_max = Sapprindat.CalcLpOnBox(-x, infA[j], supA[j])
+            x_max = Sapprindat.__calc_lp_on_box(-x, infA[j], supA[j])
             f_max = x_max @ (-x)
             if bm[j] - f_min >= f_max - bm[j]:
                 A_opt[j] = x_min
@@ -289,7 +289,7 @@ class Sapprindat:
             linear_constraint=linear_constraint,
             **kwargs
         )
-        return xr, -fr, nit, ncalls, ccode
+        return xr, fr, nit, ncalls, ccode
 
 
 class Uni:
