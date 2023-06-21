@@ -12,7 +12,7 @@
 # [4] http://www.nsc.ru/interval/shary/Slides/SShary-WeakStrong.pdf (en version)
 
 from intvalpy import Interval
-from intvalpy.linear import Uni, Tol
+from intvalpy.linear import Uni, Tol, ChebNorm
 import numpy as np
 
 # As an example, consider the Barth-Nuding system:
@@ -23,6 +23,7 @@ b = Interval([-2, -2], [2, 2])
 x = np.random.uniform(0, 1, 2)
 print('Uni: ', Uni.value(A, b, x))
 print('Tol: ', Tol.value(A, b, x))
+print('ChebNorm: ', ChebNorm.value(A, b, x))
 
 # However, we are interested not just in a random point, but in whether the system
 # as a whole is solvable. To do this, we maximize the functionals.
@@ -32,3 +33,4 @@ print('Tol: ', Tol.value(A, b, x))
 
 print('Uni: ', Uni.maximize(A, b))
 print('Tol: ', Tol.maximize(A, b))
+print('ChebNorm: ', ChebNorm.minimize(A, b))
