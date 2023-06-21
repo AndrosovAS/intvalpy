@@ -3,6 +3,8 @@ import numpy as np
 from intvalpy.RealInterval import Interval
 from intvalpy.ralgb5 import ralgb5
 import cvxopt
+
+
 class BaseRecFun:
 
     @staticmethod
