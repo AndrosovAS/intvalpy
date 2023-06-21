@@ -21,11 +21,9 @@ b = Interval([-2, -2], [2, 2])
 
 # Take a random point in space and see if it is a solution
 x = np.random.uniform(0, 1, 2)
-
 print('Uni: ', Uni.value(A, b, x))
 print('Tol: ', Tol.value(A, b, x))
 print('ChebNorm: ', ChebNorm.value(A, b, x))
-
 
 # However, we are interested not just in a random point, but in whether the system
 # as a whole is solvable. To do this, we maximize the functionals.
@@ -36,4 +34,3 @@ print('ChebNorm: ', ChebNorm.value(A, b, x))
 print('Uni: ', Uni.maximize(A, b))
 print('Tol: ', Tol.maximize(A, b))
 print('ChebNorm: ', ChebNorm.minimize(A, b))
-
