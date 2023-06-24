@@ -217,7 +217,9 @@ class Tol:
         return xr, -fr, nit, ncalls, ccode
     
 class ChebNorm:
-
+    """
+    To calculate the Chebyshev norm of linear equation system residual.
+    """
     @staticmethod
     def constituent(A, b, x, weight=None):
         if weight is None:
