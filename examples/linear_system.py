@@ -24,12 +24,16 @@ from intvalpy import Interval, zeros
 from intvalpy.linear import Gauss, Gauss_Seidel, Rohn, PSS
 import numpy as np
 
+from intvalpy.linear.overdetermined import TolerableSolutionSetEstimation
+
 # First, consider the Gauss and Gauss-Seidel methods for solving quadratic systems:
 A = Interval([[2, -2],[-1, 2]], [[4, 1],[2, 4]])
 b = Interval([-2, -2], [2, 2])
 
 print('Gauss: ', Gauss(A, b))
-print('Gauss_Seidel: ', Gauss_Seidel(A, b, P=True))
+print('Gauss_Seidel: ', Gauss_Seidel(A, b))
+x = TolerableSolutionSetEstimation.Neumaier(A, b, np.array([0.0, 0.0]), np.array([1, 2]))
+
 # +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+ #
 # Gauss(A, b)                                                         #
 # interval(['[-5.000000, 5.000000]', '[-4.000000, 4.000000]'])        #
@@ -37,14 +41,14 @@ print('Gauss_Seidel: ', Gauss_Seidel(A, b, P=True))
 # Gauss-Seidel(A, b, P=True)                                          #
 # interval(['[-14.000000, 14.000000]', '[-14.000000, 14.000000]'])    #
 # +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+ #
-
+print(A @ x in b)
 
 A = Interval([[0.5, -0.456], [-0.438, 0.624]],
               [[1.176, 0.448], [0.596, 1.36]])
 b = Interval([0.316, 0.27], [0.632, 0.624])
 
 print('Gauss: ', Gauss(A, b))
-print('Gauss_Seidel: ', Gauss_Seidel(A, b, P=False))
+print('Gauss_Seidel: ', Gauss_Seidel(A, b))
 # +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+ #
 # Gauss(A, b)                                                         #
 # interval(['[-11.094065, 13.199459]', '[-5.371444, 13.087127]'])     #
@@ -99,3 +103,5 @@ print('PSS: ', PSS(A, b))
 # PSS(A, b)                                               #
 # Interval(['[155.257, 195.744]', '[205.42, 253.398]'])   #
 # +-----+-----+-----+-----+-----+-----+-----+-----+-----+ #
+
+

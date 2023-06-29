@@ -454,3 +454,13 @@ def PSS(A, b, x0=None, tol=1e-12, maxiter=2000, nu=None):
                 inf.append(algo(_nu))
 
     return Interval(inf, sup, sortQ=False)
+
+class TolerableSolutionSetEstimation:
+    @staticmethod
+    def Neumaier(A, b, y, w):
+        D = np.diag(w)
+        A_w = A @ D
+        r = ( b - A_w @ y ) / np.sum(A_w.mag, axis= 1)
+        rad_box = np.min([-r.a, r.b])
+        return D @ np.ones_like(y) * rad_box * Interval(-1, 1)
+
