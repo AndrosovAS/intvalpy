@@ -24,7 +24,7 @@ from intvalpy import Interval, zeros
 from intvalpy.linear import Gauss, Gauss_Seidel, Rohn, PSS
 import numpy as np
 
-from intvalpy.linear.overdetermined import TolerableSolutionSetEstimation
+from intvalpy.linear.overdetermined import TolSolSetEstimation
 
 # First, consider the Gauss and Gauss-Seidel methods for solving quadratic systems:
 A = Interval([[2, -2],[-1, 2]], [[4, 1],[2, 4]])
@@ -32,7 +32,7 @@ b = Interval([-2, -2], [2, 2])
 
 print('Gauss: ', Gauss(A, b))
 print('Gauss_Seidel: ', Gauss_Seidel(A, b))
-x = TolerableSolutionSetEstimation.Neumaier(A, b, np.array([0.0, 0.0]), np.array([1, 2]))
+x = TolSolSetEstimation.Neumaier(A, b, np.array([0.0, 0.0]), np.array([1, 2]))
 
 # +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+ #
 # Gauss(A, b)                                                         #
