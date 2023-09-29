@@ -1,354 +1,251 @@
 import numpy as np
 
-from intvalpy.utils import asinterval, zeros, sgn
-from intvalpy.RealInterval import Interval, INTERVAL_CLASSES
+from intvalpy.RealInterval import Interval
 from intvalpy.ralgb5 import ralgb5
-from intvalpy.nonlinear.optimize import globopt
-
-from bisect import bisect_left
 
 
-class KeyWrapper:
-    def __init__(self, iterable, key):
-        self.it = iterable
-        self.key = key
+class BaseRecFun(object):
 
-    def __getitem__(self, i):
-        return self.key(self.it[i])
+    @staticmethod
+    def linear_penalty(x, linear_constraint):
+        C, b = linear_constraint.C, linear_constraint.b
+        mu = linear_constraint.mu
 
-    def __len__(self):
-        return len(self.it)
+        n, m = C.shape
+        # the arrays to store the values of the penalty function
+        # and its Jacobian are initialized.
+        arr_p, arr_dp = np.zeros(n), np.zeros((n, m))
+        for i in range(n):
+            #the condition that the vector x is within the specified bounds is tested.
+            Cix, beyondQ = linear_constraint.largeCondQ(x, i)
+            if beyondQ:
+                arr_p[i] = Cix - b[i]
+                arr_dp[i] = C[i]
 
-
-#######################################################################################
-#penalty
-def penalty(x, linear_constraint):
-    n, m = linear_constraint.C.shape
-    alphai, dalphai = np.zeros(n), np.zeros((n, m))
-    for i in range(n):
-        Cix, condQ = linear_constraint.largeCondQ(x, i)
-        if condQ:
-            alphai[i] = Cix - linear_constraint.b[i]
-            dalphai[i] = linear_constraint.C[i]
-
-    alpha = linear_constraint.mu * sum(alphai)
-    grad_alpha = linear_constraint.mu * np.array([ sum(dalphai[:, k]) for k in range(m)])
-    return alpha, grad_alpha
+        #the final value of the penalty function and its gradient vector are obtained.
+        p = mu * np.sum(arr_p)
+        dp = mu * np.sum(arr_dp, axis=0)
+        return p, dp
 
 
-# define calcfg
-# tol
-def calcfg_tol(x, model, a, bm, functional, grad, weight):
-    index = x >= 0
-    infsup = bm - model(a, x)
+    @staticmethod
+    def optimize(model, grad, a, b, recfunc, x0, weight=None, linear_constraint=None, **kwargs):
 
-    tt = functional(infsup.a, infsup.b)
-    mc = np.argmin(tt)
-    gg = asinterval([g(a[mc], x) for g in grad])
+        n, = a.shape
+        assert n == len(b), 'Inconsistent dimensions of matrix and right-hand side vector'
 
-    if -infsup[mc].a <= infsup[mc].b:
-        dd = weight[mc] * (gg.a * index + gg.b * (~index))
-    else:
-        dd = -weight[mc] * (gg.b * index + gg.a * (~index))
+        am, ar = a.mid, a.rad
+        bm, br = b.mid, b.rad
 
-    return -tt[mc], -dd
+        if weight is None:
+            weight = np.ones(n)
 
-def calcfg_tol_constraint(x, model, a, bm, functional, grad, weight, linear_constraint):
-    alpha, grad_alpha = penalty(x, linear_constraint)
-    tt, dd = calcfg_tol(x, model, a, bm, functional, grad, weight)
-
-    return tt + alpha, dd + grad_alpha
-
-################################################################################
-# uni
-def calcfg_uni(x, model, a, bm, functional, grad, weight):
-    index = x >= 0
-    infsup = bm - model(a, x)
-
-    tt = functional(infsup.a, infsup.b)
-    mc = np.argmin(tt)
-    gg = asinterval([g(a[mc], x) for g in grad])
-
-    if -infsup[mc].a <= infsup[mc].b:
-        dd = weight[mc] * (gg.b * index + gg.a * (~index))
-    else:
-        dd = -weight[mc] * (gg.a * index + gg.b * (~index))
-    return -tt[mc], -dd
-
-def calcfg_uni_constraint(x, model, a, bm, functional, grad, weight, linear_constraint):
-    alpha, grad_alpha = penalty(x, linear_constraint)
-    tt, dd = calcfg_uni(x, model, a, bm, functional, grad, weightt)
-
-    return tt + alpha, dd + grad_alpha
-
-
-#######################################################################################
-
-
-def recfunsolvty(model, grad, a, b, x0, consistency='uni', weight=None, tol=1e-12, maxiter=2000, linear_constraint=None, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
-
-    n, m = len(a), len(grad)
-    if weight is None:
-        weight = np.ones(n)
-    x0 = np.copy(x0)
-
-    # # для штрафной функции alpha = sum G x - c, где G-матрица ограничений, c-вектор ограничений
-    # # находим значение весового коэффициента mu, чтобы гарантировано не выходить за пределы ограничений
-    # if (not linear_constraint is None) and (linear_constraint.mu is None):
-    #     linear_constraint.mu = linear_constraint.find_mu(np.max(A.mag))
-
-    bm = b.mid
-    br = b.rad
-
-    def mig(inf, sup):
-        if inf*sup <= 0:
-            return 0.0
-        else:
-            return min(abs(inf), abs(sup))
-
-    # if consistency=='uni':
-    #     functional = lambda infs, sups: weight * (br - np.vectorize(mig)(infs, sups))
-    # else:
-    #     functional = lambda infs, sups: weight * (br - np.maximum(np.abs(infs), np.abs(sups)))
-
-
-    if consistency=='uni':
-        functional = lambda infs, sups: weight * (br - np.vectorize(mig)(infs, sups))
+        # для штрафной функции alpha = sum G x - c, где G-матрица ограничений, c-вектор ограничений
+        # находим значение весового коэффициента mu, чтобы гарантировано не выходить за пределы ограничений
         if linear_constraint is None:
-            def calcfg(x):
-                return calcfg_uni(x, model, a, bm, functional, grad, weight)
+            calcfg = lambda x: recfunc.calcfg(x, model, grad, a, bm, br, weight)
         else:
-            def calcfg(x):
-                return calcfg_uni_constraint(x, model, a, bm, functional, grad, weight, linear_constraint)
+            calcfg = lambda x: recfunc.calcfg_constr(x, model, grad, a, bm, br, weight, linear_constraint)
 
-    else:
-        functional = lambda infs, sups: weight * (br - np.maximum(np.abs(infs), np.abs(sups)))
-        if linear_constraint is None:
-            def calcfg(x):
-                return calcfg_tol(x, model, a, bm, functional, grad, weight)
+        x0 = np.copy(x0)
+
+        return ralgb5(calcfg, x0, **kwargs)
+
+
+    @classmethod
+    def constituent(cls, model, a, b, x, weight=None):
+        """
+        The function computes all the formings of the recognizing functional and returns them.
+
+        Parameters:
+
+            ...
+
+            x: np.array, optional
+                The point at which the recognizing functional is calculated.
+
+            weight: float, np.array, optional
+                The vector of weight coefficients for each forming of the recognizing functional.
+                By default, it is a vector consisting of ones.
+
+
+        Returns:
+
+            out: float
+                The values of each forming of the recognizing functional at the point x are returned.
+        """
+        return cls._constituent(model, a, b, x, weight=weight)
+
+
+    @classmethod
+    def value(cls, model, a, b, x, weight=None):
+        """
+        The function computes the value of the recognizing functional at the point x.
+
+        Parameters:
+
+            ...
+
+            x: np.array, optional
+                The point at which the recognizing functional is calculated.
+
+            weight: float, np.array, optional
+                The vector of weight coefficients for each forming of the recognizing functional.
+                By default, it is a vector consisting of ones.
+
+
+        Returns:
+
+            out: float
+                The value of the recognizing functional at the point x.
+        """
+        return cls._value(model, a, b, x, weight=weight)
+
+
+    @classmethod
+    def maximize(cls, model, grad, a, b, x0, weight=None, linear_constraint=None, **kwargs):
+        """
+        The function is intended for finding the global maximum of the recognizing functional.
+        The ralgb5 subgradient method is used for optimization.
+
+        Parameters:
+
+            ...
+
+            x0: np.array, optional
+                The initial assumption is at what point the maximum is reached. By default, x0
+                is equal to the vector which is the solution (pseudo-solution) of the system
+                mid(A) x = mid(b).
+
+            weight: float, np.array, optional
+                The vector of weight coefficients for each forming of the recognizing functional.
+                By default, it is a vector consisting of ones.
+
+            linear_constraint: LinearConstraint, optional
+                System (lb <= C <= ub) describing linear dependence between parameters.
+                By default, the problem of unconditional maximization is being solved.
+
+            kwargs: optional params
+                The ralgb5 function uses additional parameters to adjust its performance.
+                These parameters include the step size, the stopping criteria, the maximum number
+                of iterations and others. Specified in the function description ralgb5.
+
+
+        Returns:
+
+            out: tuple
+                The function returns the following values in the specified order:
+                1. the vector solution at which the recognition functional reaches its maximum,
+                2. the value of the recognition functional,
+                3. the number of iterations taken by the algorithm,
+                4. the number of calls to the calcfg function,
+                5. the exit code of the algorithm (1 = tolf, 2 = tolg, 3 = tolx, 4 = maxiter, 5 = error).
+        """
+        return cls._maximize(model, grad, a, b, x0, weight=weight, linear_constraint=linear_constraint, **kwargs)
+
+
+
+class Tol(BaseRecFun):
+    """
+    To check the interval system of linear equations for its strong compatibility,
+    the recognizing functional Tol should be used.
+    """
+
+    @staticmethod
+    def _constituent(model, a, b, x, weight=None):
+        if weight is None:
+            weight = np.ones(len(b))
+        return weight * (b.rad - (b.mid - model(a, x)).mag)
+
+
+    @staticmethod
+    def _value(model, a, b, x, weight=None):
+        return np.min(Tol.constituent(model, a, b, x, weight=weight))
+
+
+    @staticmethod
+    def calcfg(x, model, grad, a, bm, br, weight):
+        infsup = bm - model(a, x)
+        tol = weight * (br - infsup.mag)
+        mc = np.argmin(tol)
+        gradx = np.array([g(a[mc], x) for g in grad])
+        if -infsup[mc].a <= infsup[mc].b:
+            dtol = weight[mc] * np.array([min(gx.a, gx.b) for gx in gradx])
         else:
-            def calcfg(x):
-                return calcfg_tol_constraint(x, model, a, bm, functional, grad, weight, linear_constraint)
+            dtol = -weight[mc] * np.array([max(gx.a, gx.b) for gx in gradx])
+        return -tol[mc], -dtol
 
 
-    xr, fr, nit, ncalls, ccode = ralgb5(calcfg, x0, maxiter=maxiter, alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2, tolx=tolx, tolg=tolg, tolf=tolf)
-    return xr, -fr, nit, ncalls, ccode
+    @staticmethod
+    def calcfg_constr(x, model, grad, a, bm, br, weight, linear_constraint):
+        p, dp = BaseRecFun.linear_penalty(x, linear_constraint)
+        tol, dtol = Tol.calcfg(x, model, grad, a, bm, br, weight)
+
+        return tol + p, dtol + dp
 
 
-def _tol_tsopt(model, grad, a, b, x0, weight=None, tol=1e-12, maxiter=2000, linear_constraint=None, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
-
-    xr, fr, nit, ncalls, ccode = recfunsolvty(model, grad, a, b, x0, consistency='tol', weight=weight, tol=tol, maxiter=maxiter, linear_constraint=linear_constraint,
-                                                alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2, tolx=tolx, tolg=tolg, tolf=tolf)
-    ccode = False if (ccode==4 or ccode==5) else True
-    return ccode, xr, fr
-
-
-def _tol_iopt(model, a, b, grad, x0, tol, maxiter, stepwise):
-    def tol_globopt(func, x0, grad, tol, maxiter):
-        def insert(zeroS, Y, v, vmag, bmm, nit_mon):
-            # print(Y)
-
-            if zeroS or True:
-                newcol = (Y, v.a)
-                bslindex = bisect_left(KeyWrapper(L, key=lambda c: c[1]), newcol[1])
-                L.insert(bslindex, newcol)
-            else:
-                mm = model(a, Y)
-                # tol = br - abs(bm - mm)
-                # itm = tol.a <= min(tol.b)
-
-                tol = br - (bm - mm).mag
-                itm = np.array([True for _ in tol])
-                # infs, sups = mm.a, mm.b
-                #
-                # index = []
-                # for k in range(len(infs)):
-                #     inf = infs[k]
-                #     if not (inf > sups).any():
-                #         index.append(k)
-                bars = a[itm]
-                BM = bm[itm]
-
-                # bars = a
-                # BM = bm
-
-                nbars = len(bars)
-                g = zeros(nbars)
-                yres = []
-                for k in range(m):
-                    # print('k: ', k)
-                    # print('grad: ', -grad[k](bars, Y) * sgn(BM - model(bars, Y)) )
-                    # g = grad[k](bars, x0) * sgn(BM - model(bars, x0))
-                    # sign = sgn(g)
-                    # if (0 in g) or
-                    zeroG = False
-                    for l in range(nbars):
-                        g[l] = -grad[k](bars[l], Y) * sgn(BM[l] - model(bars[l], Y))
-                        if (0 in g[l]) or ( l > 0 and sgn(g[l-1]) != sgn(g[l]) ):
-                        # if (0 in g[l]):
-                            zeroG = True
-                            break
-
-                    if not zeroG:
-                        # print('haha')
-                        nit_mon += 1
-                        # if len(yres) > 0:
-                        #     # print('k: ', k)
-                        #     print('yres: ', yres)
-                        #
-                        #     yres_tmp = []
-                        #     for yy in yres:
-                        #         y1, y2 = yy.copy, yy.copy
-                        #         y1[k], y2[k] = y1[k].a, y2[k].b
-                        #         yres_tmp.append(y1)
-                        #         yres_tmp.append(y2)
-                        #     yres = yres_tmp[:]
-                        #     print('len(yres): ', len(yres))
-                        # else:
-                        #     y1, y2 = Y.copy, Y.copy
-                        #     y1[k], y2[k] = y1[k].a, y2[k].b
-                        #     yres.append(y1)
-                        #     yres.append(y2)
-
-                        y1, y2 = Y.copy, Y.copy
-                        y1[k], y2[k] = Y[k].a, Y[k].b
-                        v1, v2 = func(y1).a, func(y2).a
-                        if v1 < v2:
-                            Y = y1.copy
-                        else:
-                            Y = y2.copy
-
-                # if len(yres) > 0:
-                #     for yy in yres:
-                #         v = func(yy).a
-                #         newcol = (yy.copy, v)
-                #         bslindex = bisect_left(KeyWrapper(L, key=lambda c: c[1]), newcol[1])
-                #         L.insert(bslindex, newcol)
-                #
-                # else:
-                #     v = func(Y).a
-                #     newcol = (Y, v)
-                #     bslindex = bisect_left(KeyWrapper(L, key=lambda c: c[1]), newcol[1])
-                #     L.insert(bslindex, newcol)
-
-                v = func(Y).a
-                newcol = (Y, v)
-                bslindex = bisect_left(KeyWrapper(L, key=lambda c: c[1]), newcol[1])
-                L.insert(bslindex, newcol)
-
-            return Y, v, nit_mon
-
-        Y = x0.copy
-        y = func(Y).a
-        L = [(Y, y)]
-        n, m = len(a), len(grad)
-
-        nit_mon = 0
-        gamma = float('inf')
-        nit = 1
-        while func(Y).wid >= tol and nit <= maxiter:
-            # if nit % stepwise == 0:
-            #     print('nit: ', nit)
-            #     print('len(L): ', len(L))
-            #     print('x: ', Y)
-            #     print('tol: ', -func(Y))
-            #     print('+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+\n\n')
-
-            gg = np.array([np.max((grad[k](a, Y)).mag) * Y[k].wid for k in range(m)])
-            l = np.argmax(gg)
-            Y1 = L[0][0].copy
-            Y2 = L[0][0].copy
-            Y1[l], Y2[l] = Interval(Y[l].a, Y[l].mid, sortQ=False), Interval(Y[l].mid, Y[l].b, sortQ=False)
-
-            del L[0]
-
-            bmm1, bmm2 = bm - model(a, Y1), bm - model(a, Y2)
-            mag1, mag2 = abs(bmm1), abs(bmm2)
-            v1, v2 = -min(br - mag1), -min(br - mag2)
-
-            zeroS1 = True if (bmm1.a <= 0).all() and (0 <= bmm1.b).all() else False
-            zeroS2 = True if (bmm2.a <= 0).all() and (0 <= bmm2.b).all() else False
-
-            Y1, v1, nit_mon = insert(zeroS1, Y1, v1, mag1, bmm1, nit_mon)
-            Y2, v2, nit_mon = insert(zeroS2, Y2, v2, mag2, bmm2, nit_mon)
-
-            gamma1 = func(Y1.mid).a
-            gamma2 = func(Y2.mid).a
-            if gamma1 < gamma:
-                gamma = gamma1
-            if gamma2 < gamma:
-                gamma = gamma2
-
-            # L = [l for l in L if l[1] <= gamma]
-
-            Y = L[0][0]
-            nit += 1
-
-        # print('nit: ', nit)
-        # print('len(L): ', len(L))
-
-        # print('##########################################################################\n\n')
-        # for l in L:
-        #     print('l[0]: ', l[0], '\n')
-
-        return L[0][0], func(L[0][0]), nit
-
-    a = asinterval(a)
-    br = b.rad
-    bm = b.mid
-
-    minus_tol_interval = lambda x: -min(br - abs(bm - model(a, x)))
-    # minus_tol_interval = lambda x: -Interval(min(br - (bm - model(a, x)).mag), -float('inf'))
-    xx, ff, nit = tol_globopt(minus_tol_interval, x0, grad, tol, maxiter)
-    success = nit <= maxiter
-
-    return success, xx, -ff
+    @staticmethod
+    def _maximize(model, grad, a, b, x0, weight=None, linear_constraint=None, **kwargs):
+        xr, fr, nit, ncalls, ccode = BaseRecFun.optimize(
+            model, grad,
+            a, b,
+            Tol,
+            x0,
+            weight=weight,
+            linear_constraint=linear_constraint,
+            **kwargs
+        )
+        return xr, -fr, nit, ncalls, ccode
 
 
-def Tol(model, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e-12, maxiter=2000, linear_constraint=None, stepwise=float('inf'),
-        alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
+class Uni(BaseRecFun):
+    """
+    To check the interval system of linear equations for its weak compatibility,
+    the recognizing functional Uni should be used.
+    """
 
-    if maxQ:
-        if isinstance(x0, INTERVAL_CLASSES):
-            return _tol_iopt(model, a, b, grad, x0, tol, maxiter, stepwise)
+    @staticmethod
+    def _constituent(model, a, b, x, weight=None):
+        if weight is None:
+            weight = np.ones(len(b))
+        return weight * (b.rad - (b.mid - model(a, x)).mig)
+
+
+    @staticmethod
+    def _value(model, a, b, x, weight=None):
+        return np.min(Uni.constituent(model, a, b, x, weight=weight))
+
+
+    @staticmethod
+    def calcfg(x, model, grad, a, bm, br, weight):
+        infsup = bm - model(a, x)
+        uni = weight * (br - infsup.mig)
+        mc = np.argmin(uni)
+        gradx = np.array([g(a[mc], x) for g in grad])
+        if -infsup[mc].a <= infsup[mc].b:
+            duni = weight[mc] * np.array([max(gx.a, gx.b) for gx in gradx])
         else:
-            return _tol_tsopt(model, grad, a, b, x0, weight=weight, tol=tol, maxiter=maxiter, linear_constraint=linear_constraint,
-                                alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2, tolx=tolx, tolg=tolg, tolf=tolf)
-    else:
-        br = b.rad
-        bm = b.mid
-
-        tol_interval = lambda x: min( br - abs(bm - model(a, x)) )
-        tol_exact    = lambda x: np.min( br - (bm - model(a, x)).mag )
-
-        if isinstance(x, INTERVAL_CLASSES):
-            return tol_interval(x)
-        else:
-            if x is None:
-                raise TypeError('It is necessary to specify at which point to calculate the recognizing functional.')
-            return tol_exact(x)
+            duni = -weight[mc] * np.array([min(gx.a, gx.b) for gx in gradx])
+        return -uni[mc], -duni
 
 
-def _uni_usopt(model, grad, a, b, x0, weight=None, tol=1e-12, maxiter=2000, linear_constraint=None, alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
+    @staticmethod
+    def calcfg_constr(x, model, grad, a, bm, br, weight, linear_constraint):
+        p, dp = BaseRecFun.linear_penalty(x, linear_constraint)
+        uni, duni = Uni.calcfg(x, model, grad, a, bm, br, weight)
 
-    xr, fr, nit, ncalls, ccode = recfunsolvty(model, grad, a, b, x0, consistency='uni', weight=weight, tol=tol, maxiter=maxiter, linear_constraint=linear_constraint,
-                                              alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2, tolx=tolx, tolg=tolg, tolf=tolf)
+        return uni + p, duni + dp
 
-    ccode = False if (ccode==4 or ccode==5) else True
-    return ccode, xr, fr
 
-def Uni(model, a, b, x=None, maxQ=False, grad=None, weight=None, x0=None, tol=1e-12, maxiter=2000, linear_constraint=None, stepwise=float('inf'),
-        alpha=2.3, nsims=30, h0=1, nh=3, q1=0.9, q2=1.1, tolx=1e-12, tolg=1e-12, tolf=1e-12):
-
-    br = b.rad
-    bm = b.mid
-
-    uni_exact = lambda x: min(br - (bm - model(a, x)).mig)
-
-    if maxQ:
-        return _uni_usopt(model, grad, a, b, x0, weight=weight, tol=tol, maxiter=maxiter, linear_constraint=linear_constraint,
-                            alpha=alpha, nsims=nsims, h0=h0, nh=nh, q1=q1, q2=q2, tolx=tolx, tolg=tolg, tolf=tolf)
-    else:
-        if x is None:
-            raise TypeError('It is necessary to specify at which point to calculate the recognizing functional.')
-        return uni_exact(x)
+    @staticmethod
+    def _maximize(model, grad, a, b, x0, weight=None, linear_constraint=None, **kwargs):
+        xr, fr, nit, ncalls, ccode = BaseRecFun.optimize(
+            model, grad,
+            a, b,
+            Uni,
+            x0,
+            weight=weight,
+            linear_constraint=linear_constraint,
+            **kwargs
+        )
+        return xr, -fr, nit, ncalls, ccode
