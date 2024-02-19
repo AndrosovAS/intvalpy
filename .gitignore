@@ -1,0 +1,3 @@
+#ignoring specific directories
+.ipynb_checkpoints
+__pycache__

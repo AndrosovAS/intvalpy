@@ -1,10 +1,9 @@
-from .MyClass import Interval
-from .intoper import *
+from .RealInterval import ClassicalArithmetic, KaucherArithmetic, ArrayInterval, precision, SingleInterval, Interval, ARITHMETICS, INTERVAL_CLASSES, single_type
+from .utils import *
+from .visualization import lineqs, IntLinIncR2, lineqs3D, IntLinIncR3, IPlot
+from .ralgb5 import ralgb5
 
-from .solset import lineqs, IntLinIncR2
-from .recfunc import Uni, Tol
-from .linsys import *
-from .Krawczyk import Krawczyk
-from .HansenSengupta import HansenSengupta
-from .optimize import globopt
-from .sol_exist_tests import miranda
+from .linear import *
+from .nonlinear import *
+
+__version__ = '1.6.1'
