@@ -2,8 +2,6 @@ import io
 import os
 from setuptools import setup, find_packages
 
-from intvalpy import __version__
-
 os.environ['CVXOPT_BUILD_GLPK'] = '1'
 
 readme_file = os.path.join(os.path.dirname(__file__), 'README.md')
@@ -19,7 +17,7 @@ INSTALL_REQUIRES = [
 
 setup(
     name='intvalpy',
-    version=__version__,
+    version='1.6.2',
     description='IntvalPy - a Python interval computation library',
     long_description=README,
     long_description_content_type='text/markdown',

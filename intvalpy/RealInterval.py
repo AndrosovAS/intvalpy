@@ -194,7 +194,7 @@ class BaseTools(object):
             _max, _min = max(pro.a, 0), pro.b
             if _max <= _min:
                 inf = float('-inf') if _max==0 else math.log(_max)
-                sup = math.log(_min)
+                sup = float('-inf') if _min==0 else math.log(_min)
                 return cls(inf, sup) if self._a <= self._b else cls(sup, inf)
             else:
                 return cls(float('nan'), float('nan'))
