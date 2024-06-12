@@ -1,1 +1,1 @@
-from intvalpy import *
+from .intvalpy import *
