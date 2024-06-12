@@ -1,7 +1,7 @@
 import numpy as np
-from intvalpy.RealInterval import Interval
-from intvalpy.utils import asinterval, infinity
-from intvalpy.linear.recognizing_functional import Tol, Uni
+
+from ..kernel.utils import infinity
+from .Tol import Tol
 
 
 def ive(A, b, N=40):

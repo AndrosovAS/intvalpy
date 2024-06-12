@@ -1,8 +1,7 @@
 from bisect import bisect_left
 import numpy as np
 
-from intvalpy.RealInterval import Interval
-from intvalpy.utils import asinterval
+from ..kernel.real_intervals import Interval
 
 
 class KeyWrapper:

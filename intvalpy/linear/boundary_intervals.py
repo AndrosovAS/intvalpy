@@ -2,98 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-from .RealInterval import INTERVAL_CLASSES
-
-from .utils import infinity
-
-
-class IPlot:
-
-    def __init__(self, figsize=(8, 8)):
-        self.figsize = figsize
-
-
-    def subplots(self, nrows=None, ncols=None, figsize=None):
-        self.nrows = 1 if nrows is None else nrows
-        self.ncols = 1 if ncols is None else ncols
-        if not figsize is None:
-            self.figsize = figsize
-
-        self.fig, self.ax = plt.subplots(nrows=self.nrows, ncols=self.ncols, figsize=self.figsize)
-        return self.fig, self.ax
-
-    def set_ax(self, axindex):
-        if self.nrows == 1 and self.ncols == 1:
-            return self.ax
-        else:
-            if axindex is None:
-                if self.nrows > 1 and self.ncols > 1:
-                    axindex = (0, 0)
-                else:
-                    axindex = 0
-            return self.ax[axindex]
-
-
-    def scatter(self, x, y, color='gray', alpha=0.5, s=10, axindex=None):
-        ax = self.set_ax(axindex)
-
-        flatx = x.a == x.b
-        flaty = y.a == y.b
-
-        index_dot = flatx & flaty
-        if index_dot.any():
-            ax.scatter(x.a[index_dot], y.a[index_dot], s=s, color=color, alpha=alpha)
-
-
-        full_fill = (flatx | flaty) & (~index_dot)
-        scinny_fill = ~(flatx | flaty) & (~index_dot)
-        ox = np.array([x.a, x.a, x.b, x.b])
-        oy = np.array([y.a, y.b, y.b, y.a])
-
-        ax.fill(ox[:, full_fill], oy[:, full_fill], alpha=alpha, fill=False, color=color)
-        ax.fill(ox[:, scinny_fill], oy[:, scinny_fill], alpha=alpha, color=color)
-
-
-    def lineqs(self, vertices, color='gray', alpha=0.5, s=10, axindex=None):
-        ax = self.set_ax(axindex)
-
-        x, y = vertices[:, 0], vertices[:, 1]
-        ax.fill(x, y, linestyle='-', linewidth=1, color=color, alpha=alpha)
-        ax.scatter(x, y, s=s, color='black', alpha=1)
-
-
-    def IntLinIncR2(self, vertices, color='gray', alpha=0.5, s=10, axindex=None):
-        for v in vertices:
-            if len(v)>0:
-                self.lineqs(v, color=color, alpha=alpha, s=s, axindex=axindex)
-
-
-def Unique(a, decimals=12):
-    a = np.ascontiguousarray(a)
-    a = np.around(a, decimals=int(decimals))
-    _, index = np.unique(a.view([('', a.dtype)]*a.shape[1]), return_index=True)
-    index = sorted(index)
-    return a[index]
-
-def non_repeat(a, b):
-    a = np.copy(np.ascontiguousarray(a))
-    a = np.around(a, decimals=12)
-    b = np.around(np.copy(b), decimals=12)
-    a1 = (a.T - b).T
-    _, index = np.unique(a1.view([('', a1.dtype)]*a1.shape[1]), return_index=True)
-    index = sorted(index)
-    return a[index], b[index]
-
-def clear_zero_rows(a, b, ndim=2):
-    a, b = np.ascontiguousarray(a), np.ascontiguousarray(b)
-    a, b = np.around(a, decimals=12), np.around(b, decimals=12)
-
-    cnmty = True
-    if np.sum((np.sum(abs(a) <= 1e-12, axis=1) == ndim) & (b > 0)) > 0:
-        cnmty = False
-
-    index = np.where(np.sum(abs(a) <= 1e-12, axis=1) != ndim)
-    return a[index], b[index], cnmty
+from ..kernel.preprocessing import clear_zero_rows, unique, non_repeat
+from ..kernel.utils import infinity
+from ..kernel.real_intervals import INTERVAL_CLASSES
 
 
 def BoundaryIntervals(A, b):
@@ -198,8 +109,18 @@ def ChangeVariable(A, b, k):
 
 
 __center_rm = []
-def lineqs(A, b, show=True, title="Solution Set", color='gray',
-           bounds=None, alpha=0.5, s=10, size=(15, 15), save=False):
+def lineqs(
+        A, 
+        b, 
+        show=True, 
+        title="Solution Set", 
+        color='gray',
+        bounds=None, 
+        alpha=0.5, 
+        s=10, 
+        size=(15, 15), 
+        save=False
+    ):
     """
     The function visualizes the set of solutions of a system of linear algebraic
     inequalities A x >= b with two variables by the method of boundary intervals, and
@@ -297,11 +218,22 @@ def lineqs(A, b, show=True, title="Solution Set", color='gray',
 
         if save:
             fig.savefig(title + ".png")
-    return Unique(vertices)
+    return unique(vertices)
 
 
-def IntLinIncR2(A, b, show=True, title="Solution Set", consistency='uni',
-                bounds=None, color='gray', alpha=0.5, s=10, size=(15, 15), save=False):
+def IntLinIncR2(
+        A, 
+        b, 
+        show=True, 
+        title="Solution Set", 
+        consistency='uni',
+        bounds=None, 
+        color='gray', 
+        alpha=0.5, 
+        s=10, 
+        size=(15, 15), 
+        save=False
+    ):
     """
     The function visualizes a set of solutions of an interval system of linear
     algebraic equations A x = b with two variables by the boundary value method
@@ -417,8 +349,16 @@ def IntLinIncR2(A, b, show=True, title="Solution Set", consistency='uni',
     return vertices
 
 
-def lineqs3D(A, b, show=True, color='C0', alpha=0.5, s=10, size=(8, 8),
-             bounds=None):
+def lineqs3D(
+        A, 
+        b, 
+        show=True, 
+        color='C0', 
+        alpha=0.5, 
+        s=10, 
+        size=(8, 8),
+        bounds=None
+    ):
     """
     The function visualizes the set of solutions of a system of linear algebraic
     inequalities A x >= b with three variables by the method of boundary intervals, and
@@ -588,8 +528,18 @@ def lineqs3D(A, b, show=True, color='C0', alpha=0.5, s=10, size=(8, 8),
     return vertices
 
 
-def IntLinIncR3(A, b, show=True, consistency='uni', color='C0',
-                alpha=0.5, s=10, size=(8, 8), bounds=None, zero_lvl=True):
+def IntLinIncR3(
+        A, 
+        b, 
+        show=True, 
+        consistency='uni', 
+        color='C0',
+        alpha=0.5, 
+        s=10, 
+        size=(8, 8), 
+        bounds=None, 
+        zero_lvl=True
+    ):
     """
     The function visualizes a set of solutions of an interval system of linear
     algebraic equations A x = b with three variables by the boundary value method

@@ -1,130 +1,16 @@
 import numpy as np
-
 from bisect import bisect_left
+
 import cvxopt
-
-from intvalpy.RealInterval import Interval
-
-from intvalpy.utils import intersection, infinity
-from intvalpy.linear.square_system import Gauss, HBR
-from intvalpy.linear.recognizing_functional import Tol
-
-
 cvxopt.solvers.options['show_progress'] = False
 cvxopt.solvers.options['glpk'] = {'msg_lev': 'GLP_MSG_OFF'}
 
-def _Rohn_Tol(A, b, nu=None):
+from ..kernel.real_intervals import Interval
+from ..kernel.preprocessing import intersection
+from ..kernel.utils import infinity
+from .Rohn import Rohn
+from .Gauss import Gauss
 
-    def solve_lp(c, A_ub, b_ub):
-        asmatrix = lambda A: A if isinstance(A, cvxopt.matrix) else cvxopt.matrix(A)
-        args = [asmatrix(c), asmatrix(A_ub), asmatrix(b_ub)]
-
-        result = cvxopt.solvers.lp(*args, solver='glpk')
-        if 'optimal' not in result['status']:
-            raise Exception("Неизвестная ошибка.")
-        return np.array(result['x']).reshape(c.shape[0])
-
-    def algo(A, b, nu):
-        A_ub = np.zeros((2*(n+m), 2*m), dtype=np.float64)
-        b_ub = np.zeros(2*(n+m), dtype=np.float64)
-
-        A_ub[:n, :m] = A.b
-        A_ub[:n, m:] = -A.a
-
-        A_ub[n:2*n, :m] = -A.a
-        A_ub[n:2*n, m:] = A.b
-        A_ub[2*n:] = -np.eye(2*m)
-
-        b_ub[:n] = b.b
-        b_ub[n:2*n] = -b.a
-
-        c = np.zeros(2*m, dtype=np.float64)
-        c[nu], c[nu+m] = 1, -1
-
-        inf = solve_lp(c, A_ub, b_ub) @ c
-        sup = -(solve_lp(-c, A_ub, b_ub) @ -c)
-
-        return inf, sup
-
-    n, m = A.shape
-    _, tolval, _, _, _ = Tol.maximize(A, b)
-    if tolval < 0:
-        raise Exception('Допусковое множество решений пусто!')
-
-    _inf, _sup = [], []
-    if nu is None:
-        for k in range(m):
-            inf, sup = algo(A, b, k)
-            _inf.append(inf)
-            _sup.append(sup)
-    else:
-        inf, sup = algo(A, b, nu)
-        _inf.append(inf)
-        _sup.append(sup)
-
-    return Interval(_inf, _sup, sortQ=False)
-
-
-def _Rohn_Uni(A, b, tol=1e-12, maxiter=2000):
-
-    Amid = np.array(A.mid, dtype=np.float64)
-    Ac_plus = np.linalg.inv(Amid.T @ Amid) @ Amid.T
-    A = Ac_plus @ A.copy()
-    b = Ac_plus @ b.copy()
-
-    n, m = A.shape
-    assert m <= n, 'Количество строк должно быть не меньше, чем количество столбцов!'
-
-    Amid = np.array(A.mid, dtype=np.float64)
-    R = np.linalg.inv(Amid.T @ Amid) @ Amid.T
-    x0 = R @ b.mid
-
-    G = abs(np.eye(m) - R @ Amid) + abs(R) @ A.rad
-    g = abs(R @ (Amid @ x0 - b.mid)) + abs(R) @ (A.rad @ abs(x0) + b.rad)
-
-    result = np.zeros(m)
-    error = infinity
-    nit = 0
-    while error >= tol and nit <= maxiter:
-        d = np.copy(result)
-        result = G @ d + g + tol
-        error = np.amax(abs(result-d))
-        nit += 1
-    return Interval(x0-result, x0+result)
-
-
-def Rohn(A, b, tol=1e-12, maxiter=2000, consistency='uni'):
-    """
-    Метод Дж. Рона для переопределённых ИСЛАУ.
-
-    Parameters:
-                A: Interval
-                    Матрица ИСЛАУ.
-
-                b: Interval
-                    Вектор правой части ИСЛАУ.
-
-    Optional Parameters:
-                tol: float
-                    Погрешность для остановки итерационного процесса.
-
-                maxiter: int
-                    Максимальное количество итераций.
-
-                consistency: str
-                    Параметр указывает какое множество решений (объединённое или
-                    допусковое) будет выведено в ответе.
-
-    Returns:
-                out: Interval
-                    Возвращается интервальный вектор решений.
-    """
-    if consistency == 'uni':
-        return _Rohn_Uni(A, b, tol=tol, maxiter=maxiter)
-    elif consistency == 'tol':
-        return _Rohn_Tol(A, b, nu=None)
-    else:
-        raise Exception('Нахождение данного множества решений не предусмотрено.')
 
 
 def PSS(A, b, x0=None, tol=1e-12, maxiter=2000, nu=None):
@@ -446,45 +332,3 @@ def PSS(A, b, x0=None, tol=1e-12, maxiter=2000, nu=None):
                 inf.append(algo(_nu))
 
     return Interval(inf, sup, sortQ=False)
-
-class TolSolSetEstimation:
-
-    @staticmethod
-    def Neumaier(A, b, y, w = None):
-        """
-            Calculation of the estimates of the tolerable solution sets of ISLAE
-                Ax = b
-            using Neumaier method.
-
-            Parameters:
-                A: Interval
-                    The input interval matrix of ISLAE
-
-                b: Interval
-                    The interval vector of the right part of the ISLAE.
-
-                y: np.array
-                    The center around which the estimation takes place
-
-                w: np.array, optional
-                    Weights of each direction
-            Returns:
-                out: Interval
-                    Returns an optimal interval vector, which means an external estimate of the united solution set.
-        """
-        if(A.shape[0] != len(b)):
-            raise Exception(f"Inconsistent dimensions matrix ({A.shape}) and right side ({len(b)})")
-        if (A.shape[1] != len(y)):
-            raise Exception(f"Inconsistent dimensions matrix ({A.shape}) and center point ({len(y)})")
-
-        if w is not None:
-            if (len(y) != len(w)):
-                raise Exception(f"Inconsistent dimensions center point {len(b)}  and weights ({len(w)})")
-            D = np.diag(w)
-            A_w = A @ D
-            estimation_box = D @ np.ones_like(y)
-        else:
-            A_w = A
-            estimation_box = np.ones_like(y)
-        r = (b.rad - (b.mid - A_w @ y).mag) / np.sum(A_w.mag, axis=1)
-        return y + estimation_box * r * Interval(-1, 1)
