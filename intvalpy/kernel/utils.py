@@ -1,6 +1,6 @@
 import numpy as np
 
-from .real_intervals import Interval, ARITHMETICS
+from .real_intervals import Interval, ARITHMETICS, INTERVAL_CLASSES
 from .preprocessing import asinterval
 
 
@@ -94,6 +94,8 @@ def wid(x):
             return x
     
     if hasattr(x, '__iter__'):
+        if isinstance(x, INTERVAL_CLASSES):
+            x = x.data
         return np.vectorize(_wid)(x)
     else:
         return _wid(x)
@@ -107,6 +109,8 @@ def mid(x):
             return x
     
     if hasattr(x, '__iter__'):
+        if isinstance(x, INTERVAL_CLASSES):
+            x = x.data
         return np.vectorize(_mid)(x)
     else:
         return _mid(x)
@@ -120,6 +124,8 @@ def rad(x):
             return x
     
     if hasattr(x, '__iter__'):
+        if isinstance(x, INTERVAL_CLASSES):
+            x = x.data
         return np.vectorize(_rad)(x)
     else:
         return _rad(x)
@@ -133,6 +139,8 @@ def inf(x):
             return x
     
     if hasattr(x, '__iter__'):
+        if isinstance(x, INTERVAL_CLASSES):
+            x = x.data
         return np.vectorize(_inf)(x)
     else:
         return _inf(x)
@@ -146,6 +154,8 @@ def sup(x):
             return x
     
     if hasattr(x, '__iter__'):
+        if isinstance(x, INTERVAL_CLASSES):
+            x = x.data
         return np.vectorize(_sup)(x)
     else:
         return _sup(x)
@@ -159,6 +169,8 @@ def mag(x):
             return x
     
     if hasattr(x, '__iter__'):
+        if isinstance(x, INTERVAL_CLASSES):
+            x = x.data
         return np.vectorize(_mag)(x)
     else:
         return _mag(x)
