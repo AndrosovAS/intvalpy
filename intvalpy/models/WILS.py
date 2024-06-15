@@ -7,7 +7,7 @@ from ..linear.Uni import Uni
 
 class WILS(object):
 
-    def init(self, alpha=0, beta=1):
+    def __init__(self, alpha=0, beta=1):
         self.alpha = alpha
         self.beta = beta
 
