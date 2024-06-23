@@ -121,7 +121,7 @@ def rad(x):
         if isinstance(x, ARITHMETICS):
             return x.rad
         else:
-            return float(x)
+            return 0.0
     
     if hasattr(x, '__iter__'):
         if isinstance(x, INTERVAL_CLASSES):
@@ -166,7 +166,7 @@ def mag(x):
         if isinstance(x, ARITHMETICS):
             return x.mag
         else:
-            return float(x)
+            return float(abs(x))
     
     if hasattr(x, '__iter__'):
         if isinstance(x, INTERVAL_CLASSES):
