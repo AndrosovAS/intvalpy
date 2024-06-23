@@ -91,7 +91,7 @@ def wid(x):
         if isinstance(x, ARITHMETICS):
             return x.wid
         else:
-            return x
+            return float(x)
     
     if hasattr(x, '__iter__'):
         if isinstance(x, INTERVAL_CLASSES):
@@ -106,7 +106,7 @@ def mid(x):
         if isinstance(x, ARITHMETICS):
             return x.mid
         else:
-            return x
+            return float(x)
     
     if hasattr(x, '__iter__'):
         if isinstance(x, INTERVAL_CLASSES):
@@ -121,7 +121,7 @@ def rad(x):
         if isinstance(x, ARITHMETICS):
             return x.rad
         else:
-            return x
+            return float(x)
     
     if hasattr(x, '__iter__'):
         if isinstance(x, INTERVAL_CLASSES):
@@ -136,7 +136,7 @@ def inf(x):
         if isinstance(x, ARITHMETICS):
             return x.inf
         else:
-            return x
+            return float(x)
     
     if hasattr(x, '__iter__'):
         if isinstance(x, INTERVAL_CLASSES):
@@ -151,7 +151,7 @@ def sup(x):
         if isinstance(x, ARITHMETICS):
             return x.sup
         else:
-            return x
+            return float(x)
     
     if hasattr(x, '__iter__'):
         if isinstance(x, INTERVAL_CLASSES):
@@ -166,7 +166,7 @@ def mag(x):
         if isinstance(x, ARITHMETICS):
             return x.mag
         else:
-            return x
+            return float(x)
     
     if hasattr(x, '__iter__'):
         if isinstance(x, INTERVAL_CLASSES):
