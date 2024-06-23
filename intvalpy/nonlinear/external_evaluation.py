@@ -1,8 +1,9 @@
 import numpy as np
 
-from intvalpy.linear import Gauss_Seidel, PSS
-from intvalpy.utils import asinterval, intersection, dist, infinity, isnan
-from intvalpy.RealInterval import ARITHMETICS
+from ..linear.Gauss_Seidel import Gauss_Seidel
+from ..kernel.preprocessing import asinterval, intersection
+from ..kernel.utils import dist, infinity, isnan
+from ..kernel.real_intervals import ARITHMETICS
 
 
 def HansenSengupta(func, J, x0, maxiter=2000, tol=1e-12):

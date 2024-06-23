@@ -1,7 +1,7 @@
 import numpy as np
 
 from .preprocessing import asinterval
-from.real_intervals import Interval, ARITHMETICS
+from .real_intervals import Interval, ARITHMETICS
 
 
 def sqrt(x):
