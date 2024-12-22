@@ -12,22 +12,23 @@ INSTALL_REQUIRES = [
     'matplotlib',
     'numpy',
     'cvxopt',
-    'mpmath'
+    'mpmath',
+    'pandas'
 ]
 
 setup(
     name='intvalpy',
-    version='1.6.5',
+    version='1.6.6',
     description='IntvalPy - a Python interval computation library',
     long_description=README,
     long_description_content_type='text/markdown',
     license='MIT License',
     keywords=[
-        'Interval',
+        'interval',
         'inequality visualization',
         'optimal solutions',
         'math',
-        'range'
+        'machine learning'
     ],
     author='Андросов Артем Станиславович, Шарый Сергей Петрович',
     author_email='artem.androsov@gmail.com, shary@ict.nsc.ru',

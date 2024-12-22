@@ -2,6 +2,7 @@ import numpy as np
 
 import math
 from mpmath import mp, mpf
+from numbers import Number
 
 import itertools
 
@@ -924,7 +925,8 @@ def SingleInterval(left, right, sortQ=True, midRadQ=False):
         else:
             return KaucherArithmetic(left, right)
 
-single_type = (int, float, np.int_, np.float_, mpf)
+# single_type = (int, float, np.int_, np.float_, mpf)
+single_type = (Number, mpf)
 ARITHMETICS = (ClassicalArithmetic, KaucherArithmetic)
 INTERVAL_CLASSES = (ClassicalArithmetic, KaucherArithmetic, ArrayInterval)
 

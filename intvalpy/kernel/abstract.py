@@ -230,7 +230,7 @@ class LinearConstraint:
                 self.C.append(C[0])
                 self.b.append(ub[0])
             else:
-                w = np.random.uniform(1, 2, n)
+                w = np.random.uniform(1, 1, n) # TODO
                 # TODO
                 # переписать более оптимальным способом
                 W = np.zeros( (n, C.shape[1]), dtype=np.float64)
