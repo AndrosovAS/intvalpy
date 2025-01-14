@@ -893,7 +893,7 @@ class ArrayInterval:
 
 
 class precision:
-    extendedPrecisionQ = True
+    extendedPrecisionQ = False
     mp.dps = 36
 
     def dps(_dps):

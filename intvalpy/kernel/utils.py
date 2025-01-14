@@ -176,6 +176,21 @@ def mag(x):
         return _mag(x)
 
 
+def khi(x):
+    def _khi(x):
+        if isinstance(x, ARITHMETICS):
+            return x.khi
+        else:
+            return 1
+    
+    if hasattr(x, '__iter__'):
+        if isinstance(x, INTERVAL_CLASSES):
+            x = x.data
+        return np.vectorize(_khi)(x)
+    else:
+        return _khi(x)
+
+
 subset = lambda a, b: np.array(((a.a >= b.a) & (a.b <= b.b)), dtype=np.bool).all()
 superset = lambda a, b: subset(b, a)
 

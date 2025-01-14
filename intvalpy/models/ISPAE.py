@@ -7,14 +7,23 @@ from ..kernel.real_intervals import Interval
 from ..kernel.preprocessing import asinterval
 
 
-class LIGAM(object):
+class ISPAE(object):
     
-    def __init__(self, alpha=0, beta=1):
+    def __init__(self, alpha=0, beta=1, basis='monom'):
         """
         Linear Interval Generalized Additive Model
         """
         self.alpha = alpha
         self.beta = beta
+
+        self.__bases = {
+            'monom': np.polynomial.polynomial.Polynomial.basis,
+            'chebyshev': np.polynomial.chebyshev.Chebyshev.basis,
+            'hermite': np.polynomial.hermite.Hermite.basis,
+            'laguerre': np.polynomial.laguerre.Laguerre.basis,
+            'legendre': np.polynomial.legendre.Legendre.basis,
+        }
+        self.basis = self.__bases[basis]
         
 
     def _wrap_norm(self, residual, norm):
@@ -30,26 +39,42 @@ class LIGAM(object):
         return obj, mcs
         
     
-    def value_of_one_col(self, beta, x):
+    def value_of_one_col(self, beta, x, deg=None):
         """
+        if basis is 'monom'
         y = beta[0]*x + ... + beta[N-1]*x**(N-2) + beta[N]*x**(N-1)
         """
-        def _value_of_one_element(inf, sup):
-            roots = np.roots( np.polyder(beta, m=1) ) # roots of the first deriv
-            roots = roots[np.isreal(roots)].real # only real roots
-            roots = roots[(inf <= roots) & (roots <= sup)] # only in interval (bounded)
-            roots = [inf, sup] + list(roots)
-            vals = np.array([np.polyval(beta, root) for root in roots])
-            return Interval(min(vals), max(vals), sortQ=False)
-
-        infs, sups = inf(x), sup(x)
-        # need reverse for np.polyder, np.polyval
-        # the fictitious zero coefficient is needed for the free term
-        beta = np.array([0] + list(beta))[::-1]
-        if hasattr(x, '__iter__'):
-            res = asinterval([_value_of_one_element(inf, sup) for inf, sup in zip(infs, sups)])
+        #+-----+-----+-----+-----+-----+
+        # initialization block
+        infs, sups = np.array([inf(x)]).flatten(), np.array([sup(x)]).flatten()
+        beta = np.array([beta]).flatten()
+        if deg is None:
+            basis = np.array([self.basis(k) for k in range(1, len(beta)+1)])
         else:
-            res = _value_of_one_element(infs, sups)
+            deg = np.array([deg]).flatten()
+            text = 'The length of the array for the degree of the basis polynomial must match the length of the array of beta coefficients.'
+            assert len(deg) == len(beta), text
+            basis = np.array([self.basis(d) for d in deg])
+
+        #+-----+-----+-----+-----+-----+
+        poly = beta @ basis
+        roots = poly.deriv(1).roots().real
+
+        vals = np.zeros( (len(infs), 2+len(roots)) , dtype=float)
+        vals[:, 0] = poly(infs)
+        vals[:, 1] = poly(sups)
+        vals[:, 2:] = poly(roots)
+        
+        dots = np.zeros( (len(infs), 2+len(roots)) , dtype=float)
+        dots[:, 0] = infs
+        dots[:, 1] = sups
+        dots[:, 2:] = roots
+        masks = (infs[:, np.newaxis] <= dots) & (dots <= sups[:, np.newaxis])
+
+        res = asinterval([
+            Interval(min(val[mask]), max(val[mask]), sortQ=False) 
+            for val, mask in zip(vals, masks)
+        ])
         return res
 
     
@@ -105,8 +130,8 @@ class LIGAM(object):
         X_expand = pd.DataFrame()
         nit = 0
         for k, col in enumerate(self.columns):
-            for l in range(1, self.order[k]+1):
-                X_expand[nit] = dataframe[col]**l
+            for deg in range(1, self.order[k]+1):
+                X_expand[nit] = self.value_of_one_col(1, dataframe[col], deg=deg) # self.basis(d)(dataframe[col])
                 nit = nit + 1
         return X_expand
 
@@ -120,7 +145,7 @@ class LIGAM(object):
             weight=None, 
             objective='Tol', 
             norm='inf', 
-            constraint=None, 
+            constraint=None,
             **kwargs
         ):
         #+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
@@ -131,7 +156,7 @@ class LIGAM(object):
             assert len(order)==m, 'Inconsistent order array sizes and the number of parameters.'
         else:
             order = np.full(m, order)
-        self.order = order
+        self.order = np.array(order)
         
         X_expand = self._expand_dataframe(X_train)
         infX, supX = inf(X_expand), sup(X_expand)
@@ -162,7 +187,6 @@ class LIGAM(object):
         #+-----+-----+-----+-----+-----+-----+
         if weight is None:
             weight = np.ones(n)
-        # делаем сглаживание
         weight[0] = self.beta * weight[0]*(1 - self.alpha)
         for k in range(1, n):
             weight[k] = self.beta * (weight[k]*(1 - self.alpha) + self.alpha*weight[k-1])

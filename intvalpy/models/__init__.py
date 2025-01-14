@@ -1,2 +1,2 @@
 from .WILS import WILS
-from .LIGAM import LIGAM
+from .ISPAE import ISPAE
