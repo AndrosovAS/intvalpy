@@ -26,7 +26,7 @@ class WILS(object):
             
         return obj, mcs
 
-    
+    # TODO
     def _uni_calcfg_extend(self, beta, infX, supX, Xm, Xr, ym, yr, weight, norm):
         index = beta>=0
         Xm_beta = Xm @ beta
