@@ -16,7 +16,7 @@ from .real_intervals import INTERVAL_CLASSES, single_type
 #############################################################################################################
 from .utils import infinity, nan
 from .utils import dist, diag, compmat, isnan
-from .utils import wid, mid, rad, inf, sup, mag
+from .utils import wid, mid, rad, inf, sup, mag, khi
 from .utils import subset, superset, proper_subset, proper_superset, contain, supercontain
 #############################################################################################################
 from .visualization import IPlot

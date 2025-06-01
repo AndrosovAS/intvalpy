@@ -5,9 +5,26 @@ linear and nonlinear equations, and visualizing solution sets for interval syste
 
 For details, see the complete documentation on [API](https://intvalpy.readthedocs.io/ru/latest/index.html).
 
+
+Links
+-----
+
+* [Article](<https://www.researchgate.net/publication/371587916_IntvalPy_-_a_Python_Interval_Computation_Library>)
+
+* [Patent](<https://elibrary.ru/item.asp?id=69597041>)
+
+* [Homepage](<https://github.com/AndrosovAS/intvalpy>)
+
+* [Online documentation](<https://intvalpy.readthedocs.io/ru/latest/#>)
+
+* [PyPI package](<https://pypi.org/project/intvalpy/>)
+
+* A detailed [monograph](<http://www.nsc.ru/interval/Library/InteBooks/SharyBook.pdf>) on interval theory
+
+
 ## Installation
 
-Make sure you have all the system-wide dependencies, then install the module itself:
+Ensure you have all the system-wide dependencies installed, then install the module using pip:
 ```
 pip install intvalpy
 ```
@@ -87,11 +104,9 @@ iplt.scatter(x, y, color='gray', alpha=0.7, s=10, axindex=axindex)
 ```
 ![SolSet](https://raw.githubusercontent.com/AndrosovAS/intvalpy/master/examples/SolSet.png)
 
-It is also possible to make a three-dimensional (two-dimensional) slice of an N-dimensional figure and see what the set of solutions looks like
-with fixed N-3 (N-2) parameters. A specific implementation of the algorithm can be found in the examples.
-As a result, a gif image of the united set of solutions of the system proposed by S.P. Sharym is shown below, during the evolution of the 4th unknown.
 
-![Shary4Uni](https://raw.githubusercontent.com/AndrosovAS/intvalpy/master/examples/Shary4Uni.gif)
+It is also possible to create a three-dimensional (or two-dimensional) slice of an N-dimensional figure to visualize the solution set 
+with fixed N-3 (or N-2) parameters. A specific implementation of this algorithm can be found in the examples.
 
 ### Recognizing functionals:
 
@@ -187,15 +202,4 @@ x = ip.Interval([-5]*N, [5]*N)
 ip.nonlinear.globopt(levy, x, tol=1e-14)
 ```
 
-Links
------
 
-* [Article](<https://www.researchgate.net/publication/371587916_IntvalPy_-_a_Python_Interval_Computation_Library>)
-
-* [Homepage](<https://github.com/AndrosovAS/intvalpy>)
-
-* [Online documentation](<https://intvalpy.readthedocs.io/ru/latest/#>)
-
-* [PyPI package](<https://pypi.org/project/intvalpy/>)
-
-* A detailed [monograph](<http://www.nsc.ru/interval/Library/InteBooks/SharyBook.pdf>) on interval theory

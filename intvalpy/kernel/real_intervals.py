@@ -1,4 +1,4 @@
-import numpy as np
+﻿import numpy as np
 
 import math
 from mpmath import mp, mpf
@@ -932,6 +932,53 @@ INTERVAL_CLASSES = (ClassicalArithmetic, KaucherArithmetic, ArrayInterval)
 
 
 def Interval(*args, sortQ=True, midRadQ=False):
+    '''
+    Construct an interval or array of intervals from input arguments.
+    
+    This function creates either SingleInterval or ArrayInterval objects
+    depending on the input format. It supports multiple input representations
+    and automatically handles bound ordering.
+    
+    Parameters:
+    -----------
+    *args : variable
+        Input arguments defining the interval(s). Can be:
+        - Two numbers (lower, upper bound)
+        - A single number (degenerate interval)
+        - A sequence of two numbers [lower, upper]
+        - An existing interval object
+        - Array-like inputs for vectorized operations
+        - Nested sequence for the standard interval vector representation
+    
+    sortQ : bool, optional
+        If True (default), automatically sorts bounds to ensure a ≤ b.
+        If False, preserves original order (may create improper intervals).
+    
+    midRadQ : bool, optional
+        If True, interprets inputs as midpoint-radius representation.
+        If False (default), interprets as lower-upper bounds.
+    
+    Returns:
+    --------
+    Interval object
+        Returns either:
+        - SingleInterval for scalar inputs
+        - ArrayInterval for array-like inputs
+    
+    Raises:
+    -------
+    AssertionError
+        If more than two main arguments are provided
+    
+    Examples:
+    ---------
+    >>> Interval(2, 5)                # Single interval [2, 5]
+    >>> Interval([3, 7])              # Single interval from sequence
+    >>> Interval(4)                   # Degenerate interval [4, 4]
+    >>> Interval([1,2], [3,4])        # Array of intervals [1, 3] and [2, 4]
+    >>> Interval([[1,3], [2,4]])      # Array of intervals [1, 3] and [3, 4]
+    >>> Interval(x, y, midRadQ=True)  # Midpoint-radius interpretation
+    '''
 
     n = len(args)
     assert n <= 2, "There cannot be more than two main arguments."
@@ -944,6 +991,9 @@ def Interval(*args, sortQ=True, midRadQ=False):
     else:
         if isinstance(args[0], INTERVAL_CLASSES):
             return args[0]
+        elif len(args[0]) == 2:
+            if isinstance(args[0][0], single_type) and isinstance(args[0][1], single_type):
+                return SingleInterval(args[0][0], args[0][1], sortQ=sortQ, midRadQ=midRadQ)
         elif isinstance(args[0], single_type):
             return SingleInterval(args[0], args[0], sortQ=sortQ, midRadQ=midRadQ)
         data = np.array(args[0])
