@@ -10,7 +10,7 @@ from .preprocessing import get_shape, asinterval, intersection
 #############################################################################################################
 from .ralgb5 import ralgb5
 #############################################################################################################
-from .real_intervals import ARITHMETICS, ClassicalArithmetic, KaucherArithmetic
+from .interval_arithmetics import ARITHMETICS, ClassicalArithmetic, KaucherArithmetic
 from .real_intervals import Interval, SingleInterval, ArrayInterval, precision
 from .real_intervals import INTERVAL_CLASSES, single_type
 #############################################################################################################

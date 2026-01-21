@@ -1,6 +1,9 @@
 import io
 import os
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Extension
+from Cython.Build import cythonize
+import numpy as np
+
 
 os.environ['CVXOPT_BUILD_GLPK'] = '1'
 
@@ -18,7 +21,7 @@ INSTALL_REQUIRES = [
 
 setup(
     name='intvalpy',
-    version='1.6.6',
+    version='2.0.0',
     description='IntvalPy - a Python interval computation library',
     long_description=README,
     long_description_content_type='text/markdown',
@@ -34,5 +37,14 @@ setup(
     author_email='artem.androsov@gmail.com, shary@ict.nsc.ru',
     url='https://github.com/AndrosovAS/intvalpy',
     packages=find_packages(),
-    install_requires=INSTALL_REQUIRES
+    install_requires=INSTALL_REQUIRES,
+    ext_modules=cythonize(
+        Extension(
+            'intvalpy.kernel.interval_arithmetics',
+            ['intvalpy/kernel/interval_arithmetics.pyx']
+        ),
+        compiler_directives={'language_level': "3"}
+    ),
+    include_dirs=[np.get_include()],
+    zip_safe=False,
 )
