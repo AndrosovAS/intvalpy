@@ -43,7 +43,7 @@ def Gauss_Seidel(A, b, x0=None, C=None, tol=1e-12, maxiter=2000):
     assert n == len(b), 'Inconsistent dimensions of matrix and right-hand side vector'
 
     A, b = A.copy(), b.copy()
-    C = np.linalg.inv(A.to_float().mid) if C is None else C
+    C = np.linalg.inv(A.mid) if C is None else C
     A = C @ A
     b = C @ b
 
