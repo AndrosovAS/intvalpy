@@ -1,4 +1,5 @@
 import numpy as np
+from numbers import Number
 
 import itertools
 from collections.abc import Sequence
@@ -79,46 +80,32 @@ def get_shape(lst, shape=()):
     return shape
 
 
-def asinterval(a):
+def asinterval(x):
     """
-
     To convert the input data to the interval type, use the asinterval function:
 
     Parameters:
-
-        a: int, float, array_like
+        x: int, float, array_like
             Input data in any form that can be converted to an interval data type.
             These include int, float, list and ndarrays.
 
-
     Returns:
-
         out: Interval
             The conversion is not performed if the input is already of type Interval.
             Otherwise an object of interval type is returned.
     """
-
-    if isinstance(a, INTERVAL_CLASSES):
-        return a
-
-    elif isinstance(a, single_type):
-        return Interval(a, a, sortQ=False)
-
+    if isinstance(x, INTERVAL_CLASSES):
+        return x
+    elif isinstance(x, Number):
+        return Interval(x, x, sortQ=False)
+    else:
+        assert not isinstance(x, str), 'The input argument x cannot be a string.'
+        assert hasattr(x, '__iter__'), 'Invalid input data: cannot convert to array.'
+    
     try:
-        a = np.asarray(a)
-        shape = get_shape(a)
-
-        result = zeros(shape)
-        for index in itertools.product(*result.ranges):
-            if isinstance(a[index], INTERVAL_CLASSES):
-                result[index] = a[index]
-            else:
-                result[index] = Interval(a[index], a[index], sortQ=False)
-        return result
-
-    except:
-        msg = 'Invalid input data.'
-        raise TypeError(msg)
+        return ArrayInterval(np.vectorize(lambda el: asinterval(el), otypes=[object])(np.asarray(x)))
+    except Exception:
+        raise TypeError('Invalid input data: cannot convert to array.')
     
 
 def intersection(x, y):

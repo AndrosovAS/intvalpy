@@ -274,6 +274,66 @@ cdef class BaseTools:
         else:
             raise TypeError('Not supported type.')
     
+    def sqrt(self):
+        return np.exp(0.5 * np.log(self))
+
+    def exp(self):
+        try:
+            return type(self)(math.exp(self.a), math.exp(self.b))
+        except OverflowError:
+            return type(self)(INF, INF)
+
+    def log(self):
+        pro = self.pro
+        _max, _min = max(pro.a, 0.0), pro.b
+        if _max <= _min:
+            inf = NEGINF if _max == 0.0 else math.log(_max)
+            sup = NEGINF if _min == 0.0 else math.log(_min)
+            if self.a <= self.b:
+                return type(self)(inf, sup)
+            else:
+                return type(self)(sup, inf)
+        else:
+            return type(self)(NAN, NAN)
+
+    def sin(self):
+        x = self.pro
+        sin_inf, sin_sup = math.sin(x.a), math.sin(x.b)
+        
+        if ceil((x.a + PI/2.0) / (2.0*PI)) <= floor((x.b + PI/2.0) / (2.0*PI)):
+            inf = -1
+        else:
+            inf = min(sin_inf, sin_sup)
+        
+        if ceil((x.a - PI/2.0) / (2.0*PI)) <= floor((x.b - PI/2.0) / (2.0*PI)):
+            sup = 1
+        else:
+            sup = max(sin_inf, sin_sup)
+        
+        if self.a <= self.b:
+            return type(self)(inf, sup)
+        else:
+            return type(self)(sup, inf)
+
+    def cos(self):
+        x = self.pro
+        cos_inf, cos_sup = math.cos(x.a), math.cos(x.b)
+        
+        if ceil((x.a - PI) / (2.0*PI)) <= floor((x.b - PI) / (2.0*PI)):
+            inf = -1
+        else:
+            inf = min(cos_inf, cos_sup)
+        
+        if ceil(x.a / (2.0*PI)) <= floor(x.b / (2.0*PI)):
+            sup = 1
+        else:
+            sup = max(cos_inf, cos_sup)
+        
+        if self.a <= self.b:
+            return type(self)(inf, sup)
+        else:
+            return type(self)(sup, inf)
+
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs): # TODO, debug
         cdef double_t inf, sup
         if ufunc.__name__ == 'add':
@@ -288,62 +348,16 @@ cdef class BaseTools:
             with RoundingContext(FE_UPWARD):
                 sup = 1.0/self.a
             return type(self)(inf, sup, roundQ=False).__rmul__(inputs[1])
-        elif ufunc.__name__ == 'sqrt': # TODO, debug
-            return np.exp(0.5 * np.log(self))
+        elif ufunc.__name__ == 'sqrt': 
+            return self.sqrt()
         elif ufunc.__name__ == 'exp':
-            try:
-                return type(self)(math.exp(self.a), math.exp(self.b))
-            except OverflowError:
-                return type(self)(INF, INF)
-        elif ufunc.__name__ == 'log': # TODO, debug
-            pro = self.pro
-            _max, _min = max(pro.a, 0.0), pro.b
-            if _max <= _min:
-                inf = NEGINF if _max == 0.0 else math.log(_max)
-                sup = NEGINF if _min == 0.0 else math.log(_min)
-                if self.a <= self.b:
-                    return type(self)(inf, sup)
-                else:
-                    return type(self)(sup, inf)
-            else:
-                return type(self)(NAN, NAN)
-        elif ufunc.__name__ == 'sin': # TODO, debug
-            x = self.pro
-            sin_inf, sin_sup = math.sin(x.a), math.sin(x.b)
-            
-            if ceil((x.a + PI/2.0) / (2.0*PI)) <= floor((x.b + PI/2.0) / (2.0*PI)):
-                inf = -1
-            else:
-                inf = min(sin_inf, sin_sup)
-            
-            if ceil((x.a - PI/2.0) / (2.0*PI)) <= floor((x.b - PI/2.0) / (2.0*PI)):
-                sup = 1
-            else:
-                sup = max(sin_inf, sin_sup)
-            
-            if self.a <= self.b:
-                return type(self)(inf, sup)
-            else:
-                return type(self)(sup, inf)
-        
-        elif ufunc.__name__ == 'cos': # TODO, debug
-            x = self.pro
-            cos_inf, cos_sup = math.cos(x.a), math.cos(x.b)
-            
-            if ceil((x.a - PI) / (2.0*PI)) <= floor((x.b - PI) / (2.0*PI)):
-                inf = -1
-            else:
-                inf = min(cos_inf, cos_sup)
-            
-            if ceil(x.a / (2.0*PI)) <= floor(x.b / (2.0*PI)):
-                sup = 1
-            else:
-                sup = max(cos_inf, cos_sup)
-            
-            if self.a <= self.b:
-                return type(self)(inf, sup)
-            else:
-                return type(self)(sup, inf)
+            return self.exp()
+        elif ufunc.__name__ == 'log': 
+            return self.log()
+        elif ufunc.__name__ == 'sin':
+            return self.sin()
+        elif ufunc.__name__ == 'cos':
+            return self.cos()        
         else:
             raise NotImplementedError(f"Calculation of the {ufunc.__name__} function is not provided!")
 
