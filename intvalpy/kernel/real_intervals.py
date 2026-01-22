@@ -245,7 +245,7 @@ class ArrayInterval:
 
     def __add__(self, other):
         if isinstance(other, ARITHMETICS):
-            return self._data + other
+            return ArrayInterval(self._data + other)
         elif isinstance(other, ArrayInterval):
             return ArrayInterval(self._data + other._data)
         else:
@@ -253,7 +253,7 @@ class ArrayInterval:
 
     def __sub__(self, other):
         if isinstance(other, ARITHMETICS):
-            return self._data - other
+            return ArrayInterval(self._data - other)
         elif isinstance(other, ArrayInterval):
             return ArrayInterval(self._data - other._data)
         else:
@@ -261,7 +261,7 @@ class ArrayInterval:
 
     def __mul__(self, other):
         if isinstance(other, ARITHMETICS):
-            return self._data * other
+            return ArrayInterval(self._data * other)
         elif isinstance(other, ArrayInterval):
             return ArrayInterval(self._data * other._data)
         else:
@@ -269,7 +269,7 @@ class ArrayInterval:
 
     def __truediv__(self, other):
         if isinstance(other, ARITHMETICS):
-            return self._data / other
+            return ArrayInterval(self._data / other)
         elif isinstance(other, ArrayInterval):
             return ArrayInterval(self._data / other._data)
         else:
