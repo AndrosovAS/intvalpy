@@ -29,7 +29,7 @@ def HBR(A, b):
 
     # создадим глубокие копии и сделаем предобуславливание
     A, b = A.copy(), b.copy()
-    C = np.linalg.inv(A.to_float().mid)
+    C = np.linalg.inv(A.mid)
     A = C @ A
     b = C @ b
 
