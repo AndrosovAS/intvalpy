@@ -334,32 +334,41 @@ cdef class BaseTools:
         else:
             return type(self)(sup, inf)
 
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs): # TODO, debug
+    def __array_ufunc__(self, *args):
         cdef double_t inf, sup
-        if ufunc.__name__ == 'add':
-            return self.__radd__(inputs[1])
-        elif ufunc.__name__ == 'subtract':
-            return type(self)(-self.b, -self.a).__radd__(inputs[1])
-        elif ufunc.__name__ == 'multiply':
-            return self.__rmul__(inputs[1])
-        elif ufunc.__name__ in ['true_divide', 'divide']:
+        if args[0].__name__ in ['add']:
+            return self.__radd__(args[2])
+
+        elif args[0].__name__ in ['subtract']:
+            return type(self)(-self.b, -self.a).__radd__(args[2])
+
+        elif args[0].__name__ in ['multiply']:
+            return self.__rmul__(args[2])
+
+        elif args[0].__name__ in ['true_divide', 'divide']:
             with RoundingContext(FE_DOWNWARD):
-                inf = 1.0/self.b
+                inf = 1/self.b
             with RoundingContext(FE_UPWARD):
-                sup = 1.0/self.a
-            return type(self)(inf, sup, roundQ=False).__rmul__(inputs[1])
-        elif ufunc.__name__ == 'sqrt': 
+                sup = 1/self.a
+            return type(self)(inf, sup, roundQ=False).__rmul__(args[2])
+
+        elif args[0].__name__ in ['sqrt']: 
             return self.sqrt()
-        elif ufunc.__name__ == 'exp':
+
+        elif args[0].__name__ in ['exp']:
             return self.exp()
-        elif ufunc.__name__ == 'log': 
+
+        elif args[0].__name__ in ['log']: 
             return self.log()
-        elif ufunc.__name__ == 'sin':
+
+        elif args[0].__name__ in ['sin']:
             return self.sin()
-        elif ufunc.__name__ == 'cos':
-            return self.cos()        
+
+        elif args[0].__name__ in ['cos']:
+            return self.cos()
+
         else:
-            raise NotImplementedError(f"Calculation of the {ufunc.__name__} function is not provided!")
+            raise NotImplementedError(f"Calculation of the {args[0].__name__} function is not provided!")
 
 
 cdef class ClassicalArithmetic(BaseTools):
