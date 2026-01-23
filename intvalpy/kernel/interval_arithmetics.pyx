@@ -49,29 +49,21 @@ cdef class RoundingContext:
     def __exit__(self, *args):
         fesetround(self.old_mode)
 
+
 cdef double round_down(double x) nogil:
     """
     Округление вниз (к -∞).
     Возвращает наибольшее число ≤ x, представимое в double.
     """
-    if x == 0.0:
-        return -0.0
-    elif x > 0.0:
-        return nextafter(x, -DBL_MAX)
-    else:
-        return x
+    return nextafter(x, -DBL_MAX)
+
 
 cdef double round_up(double x) nogil:
     """
     Округление вверх (к +∞).
     Возвращает наименьшее число ≥ x, представимое в double.
     """
-    if x == 0.0:
-        return 0.0
-    elif x > 0.0:
-        return x
-    else:
-        return nextafter(x, DBL_MAX)    
+    return nextafter(x, DBL_MAX)    
 #######################################################################################
 
 
@@ -510,7 +502,7 @@ cdef class ClassicalArithmetic(BaseTools):
 
 
 cdef class KaucherArithmetic(BaseTools):
-    def _add__(self, other):
+    def __add__(self, other):
         cdef double_t inf, sup
         if isinstance(other, (ClassicalArithmetic, KaucherArithmetic)):
             with RoundingContext(FE_DOWNWARD):
