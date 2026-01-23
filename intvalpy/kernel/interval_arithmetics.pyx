@@ -60,7 +60,7 @@ cdef double round_up(double x) nogil:
 
 
 cdef class BaseTools:
-    cdef int _a_int, _b_int
+    cdef object _a_int, _b_int
     cdef double_t _a_double, _b_double
     cdef bint _a_doubleQ, _b_doubleQ
    
