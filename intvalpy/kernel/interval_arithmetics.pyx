@@ -60,11 +60,25 @@ cdef double round_up(double x) nogil:
 
 
 cdef class BaseTools:
+    cdef int _a_int, _b_int
     cdef double_t _a_double, _b_double
-
+    cdef bint _a_doubleQ, _b_doubleQ
+   
+    
     def __cinit__(self, left, right):
-        self._a_double = left
-        self._b_double = right
+        if isinstance(left, int):
+            self._a_int = left
+            self._a_doubleQ = False
+        else:
+            self._a_double = left
+            self._a_doubleQ = True
+            
+        if isinstance(right, int):
+            self._b_int = right
+            self._b_doubleQ = False
+        else:
+            self._b_double = right
+            self._b_doubleQ = True
     
     @property
     def a(self):
@@ -72,7 +86,7 @@ cdef class BaseTools:
         The largest number that is less than or equal to each of a given
         set of real numbers of an interval.
         """
-        return self._a_double
+        return self._a_double if self._a_doubleQ else self._a_int
     
     @property
     def b(self):
@@ -80,7 +94,7 @@ cdef class BaseTools:
         The smallest number that is greater than or equal to each of a given
         set of real numbers of an interval.
         """
-        return self._b_double
+        return self._b_double if self._b_doubleQ else self._b_int
     
     @property
     def inf(self):
