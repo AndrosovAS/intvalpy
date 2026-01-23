@@ -51,48 +51,20 @@ cdef class RoundingContext:
 
 
 cdef double round_down(double x) nogil:
-    """
-    Округление вниз (к -∞).
-    Возвращает наибольшее число ≤ x, представимое в double.
-    """
     return nextafter(x, -DBL_MAX)
 
 
 cdef double round_up(double x) nogil:
-    """
-    Округление вверх (к +∞).
-    Возвращает наименьшее число ≥ x, представимое в double.
-    """
     return nextafter(x, DBL_MAX)    
 #######################################################################################
 
 
 cdef class BaseTools:
-    cdef int _a_int, _b_int
     cdef double_t _a_double, _b_double
-    cdef bint _a_doubleQ, _b_doubleQ
-   
-    
-    def __cinit__(self, left, right, roundQ=True):
-        if roundQ:
-            if isinstance(left, int):
-                self._a_int = left
-                self._a_doubleQ = False
-            else:
-                self._a_double = round_down(left)
-                self._a_doubleQ = True
-                
-            if isinstance(right, int):
-                self._b_int = right
-                self._b_doubleQ = False
-            else:
-                self._b_double = round_up(right)
-                self._b_doubleQ = True
-        else:
-            self._a_double = left
-            self._a_doubleQ = True
-            self._b_double = right
-            self._b_doubleQ = True
+
+    def __cinit__(self, left, right):
+        self._a_double = left
+        self._b_double = right
     
     @property
     def a(self):
@@ -100,7 +72,7 @@ cdef class BaseTools:
         The largest number that is less than or equal to each of a given
         set of real numbers of an interval.
         """
-        return self._a_double if self._a_doubleQ else self._a_int
+        return self._a_double
     
     @property
     def b(self):
@@ -108,7 +80,7 @@ cdef class BaseTools:
         The smallest number that is greater than or equal to each of a given
         set of real numbers of an interval.
         """
-        return self._b_double if self._b_doubleQ else self._b_int
+        return self._b_double
     
     @property
     def inf(self):
@@ -116,7 +88,7 @@ cdef class BaseTools:
         The largest number that is less than or equal to each of a given
         set of real numbers of an interval.
         """
-        return self._a_double if self._a_doubleQ else self._a_int
+        return self.a
     
     @property
     def sup(self):
@@ -124,7 +96,7 @@ cdef class BaseTools:
         The smallest number that is greater than or equal to each of a given
         set of real numbers of an interval.
         """
-        return self._b_double if self._b_doubleQ else self._b_int
+        return self.b
     
     def copy(self, deep=True):
         if deep:
@@ -163,23 +135,23 @@ cdef class BaseTools:
     @property
     def dual(self):
         if self.b <= self.a:
-            return ClassicalArithmetic(self.b, self.a, roundQ=False)
+            return ClassicalArithmetic(self.b, self.a)
         else:
-            return KaucherArithmetic(self.b, self.a, roundQ=False)
+            return KaucherArithmetic(self.b, self.a)
     
     @property
     def pro(self):
         if isinstance(self, ClassicalArithmetic):
-            return ClassicalArithmetic(self.a, self.b, roundQ=False)
+            return ClassicalArithmetic(self.a, self.b)
         else:
-            return ClassicalArithmetic(min(self.a, self.b), max(self.a, self.b), roundQ=False)
+            return ClassicalArithmetic(min(self.a, self.b), max(self.a, self.b))
     
     @property
     def opp(self):
         if self.b <= self.a:
-            return ClassicalArithmetic(-self.a, -self.b, roundQ=False)
+            return ClassicalArithmetic(-self.a, -self.b)
         else:
-            return KaucherArithmetic(-self.a, -self.b, roundQ=False)
+            return KaucherArithmetic(-self.a, -self.b)
     
     @property
     def inv(self):
@@ -205,7 +177,7 @@ cdef class BaseTools:
     
     # Unary operations
     def __neg__(self):
-        return type(self)(-self.b, -self.a, roundQ=False)
+        return type(self)(-self.b, -self.a)
     
     def __abs__(self):
         return type(self)(self.mig, self.mag)
@@ -270,61 +242,100 @@ cdef class BaseTools:
         return np.exp(0.5 * np.log(self))
 
     def exp(self):
+        cdef double_t inf, sup
         try:
-            return type(self)(math.exp(self.a), math.exp(self.b))
+            inf = round_down(math.exp(self.a))
+            sup = round_up(math.exp(self.b))
+            return type(self)(inf, sup)
         except OverflowError:
             return type(self)(INF, INF)
 
     def log(self):
+        cdef double_t inf, sup
         pro = self.pro
         _max, _min = max(pro.a, 0.0), pro.b
         if _max <= _min:
-            inf = NEGINF if _max == 0.0 else math.log(_max)
-            sup = NEGINF if _min == 0.0 else math.log(_min)
             if self.a <= self.b:
+                with RoundingContext(FE_DOWNWARD):
+                    inf = NEGINF if _max == 0.0 else math.log(_max)
+                with RoundingContext(FE_UPWARD):
+                    sup = NEGINF if _min == 0.0 else math.log(_min)
                 return type(self)(inf, sup)
             else:
+                with RoundingContext(FE_DOWNWARD):
+                    sup = NEGINF if _min == 0.0 else math.log(_min)
+                with RoundingContext(FE_UPWARD):
+                    inf = NEGINF if _max == 0.0 else math.log(_max)                    
                 return type(self)(sup, inf)
         else:
             return type(self)(NAN, NAN)
 
+
     def sin(self):
+        cdef double_t inf, sup
         x = self.pro
         sin_inf, sin_sup = math.sin(x.a), math.sin(x.b)
-        
-        if ceil((x.a + PI/2.0) / (2.0*PI)) <= floor((x.b + PI/2.0) / (2.0*PI)):
-            inf = -1
-        else:
-            inf = min(sin_inf, sin_sup)
-        
-        if ceil((x.a - PI/2.0) / (2.0*PI)) <= floor((x.b - PI/2.0) / (2.0*PI)):
-            sup = 1
-        else:
-            sup = max(sin_inf, sin_sup)
-        
+
         if self.a <= self.b:
+            with RoundingContext(FE_DOWNWARD):
+                if ceil((x.a + PI/2) / (2*PI)) <= floor((x.b + PI/2) / (2*PI)):
+                    inf = -1
+                else:
+                    inf = round_down(min(sin_inf, sin_sup))
+
+            with RoundingContext(FE_UPWARD):
+                if ceil((x.a - PI/2) / (2*PI)) <= floor((x.b - PI/2) / (2*PI)):
+                    sup = 1
+                else:
+                    sup = round_up(max(sin_inf, sin_sup))
             return type(self)(inf, sup)
         else:
+            with RoundingContext(FE_DOWNWARD):
+                if ceil((x.a - PI/2) / (2*PI)) <= floor((x.b - PI/2) / (2*PI)):
+                    sup = 1
+                else:
+                    sup = round_down(max(sin_inf, sin_sup))
+
+            with RoundingContext(FE_UPWARD):
+                if ceil((x.a + PI/2) / (2*PI)) <= floor((x.b + PI/2) / (2*PI)):
+                    inf = -1
+                else:
+                    inf = round_up(min(sin_inf, sin_sup))
             return type(self)(sup, inf)
 
+
     def cos(self):
+        cdef double_t inf, sup
         x = self.pro
         cos_inf, cos_sup = math.cos(x.a), math.cos(x.b)
         
-        if ceil((x.a - PI) / (2.0*PI)) <= floor((x.b - PI) / (2.0*PI)):
-            inf = -1
-        else:
-            inf = min(cos_inf, cos_sup)
-        
-        if ceil(x.a / (2.0*PI)) <= floor(x.b / (2.0*PI)):
-            sup = 1
-        else:
-            sup = max(cos_inf, cos_sup)
-        
         if self.a <= self.b:
+            with RoundingContext(FE_DOWNWARD):
+                if ceil((x.a - PI) / (2*PI)) <= floor((x.b - PI) / (2*PI)):
+                    inf = -1
+                else:
+                    inf = round_down(min(cos_inf, cos_sup))
+
+            with RoundingContext(FE_UPWARD):
+                if ceil(x.a / (2*PI)) <= floor(x.b / (2*PI)):
+                    sup = 1
+                else:
+                    sup = round_up(max(cos_inf, cos_sup))
             return type(self)(inf, sup)
         else:
+            with RoundingContext(FE_DOWNWARD):
+                if ceil(x.a / (2*PI)) <= floor(x.b / (2*PI)):
+                    sup = 1
+                else:
+                    sup = round_down(max(cos_inf, cos_sup))
+
+            with RoundingContext(FE_UPWARD):
+                if ceil((x.a - PI) / (2*PI)) <= floor((x.b - PI) / (2*PI)):
+                    inf = -1
+                else:
+                    inf = round_up(min(cos_inf, cos_sup))
             return type(self)(sup, inf)
+
 
     def __array_ufunc__(self, *args):
         cdef double_t inf, sup
@@ -342,7 +353,7 @@ cdef class BaseTools:
                 inf = 1/self.b
             with RoundingContext(FE_UPWARD):
                 sup = 1/self.a
-            return type(self)(inf, sup, roundQ=False).__rmul__(args[2])
+            return type(self)(inf, sup).__rmul__(args[2])
 
         elif args[0].__name__ in ['sqrt']: 
             return self.sqrt()
@@ -371,7 +382,7 @@ cdef class ClassicalArithmetic(BaseTools):
                 inf = self.a + other.a
             with RoundingContext(FE_UPWARD):
                 sup = self.b + other.b
-            return type(other)(inf, sup, roundQ=False)
+            return type(other)(inf, sup)
         else:
             return other + self
     
@@ -382,7 +393,7 @@ cdef class ClassicalArithmetic(BaseTools):
                 inf = self.a - other.b
             with RoundingContext(FE_UPWARD):
                 sup = self.b - other.a
-            return type(other)(inf, sup, roundQ=False)
+            return type(other)(inf, sup)
         else:
             return -other + self
     
@@ -396,7 +407,7 @@ cdef class ClassicalArithmetic(BaseTools):
                 inf = min(self.a * other.a, self.a * other.b, self.b * other.a, self.b * other.b)
             with RoundingContext(FE_UPWARD):
                 sup = max(self.a * other.a, self.a * other.b, self.b * other.a, self.b * other.b)
-            return ClassicalArithmetic(inf, sup, roundQ=False)
+            return ClassicalArithmetic(inf, sup)
         
         elif isinstance(other, KaucherArithmetic):
             selfInfPlus = max(self.a, 0.0)
@@ -413,7 +424,7 @@ cdef class ClassicalArithmetic(BaseTools):
                 inf = selfInfPlus * otherInfPlus + selfSupMinus * otherSupMinus - selfSupPlus * otherInfMinus - selfInfMinus * otherSupPlus
             with RoundingContext(FE_UPWARD):
                 sup = selfSupPlus * otherSupPlus + selfInfMinus * otherInfMinus - selfInfPlus * otherSupMinus - selfSupMinus * otherInfPlus
-            return KaucherArithmetic(inf, sup, roundQ=False)
+            return KaucherArithmetic(inf, sup)
         
         else:
             return other * self
@@ -427,7 +438,7 @@ cdef class ClassicalArithmetic(BaseTools):
                 inf = min(self.a / other.a, self.a / other.b, self.b / other.a, self.b / other.b)
             with RoundingContext(FE_UPWARD):
                 sup = max(self.a / other.a, self.a / other.b, self.b / other.a, self.b / other.b)
-            return ClassicalArithmetic(inf, sup, roundQ=False)
+            return ClassicalArithmetic(inf, sup)
         
         if isinstance(other, KaucherArithmetic):
             if 0.0 in other:
@@ -436,7 +447,7 @@ cdef class ClassicalArithmetic(BaseTools):
                 inf = 1.0/other.b
             with RoundingContext(FE_UPWARD):
                 sup = 1.0/other.a
-            return self.__mul__(KaucherArithmetic(inf, sup, roundQ=False))
+            return self.__mul__(KaucherArithmetic(inf, sup))
         
         else:
             return 1.0/other * self
@@ -448,9 +459,9 @@ cdef class ClassicalArithmetic(BaseTools):
             with RoundingContext(FE_UPWARD):
                 sup = max(self.a ** other, self.b ** other)
             if (other % 2 == 0) and (0 in self):
-                return ClassicalArithmetic(0.0, sup, roundQ=False)
+                return ClassicalArithmetic(0.0, sup)
             else:
-                return ClassicalArithmetic(inf, sup, roundQ=False)
+                return ClassicalArithmetic(inf, sup)
         elif self >= 0:
             return np.exp(other * np.log(self))
         else:
@@ -463,7 +474,7 @@ cdef class ClassicalArithmetic(BaseTools):
                 inf = self.a + other
             with RoundingContext(FE_UPWARD):
                 sup = self.b + other
-            return ClassicalArithmetic(inf, sup, roundQ=False)
+            return ClassicalArithmetic(inf, sup)
         else:
             # Для массивов
             return np.vectorize(lambda o: o + self)(other)
@@ -475,7 +486,7 @@ cdef class ClassicalArithmetic(BaseTools):
                 inf = other - self.b
             with RoundingContext(FE_UPWARD):
                 sup = other - self.a
-            return ClassicalArithmetic(inf, sup, roundQ=False)
+            return ClassicalArithmetic(inf, sup)
         else:
             return np.vectorize(lambda o: o - self)(other)
     
@@ -486,7 +497,7 @@ cdef class ClassicalArithmetic(BaseTools):
                 inf = min(other * self.a, other * self.b)
             with RoundingContext(FE_UPWARD):
                 sup = max(other * self.a, other * self.b)
-            return ClassicalArithmetic(inf, sup, roundQ=False)
+            return ClassicalArithmetic(inf, sup)
         else:
             return np.vectorize(lambda o: o * self)(other)
     
@@ -498,7 +509,7 @@ cdef class ClassicalArithmetic(BaseTools):
             inf = 1.0/self.b
         with RoundingContext(FE_UPWARD):
             sup = 1.0/self.a
-        return other * ClassicalArithmetic(inf, sup, roundQ=False)
+        return other * ClassicalArithmetic(inf, sup)
 
 
 cdef class KaucherArithmetic(BaseTools):
@@ -509,7 +520,7 @@ cdef class KaucherArithmetic(BaseTools):
                 inf = self.a + other.a
             with RoundingContext(FE_UPWARD):
                 sup = self.b + other.b
-            return KaucherArithmetic(inf, sup, roundQ=False)
+            return KaucherArithmetic(inf, sup)
         else:
             return other + self
     
@@ -520,7 +531,7 @@ cdef class KaucherArithmetic(BaseTools):
                 inf = self.a - other.b
             with RoundingContext(FE_UPWARD):
                 sup = self.b - other.a
-            return KaucherArithmetic(inf, sup, roundQ=False)
+            return KaucherArithmetic(inf, sup)
         else:
             return -other + self
     
@@ -544,7 +555,7 @@ cdef class KaucherArithmetic(BaseTools):
                 inf = max(selfInfPlus * otherInfPlus, selfSupMinus * otherSupMinus) - max(selfSupPlus * otherInfMinus, selfInfMinus * otherSupPlus)
             with RoundingContext(FE_UPWARD):
                 sup = max(selfSupPlus * otherSupPlus, selfInfMinus * otherInfMinus) - max(selfInfPlus * otherSupMinus, selfSupMinus * otherInfPlus)
-            return KaucherArithmetic(inf, sup, roundQ=False)
+            return KaucherArithmetic(inf, sup)
         
         else:
             return other * self
@@ -562,7 +573,7 @@ cdef class KaucherArithmetic(BaseTools):
                 inf = 1.0/other.b
             with RoundingContext(FE_UPWARD):
                 sup = 1.0/other.a
-            other = ClassicalArithmetic(inf, sup, roundQ=False)
+            other = ClassicalArithmetic(inf, sup)
             
             selfInfPlus = max(self.a, 0.0)
             selfSupPlus = max(self.b, 0.0)
@@ -578,7 +589,7 @@ cdef class KaucherArithmetic(BaseTools):
                 inf = selfInfPlus * otherInfPlus + selfSupMinus * otherSupMinus - selfSupPlus * otherInfMinus - selfInfMinus * otherSupPlus
             with RoundingContext(FE_UPWARD):
                 sup = selfSupPlus * otherSupPlus + selfInfMinus * otherInfMinus - selfInfPlus * otherSupMinus - selfSupMinus * otherInfPlus
-            return KaucherArithmetic(inf, sup, roundQ=False)
+            return KaucherArithmetic(inf, sup)
         
         if isinstance(other, KaucherArithmetic):
             if 0.0 in other:
@@ -587,7 +598,7 @@ cdef class KaucherArithmetic(BaseTools):
                 inf = 1.0/other.b
             with RoundingContext(FE_UPWARD):
                 sup = 1.0/other.a
-            return self.__mul__(KaucherArithmetic(inf, sup, roundQ=False))
+            return self.__mul__(KaucherArithmetic(inf, sup))
         
         else:
             return 1/other * self
@@ -620,7 +631,7 @@ cdef class KaucherArithmetic(BaseTools):
                 inf = self.a + other
             with RoundingContext(FE_UPWARD):
                 sup = self.b + other
-            return KaucherArithmetic(inf, sup, roundQ=False)
+            return KaucherArithmetic(inf, sup)
         else:
             return np.vectorize(lambda o: o + self)(other)
     
@@ -631,7 +642,7 @@ cdef class KaucherArithmetic(BaseTools):
                 inf = other - self.b
             with RoundingContext(FE_UPWARD):
                 sup = other - self.a
-            return KaucherArithmetic(inf, sup, roundQ=False)
+            return KaucherArithmetic(inf, sup)
         else:
             return np.vectorize(lambda o: o - self)(other)
     
@@ -655,7 +666,7 @@ cdef class KaucherArithmetic(BaseTools):
                 inf = selfInfPlus * otherInfPlus + selfSupMinus * otherSupMinus - selfSupPlus * otherInfMinus - selfInfMinus * otherSupPlus
             with RoundingContext(FE_UPWARD):
                 sup = selfSupPlus * otherSupPlus + selfInfMinus * otherInfMinus - selfInfPlus * otherSupMinus - selfSupMinus * otherInfPlus
-            return KaucherArithmetic(inf, sup, roundQ=False)
+            return KaucherArithmetic(inf, sup)
         else:
             return np.vectorize(lambda o: o * self)(other)
     
@@ -667,4 +678,4 @@ cdef class KaucherArithmetic(BaseTools):
             inf = 1.0/self.b
         with RoundingContext(FE_UPWARD):
             sup = 1.0/self.a
-        return other * KaucherArithmetic(inf, sup, roundQ=False)
+        return other * KaucherArithmetic(inf, sup)
