@@ -362,6 +362,8 @@ def PPS(A, b, tol=1e-12, maxiter=2000, nu=None):
     # assert max(abs(np.linalg.svd(abs(np.linalg.inv(A.mid)) @ A.rad, compute_uv=False))) < 1, 'Matrix is singular'
 
     A, b = A.copy(), b.copy()
+    A = asinterval(np.vectorize(lambda el: Interval(float(el.a), float(el.b), sortQ=False))(A._data))
+    b = asinterval(np.vectorize(lambda el: Interval(float(el.a), float(el.b), sortQ=False))(b._data))
     I = eye(n)
     # invA = HBR(A, I)
     invA = zeros(A.shape)
