@@ -21,7 +21,7 @@ INSTALL_REQUIRES = [
 
 setup(
     name='intvalpy',
-    version='2.0.1',
+    version='2.0.0',
     description='IntvalPy - a Python interval computation library',
     long_description=README,
     long_description_content_type='text/markdown',
