@@ -28,10 +28,11 @@ setup(
     license='MIT License',
     keywords=[
         'interval',
+        'machine learning',
+        'data fitting',
         'inequality visualization',
         'optimal solutions',
-        'math',
-        'machine learning'
+        'math'
     ],
     author='Андросов Артем Станиславович, Шарый Сергей Петрович',
     author_email='artem.androsov@gmail.com, shary@ict.nsc.ru',
