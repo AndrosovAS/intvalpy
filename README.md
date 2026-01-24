@@ -9,7 +9,9 @@ For details, see the complete documentation on [API](https://intvalpy.readthedoc
 Links
 -----
 
-* [Article](<https://www.researchgate.net/publication/371587916_IntvalPy_-_a_Python_Interval_Computation_Library>)
+* [Article about the library](<https://www.researchgate.net/publication/371587916_IntvalPy_-_a_Python_Interval_Computation_Library>)
+
+* [Article about the data fitting](<https://link.springer.com/article/10.1134/S0965542525701301>)
 
 * [Patent](<https://elibrary.ru/item.asp?id=69597041>)
 
@@ -30,6 +32,112 @@ pip install intvalpy
 ```
 
 ## Examples
+
+### Data Fitting:
+
+Suppose the quantity $y$ of interest is described by a function on the variables $x_1, \ldots, x_m$, and this function is
+
+$$ y = f(x, \beta) $$
+
+where $f$ is a fixed expression depending on the vector of independent variables $x = (x_1, \ldots, x_m)$ and the vector of parameters 
+$\beta = (\beta_1, \ldots, \beta_p)$. We want to find the values of the parameters $\beta_1, \ldots, \beta_p$ that best fit 
+the set of values of $x$ and $y$ obtained from measurements or observations of the functional dependency of interest.
+
+Suppose that $n$ values $y^{(i)}$ of the function on sets of arguments $(x_1^{(i)}, \ldots, x_m^{(i)})$ were obtained by observations, 
+where $i = 1, 2, \ldots, n$ is the observation index. The problem statement implies that the equalities
+
+$$ y^{(i)} = f(x_1^{(i)}, \ldots, x_m^{(i)}, \beta_1, \ldots, \beta_p), \quad i = 1, 2, \ldots, n, $$
+
+should be fulfilled, which form a system of equations in the unknowns $\beta_1, \ldots, \beta_p$. By solving 
+this system, we can find the desired values of the parameters that define the functional dependency. However in practice, 
+this system of equations typically lacks traditional solutions due to data errors resulting from inaccurate measurements 
+and uncontrolled external influences. The error may be due to data aggregation or limited amount of data, etc. 
+In such cases, a generalized solution to the resulting system of equations (like a pseudosolution) is typically 
+sought often using probability-theoretic models of data errors. However, in practice the probability distributions 
+of these errors are rarely known precisely, although some assumptions are usually made regarding their characteristics.
+
+The following outlines an approach to estimating the parameters of a function, which leverages the principles 
+and methods of interval analysis. This approach enables the reconstruction of a function using only information 
+about the maximum possible error in the data, without requiring any knowledge or assumptions about the probability 
+distributions of the errors.
+
+```python
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import intvalpy as ip
+
+def noise_distribution(n_samples, intensity=0.7, seed=42):
+    np.random.seed(seed)
+    # Base noise depends on point position
+    base_noise = np.random.normal(0, 0.3 * intensity, n_samples)
+    # Impulse outliers (rare but noticeable)
+    impulse_mask = np.random.random(n_samples) < 0.1  # 10% of points
+    impulse_noise = np.random.normal(0, 2 * intensity, n_samples) * impulse_mask
+    # Cluster noise (groups of points with similar bias)
+    cluster_noise = np.zeros(n_samples)
+    n_clusters = max(2, n_samples // 20)
+    cluster_centers = np.random.choice(n_samples, n_clusters, replace=False)
+    for center in cluster_centers:
+        cluster_size = np.random.randint(2, 6)
+        cluster_indices = np.clip(np.arange(center-2, center+3), 0, n_samples-1)
+        cluster_value = np.random.normal(0, 1.5 * intensity)
+        cluster_noise[cluster_indices] += cluster_value
+    # Combine all components
+    return base_noise + impulse_noise + 0.4*cluster_noise
+
+# Original function
+def f(x): 
+    return -5.24 + x*np.sin(x)
+    
+# Data generation
+x = np.sort(np.random.uniform(0.1, 9.9, 100))
+y = f(x)
+const = np.ones(len(x))
+eps_x = noise_distribution(len(x), intensity=0.005, seed=42)
+eps_y = noise_distribution(len(x), intensity=1.75, seed=43)
+x_noisy = x + eps_x
+y_noisy = y + eps_y
+df = pd.DataFrame(
+    data = np.array([ const, x_noisy, y_noisy ]).T,
+    columns = ['const', 'x', 'y']
+)
+# Convert to interval uncertainty
+df['x'] = df['x'] + ip.Interval(-max(eps_x), max(eps_x))
+df['y'] = df['y'] + ip.Interval(-max(eps_y), max(eps_y))
+
+# Training a polynomial model
+model = ip.ISPAE()
+model.fit(
+    X_train = df[['const', 'x']],
+    y_train = df['y'],
+    order = [1, 8],
+    x0 = None,
+    weight = None,
+    objective = 'Uni',
+    norm = 'inf',
+)
+
+# Testing fitted model
+ox = np.linspace(0, 10, 1000)
+const = np.ones(len(ox))
+df_test = pd.DataFrame(data=np.array([const, ox]).T, columns=['const', 'x'])
+y_pred = ip.mid(model.predict(df_test[['const', 'x']]))
+y_fact = f(ox)
+
+# Visualization results
+fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 3.5))
+x_plt = np.array([ip.inf(df['x']), ip.inf(df['x']), ip.sup(df['x']), ip.sup(df['x'])])
+y_plt = np.array([ip.inf(df['y']), ip.sup(df['y']), ip.sup(df['y']), ip.inf(df['y'])])
+ax.fill(x_plt, y_plt, color='black', alpha=0.15, fill=True, label='Interval uncertainty')
+plt.scatter(x_noisy, y_noisy, alpha=0.7, color='black', s=8, label='Noisy data')
+plt.plot(ox, y_pred, color='red', ls='--', alpha=1, linewidth=1.5, label='Fitted fucntion')
+plt.plot(ox, y_fact, color='black', ls='-', alpha=0.7, linewidth=1.5, label='Original function')
+handles, labels = ax.get_legend_handles_labels()
+by_label = dict(zip(labels, handles))
+ax.legend(by_label.values(), by_label.keys(), loc='lower right')
+```
+![FittedModel](https://raw.githubusercontent.com/AndrosovAS/intvalpy/master/examples/FittedModel.png)
 
 ### Visualizing solution sets
 
@@ -108,42 +216,6 @@ iplt.scatter(x, y, color='gray', alpha=0.7, s=10, axindex=axindex)
 It is also possible to create a three-dimensional (or two-dimensional) slice of an N-dimensional figure to visualize the solution set 
 with fixed N-3 (or N-2) parameters. A specific implementation of this algorithm can be found in the examples.
 
-### Recognizing functionals:
-
-Before we start solving a system of equations with interval data it is necessary to understand whether it is solvable or not.
-To do this we consider the problem of decidability recognition, i.e. non-emptiness of the set of solutions.
-In the case of an interval linear (m x n)-system of equations, we will need to solve no more than 2\ :sup:`n`
-linear inequalities of size 2m+n. This follows from the fact of convexity and polyhedra of the intersection of the sets of solutions
-interval system of linear algebraic equations (ISLAE) with each of the orthants of **R**\ :sup:`n` space.
-Reducing the number of inequalities is fundamentally impossible, which follows from the fact that the problem is intractable,
-i.e. its NP-hardness. It is clear that the above described method is applicable only for small dimensionality of the problem,
-that is why the *recognizing functional method* was proposed.
-
-After global optimization, if the value of the functional is non-negative, then the system is solvable. If the value is negative,
-then the set of parameters consistent with the data is empty, but the argument delivering the maximum of the functional minimizes this inconsistency.
-
-As an example, it is proposed to investigate the Bart-Nuding system for the emptiness/non-emptiness of the tolerance set of solutions:
-
-```python
-import intvalpy as ip
-# transition from extend precision (type mpf) to double precision (type float)
-# ip.precision.extendedPrecisionQ = False
-
-A = ip.Interval([
-  [[2, 4], [-2, 1]],
-  [[-1, 2], [2, 4]]
-])
-b = ip.Interval([[-2, 2], [-2, 2]])
-
-tol = ip.linear.Tol.maximize(
-    A = A, 
-    b = b,
-    x0 = None,
-    weight = None,
-    linear_constraint = None
-)
-print(tol)
-```
 
 ### External decision evaluation:
 
