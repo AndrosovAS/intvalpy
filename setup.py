@@ -16,7 +16,8 @@ INSTALL_REQUIRES = [
     'numpy',
     'cvxopt',
     'mpmath',
-    'pandas'
+    'pandas',
+    'cython'
 ]
 
 setup(
