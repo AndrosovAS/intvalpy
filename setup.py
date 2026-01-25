@@ -22,7 +22,7 @@ INSTALL_REQUIRES = [
 
 setup(
     name='intvalpy',
-    version='2.0.0',
+    version='2.0.2',
     description='IntvalPy - a Python interval computation library',
     long_description=README,
     long_description_content_type='text/markdown',
@@ -43,9 +43,10 @@ setup(
     ext_modules=cythonize(
         Extension(
             'intvalpy.kernel.interval_arithmetics',
-            ['intvalpy/kernel/interval_arithmetics.pyx']
+            ['intvalpy/kernel/interval_arithmetics.cpp']
         ),
-        compiler_directives={'language_level': "3"}
+        compiler_directives={'language_level': "3"},
+        language="c++"
     ),
     include_dirs=[np.get_include()],
     zip_safe=False,
