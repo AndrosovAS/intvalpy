@@ -1,7 +1,6 @@
 import io
 import os
 from setuptools import setup, find_packages, Extension
-from Cython.Build import cythonize
 import numpy as np
 
 
@@ -23,7 +22,7 @@ INSTALL_REQUIRES = [
 setup(
     name='intvalpy',
     version='2.0.2',
-    description='IntvalPy - a Python interval computation library',
+    description='IntvalPy -- a Python interval computation library',
     long_description=README,
     long_description_content_type='text/markdown',
     license='MIT License',
@@ -35,19 +34,18 @@ setup(
         'optimal solutions',
         'math'
     ],
-    author='Андросов Артем Станиславович, Шарый Сергей Петрович',
-    author_email='artem.androsov@gmail.com, shary@ict.nsc.ru',
+    author='Androsov, Artem Stanislavovich and Shary, Sergey Petrovich',
+    author_email='astandrosov@yandex.ru, shary@ict.nsc.ru',
     url='https://github.com/AndrosovAS/intvalpy',
     packages=find_packages(),
     install_requires=INSTALL_REQUIRES,
-    ext_modules=cythonize(
+    ext_modules=[
         Extension(
-            'intvalpy.kernel.interval_arithmetics',
-            ['intvalpy/kernel/interval_arithmetics.cpp']
-        ),
-        compiler_directives={'language_level': "3"},
-        language="c++"
-    ),
+            "intvalpy.kernel.interval_arithmetics",
+            ["intvalpy/kernel/interval_arithmetics.pyx"],
+            include_dirs=[np.get_include()]
+        )
+    ],
     include_dirs=[np.get_include()],
     zip_safe=False,
 )
