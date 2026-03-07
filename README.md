@@ -1,4 +1,4 @@
-# Interval library in Python
+﻿# Interval library in Python
 
 The Python module implements an algebraically closed interval arithmetic for interval computations, solving interval systems of both
 linear and nonlinear equations, and visualizing solution sets for interval systems of equations.
@@ -141,8 +141,8 @@ ax.legend(by_label.values(), by_label.keys(), loc='lower right')
 
 ### Visualizing solution sets
 
-For a system of linear inequalities of the form ``A * x >= b`` or for an interval system of linear algebraic equations ``A * x = b``,
-the solution sets are known to be polyhedral sets, convex or non-convex. We can visualize them and display all their vertices:
+For a system of linear inequalities of the form ``A * x >= b``, or for an interval system of linear algebraic equations ``A * x = b``,
+the solution sets are known to be polyhedral sets, which may be convex or non‑convex. We can visualize them and display all their vertices.
 
 ```python
 import intvalpy as ip
@@ -212,21 +212,19 @@ iplt.scatter(x, y, color='gray', alpha=0.7, s=10, axindex=axindex)
 ```
 ![SolSet](https://raw.githubusercontent.com/AndrosovAS/intvalpy/master/examples/SolSet.png)
 
-
-It is also possible to create a three-dimensional (or two-dimensional) slice of an N-dimensional figure to visualize the solution set 
-with fixed N-3 (or N-2) parameters. A specific implementation of this algorithm can be found in the examples.
+One can also create a three-dimensional (or two-dimensional) slice of an N‑dimensional figure to visualize the solution set,
+keeping N‑3 (or N‑2) parameters fixed. A concrete implementation of this algorithm is provided in the examples.
 
 
 ### External decision evaluation:
 
-To obtain an optimal external estimate of the united set of solutions of an interval system linear of algebraic equations (ISLAE),
-a hybrid method of splitting PSS solutions is implemented. Since the task is NP-hard, the process can be stopped by the number of iterations completed.
-PSS methods are consistently guaranteeing, i.e. when the process is interrupted at any number of iterations, an approximate estimate of the solution satisfies the required estimation method.
+To obtain an optimal outer estimate of the united solution set of an interval system of linear algebraic equations (ISLAE), 
+a hybrid method based on splitting PSS solutions is implemented. As the problem is NP‑hard, the solution process can be terminated 
+after a specified number of iterations. PSS methods are consistently guaranteeing -- that is, if the process is stopped after 
+any number of iterations, the resulting approximate estimate still meets the required estimation criterion.
 
 ```python
 import intvalpy as ip
-# transition from extend precision (type mpf) to double precision (type float)
-# ip.precision.extendedPrecisionQ = False
 
 A, b = ip.Shary(12, N=12, alpha=0.23, beta=0.35)
 pss = ip.linear.PSS(A, b)
@@ -235,12 +233,10 @@ print('pss: ', pss)
 
 ### Interval system of nonlinear equations:
 
-For nonlinear systems, the simplest multidimensional interval methods of Krawczyk and Hansen-Sengupta are implemented for solving nonlinear systems:
+For nonlinear systems, the simplest multidimensional interval methods — namely, those of Krawczyk and Hansen‑Sengupta — are implemented.
 
 ```python
 import intvalpy as ip
-# transition from extend precision (type mpf) to double precision (type float)
-# ip.precision.extendedPrecisionQ = False
 
 epsilon = 0.1
 def f(x):
@@ -255,12 +251,10 @@ def J(x):
 ip.nonlinear.HansenSengupta(f, J, ip.Interval([0.5,0.5],[1,1]))
 ```
 
-The library also provides the simplest interval global optimization:
+The library also provides the simplest interval global optimization algorithm:
 
 ```python
 import intvalpy as ip
-# transition from extend precision (type mpf) to double precision (type float)
-# ip.precision.extendedPrecisionQ = False
 
 def levy(x):
     z = 1 + (x - 1) / 4
@@ -275,3 +269,7 @@ ip.nonlinear.globopt(levy, x, tol=1e-14)
 ```
 
 
+## Citation
+
+\textsc{Androsov A.S., Shary S.P.} IntvalPy --- A Python Interval Computation Library \\\ Vest. Novosib. Gos. Univ., 
+Ser. Inf. Tekhnol. -- 2022. -- Vol.~20, No.~4. -- P.~5--23.
