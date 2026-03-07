@@ -16,6 +16,7 @@ jobs:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       # Matrix of operating systems
       matrix:
         os: [
@@ -26,7 +27,6 @@ jobs:
           macos-13,               # macOS Intel
           macos-14,               # macOS ARM
         ]
-        fail-fast: false
     
     steps:
       # Step 1: Clone the repository
