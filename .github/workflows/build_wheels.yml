@@ -21,11 +21,9 @@ jobs:
       matrix:
         os: [
           ubuntu-20.04,           # Linux x86_64
-          ubuntu-20.04-arm64,     # Linux ARM64
           windows-latest,         # Windows x86_64
-          windows-latest-arm64,   # Windows ARM64
           macos-13,               # macOS Intel
-          macos-14,               # macOS ARM
+          macos-latest,           # macOS Silicon
         ]
     
     steps:
