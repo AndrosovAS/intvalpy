@@ -17,15 +17,15 @@ build = "cp38-* cp39-* cp310-* cp311-* cp312-* cp313-* cp314-*"
 manylinux-x86_64-image = "manylinux2014"
 manylinux-aarch64-image = "manylinux2014"
 # Architectures: auto64 = x86_64 + aarch64, x86 = 32-bit (i686)
-archs = ["auto64", "x86"]  # x86 = 32-bit for Linux
+archs = ["auto64", "x86"]
 
 # macOS-specific settings
 [tool.cibuildwheel.macos]
 # macOS supports only 64-bit architectures
 # x86_64 = Intel, arm64 = Apple Silicon, universal2 = both in one file
-archs = ["x86_64", "arm64"]  # or use ["universal2"] for universal binaries
+archs = ["x86_64", "arm64"]
 
 # Windows-specific settings
 [tool.cibuildwheel.windows]
 # Windows architectures: AMD64 = 64-bit, x86 = 32-bit
-archs = ["AMD64", "x86"]  # x86 = 32-bit for Windows
+archs = ["AMD64", "x86"]

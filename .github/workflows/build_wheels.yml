@@ -1,7 +1,11 @@
-name: Build wheels
+name: Build and upload to PyPI
 
 # When to run this script
 on:
+
+  release:
+    types: [prereleased]
+
   # Allows manual triggering from GitHub interface
   workflow_dispatch:
   
@@ -20,9 +24,9 @@ jobs:
       # Matrix of operating systems
       matrix:
         os: [
-          ubuntu-20.04,           # Linux x86_64
+          ubuntu-latest,          # Linux x86_64
           windows-latest,         # Windows x86_64
-          macos-13,               # macOS Intel
+          macos-12,               # macOS Intel
           macos-latest,           # macOS Silicon
         ]
     
@@ -54,3 +58,26 @@ jobs:
         with:
           name: wheels-${{ matrix.os }}
           path: ./wheelhouse/*.whl
+
+
+  upload_pypi:
+    name: Upload to PyPI
+    needs: [build_wheels]  # Запускается только после успешной сборки
+    runs-on: ubuntu-latest
+    # Запускается только для релизов
+    if: github.event_name == 'release' && github.event.action == 'published'
+    
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist
+      
+      - name: Upload to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          pip install twine
+          twine upload dist/*.whl
