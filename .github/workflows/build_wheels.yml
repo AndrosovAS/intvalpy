@@ -1,0 +1,55 @@
+name: Build wheels
+
+# When to run this script
+on:
+  # Allows manual triggering from GitHub interface
+  workflow_dispatch:
+  
+  # For testing - on pushes to main branch
+  push:
+    branches:
+      - main
+    paths:
+      - 'intvalpy/**'
+      - 'setup.py'
+      - 'pyproject.toml'
+      - '.github/workflows/*'
+
+jobs:
+  # Job for building wheels
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Matrix of operating systems
+      matrix:
+        os: [ubuntu-20.04, windows-latest, macos-13, macos-14]
+    
+    steps:
+      # Step 1: Clone the repository
+      - uses: actions/checkout@v4
+      
+      # Step 2: Set up Python (required for cibuildwheel)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      # Step 3: Install build dependencies
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install cibuildwheel
+      
+      # Step 4: Build wheels using cibuildwheel
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir wheelhouse
+        env:
+          # Additional environment variables if needed
+          CIBW_BEFORE_BUILD: pip install numpy cython
+          CIBW_BUILD_VERBOSITY: 1
+      
+      # Step 5: Save built wheels as artifacts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: ./wheelhouse/*.whl

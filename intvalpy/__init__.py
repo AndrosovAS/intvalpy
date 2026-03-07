@@ -2,5 +2,4 @@ from .kernel import *
 from .linear import *
 from .nonlinear import *
 from .models import *
-
-__version__ = '1.6.5'
+from ._version import __version__
