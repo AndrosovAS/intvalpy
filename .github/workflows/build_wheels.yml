@@ -9,11 +9,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'intvalpy/**'
-      - 'setup.py'
-      - 'pyproject.toml'
-      - '.github/workflows/*'
 
 jobs:
   # Job for building wheels
@@ -23,7 +18,15 @@ jobs:
     strategy:
       # Matrix of operating systems
       matrix:
-        os: [ubuntu-20.04, windows-latest, macos-13, macos-14]
+        os: [
+          ubuntu-20.04,           # Linux x86_64
+          ubuntu-20.04-arm64,     # Linux ARM64
+          windows-latest,         # Windows x86_64
+          windows-latest-arm64,   # Windows ARM64
+          macos-13,               # macOS Intel
+          macos-14,               # macOS ARM
+        ]
+        fail-fast: false
     
     steps:
       # Step 1: Clone the repository
@@ -32,7 +35,7 @@ jobs:
       # Step 2: Set up Python (required for cibuildwheel)
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.13'
       
       # Step 3: Install build dependencies
       - name: Install build dependencies

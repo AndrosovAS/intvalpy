@@ -1,5 +1,6 @@
 #ignoring specific directories
 .ipynb_checkpoints
+.vs
 __pycache__
 venv
 dist
