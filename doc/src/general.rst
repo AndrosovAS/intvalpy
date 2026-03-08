@@ -1,5 +1,5 @@
 General purpose functions
-=========================
+===============
 
 In this section, we present an overview of functions for working with interval quantities as well as some functions
 for creating interval objects.
@@ -506,4 +506,3 @@ References
 [2] Reichmann K. Abbruch beim Intervall-Gauß-Algorithmus // Computing. – 1979. – Vol. 22, Issue 4. – P. 355–361.
 
 [3] С.П. Шарый - `Конечномерный интервальный анализ <http://www.nsc.ru/interval/Library/InteBooks/SharyBook.pdf>`_.
-    Sergey P. Shary, `Finite-Dimensional Interval Analysis`_.
