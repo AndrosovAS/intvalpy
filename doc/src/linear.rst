@@ -75,11 +75,11 @@ with unbounded and thin solution sets, as well as linear systems where the numbe
 from the number of unknowns.
 
 The main steps of the algorithm are:
-::
-    1. Formation of the boundary intervals matrix;
-    2. Modification of the boundary intervals matrix considering the plotting window;
-    3. Construction of ordered vertices of the polyhedral solution set;
-    4. Output of the constructed vertices and (if necessary) rendering of the polyhedron.
+
+1. Formation of the boundary intervals matrix;
+2. Modification of the boundary intervals matrix considering the plotting window;
+3. Construction of ordered vertices of the polyhedral solution set;
+4. Output of the constructed vertices and (if necessary) rendering of the polyhedron.
 
 2D Visualization of a Linear Inequality System
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
