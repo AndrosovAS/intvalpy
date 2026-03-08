@@ -10,7 +10,7 @@ The most convenient way to install this library is to use the pip_ command::
 
 
 Installation from Source
-----------------------------------
+------------------------
 
 You can either download the sources from PyPI_ or clone the repository hosted on GitHub_::
   

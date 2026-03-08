@@ -1,5 +1,5 @@
 Recognizing functionals
-===============
+=======================
 
 This paragraph presents an overview of functions for investigating solvability
 of the set of solutions of interval linear systems.
@@ -25,7 +25,7 @@ functional method* was proposed.
 
 
 Tol for linear systems
-------------
+----------------------
 
 **class Tol**
 
@@ -83,7 +83,7 @@ of the recognizing functional is negative.
 
 
 Finding a global maximum
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 ** class Tol.maximize(A, b, x0=None, weight=None, linear_constraint=None, kwargs)**
 
@@ -168,7 +168,7 @@ the penalty function method.
 
 
 Uni for linear systems
-------------
+----------------------
 
 **class Uni**
 
@@ -226,7 +226,7 @@ of the recognizing functional is not negative.
 
 
 Finding a global maximum
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 ** class Uni.maximize(A, b, x0=None, weight=None, linear_constraint=None, kwargs)**
 
@@ -313,7 +313,7 @@ the penalty function method.
 
 
 References
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~
 
 [1] С.П. Шарый - `Разрешимость интервальных линейных уравнений и анализ данных с неопределённостями <http://www.nsc.ru/interval/shary/Papers/SharyAiT.pdf>`_ // Автоматика и Телемеханика, No 2, 2012
 

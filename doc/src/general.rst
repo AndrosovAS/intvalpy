@@ -1,5 +1,5 @@
 General purpose functions
-===============
+=========================
 
 In this section, we present an overview of functions for working with interval quantities as well as some functions
 for creating interval objects.
@@ -120,7 +120,7 @@ Computes the intersection of interval data. If arrays are provided as input, a c
 
 
 Distance
-------------
+--------
 
 **def dist(x, y, order=float('inf'))**
 
@@ -190,7 +190,7 @@ Interval(['[0, 0]', '[0, 0]', '[0, 0]', '[0, 0]'])
 
 
 Identity interval matrix
---------------
+------------------------
 
 **def eye(N, M=None, k=0)**
 
@@ -225,7 +225,7 @@ Interval([['[0, 0]', '[0, 0]'],
 
 
 Diagonal of the interval matrix
---------------
+-------------------------------
 
 **def diag(v, k=0)**
 
@@ -260,13 +260,13 @@ Interval([['[-2, 2]', '[0, 0]', '[0, 0]'],
 
 
 Elementary mathematical functions
----------------------
+---------------------------------
 This section presents the basic elementary mathematical functions that are most commonly encountered
 in various kinds of applied problems.
 
 
 The square root
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 
 **def sqrt(x)**
 
@@ -293,7 +293,7 @@ Interval(['[nan, nan]', '[0, 1.41421]', '[0, 2]'])
 
 
 The exponent
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~
 
 **def exp(x)**
 
@@ -320,7 +320,7 @@ Interval(['[0.0497871, 0.367879]', '[0.0497871, 7.38906]', '[1, 54.5982]'])
 
 
 The natural logarithm
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 **def log(x)**
 
@@ -347,7 +347,7 @@ Interval(['[nan, nan]', '[-inf, 0.693147]', '[0, 1.38629]'])
 
 
 The sine function
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 
 **def sin(x)**
 
@@ -374,7 +374,7 @@ Interval(['[-1, -0.14112]', '[-1, 1]', '[-0.756802, 1]'])
 
 
 The cosine function
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 **def cos(x)**
 
@@ -454,7 +454,7 @@ b:  Interval(['[-2, 2]', '[-2, 2]', '[-2, 2]'])
 
 
 The Neumaier-Reichmann system
-~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **def Neumaier(n, theta, infb=None, supb=None)**
 

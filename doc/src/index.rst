@@ -1,4 +1,3 @@
-.. include:: ../README.md
 .. title:: Table of Contents
 
 *******

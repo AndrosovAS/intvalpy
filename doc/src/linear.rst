@@ -1,5 +1,5 @@
 Interval Linear Systems
-===============
+=======================
 
 This section provides an overview of functions for obtaining estimates of the solution set for interval 
 linear systems.
