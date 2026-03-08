@@ -21,7 +21,7 @@ that the problem is intractable, i.e. its NP-hardness. It is clear that the abov
 method is applicable only for small dimensionality of the problem, that is why the *recognizing
 functional method* was proposed.
 
-.. Content::
+.. Contents::
 
 
 Tol for linear systems

@@ -3,7 +3,7 @@ Installation
 
 .. highlight: shell
 
-The most convenient way to install this library is to use the pip_ command::
+The most convenient way to install this library is to use the pip command::
 
     pip install --upgrade pip
     pip install intvalpy

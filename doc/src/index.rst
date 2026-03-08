@@ -1,8 +1,8 @@
 .. title:: Table of Contents
 
-*******
+********
 IntvalPy
-*******
+********
 
 Welcome to the IntvalPy documentation! This Python module implements an algebraically closed system 
 for working with intervals and provides the ability to work with both classical interval arithmetic 
