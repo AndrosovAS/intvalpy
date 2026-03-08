@@ -40,43 +40,36 @@ To convert the input data to the interval type, use the `asinterval` function:
 Interval(['[0.5, 0.5]', '[-2, 5]', '[2, 2]'])
 
 
-Interval scatterplot
+Interval Scatterplot
 --------------------
 
-Математическая диаграмма, изображающая значения двух переменных в виде брусов на декартовой плоскости.
+A mathematical diagram depicting the values of two variables as boxes (intervals) on a Cartesian plane.
+
+**def scatter_plot(x, y, title='', color='gray', alpha=0.5, s=20, size=(10, 5), save=False)**
 
 **Parameters**:
 
-* x : Interval
-            Интервальный вектор положения данных на оси OX.
-
-* y : Interval
-            Интервальный вектор положения данных на оси OY.
-
-* title: str, optional
-            Верхняя легенда графика.
-
-* color: str, optional
-            Цвет отображения брусов.
-
-* alpha: float, optional
-            Прозрачность брусов.
-
-* s: float, optional
-            Насколько велики точки вершин.
-
-* size: tuple, optional
-            Размер отрисовочного окна.
-
-* save: bool, optional
-            Если значение True, то график сохраняется.
-
+* **x** : Interval
+    The interval vector for data position on the OX axis.
+* **y** : Interval
+    The interval vector for data position on the OY axis.
+* **title**: str, optional
+    The title of the plot.
+* **color**: str, optional
+    The color for displaying the boxes.
+* **alpha**: float, optional
+    The transparency of the boxes.
+* **s**: float, optional
+    The size of the vertex points (if any).
+* **size**: tuple, optional
+    The size of the plotting window (width, height).
+* **save**: bool, optional
+    If `True`, the plot is saved.
 
 **Returns**:
 
-* out: None
-            A scatterplot is displayed.
-
+* **out**: None
+    Displays a scatterplot.
 
 **Examples**:
 
@@ -87,39 +80,43 @@ Interval scatterplot
 >>> ip.scatter_plot(x, y)
 
 
-Intersection of intervals
+Intersection of Intervals
 -------------------------
 
-Функция ``intersection`` осуществляет пересечение интервальных данных. В случае, если на вход поданы массивы, то осуществляется покомпонентное пересечение.
+**def intersection(A, B)**
 
-Parameters:
-            A, B: ``Interval``
-                В случае, если операнды не являются интервальным типом, то
-                они преобразуются функцией ``asinterval``.
+Computes the intersection of interval data. If arrays are provided as input, a component-wise intersection is performed.
 
-Returns:
-            out: ``Interval``
-                Возвращается массив пересечённых интервалов.
-                Если некоторые интервалы не пересекаются, то на их месте
-                выводится интервал ``Interval(float('-inf'), float('-inf'))``.
+**Parameters**:
 
-Примеры:
+* **A, B**: `Interval`
+    Operands. If an operand is not an interval type, it is converted by the `asinterval` function.
 
->>> import intvalpy as ip
->>> f = ip.Interval([-3., -6., -2.], [0., 5., 6.])
->>> s = ip.Interval(-1, 10)
->>> ip.intersection(f, s)
-interval(['[-1.0, 0.0]', '[-1.0, 5.0]', '[-1.0, 6.0]'])
+**Returns**:
 
->>> f = ip.Interval([-3., -6., -2.], [0., 5., 6.])
->>> s = -2
->>> ip.intersection(f, s)
-interval(['[-2.0, -2.0]', '[-2.0, -2.0]', '[-2.0, -2.0]'])
+* **out**: `Interval`
+    An array of intersected intervals. If some intervals do not intersect, their place is filled with an empty interval 
+    `Interval(nan, nan)`.
 
->>> f = ip.Interval([-3., -6., -2.], [0., 5., 6.])
->>> s = ip.Interval([ 2., -8., -6.], [6., 7., 0.])
->>> ip.intersection(f, s)
-interval(['[-inf, -inf]', '[-6.0, 5.0]', '[-2.0, 0.0]'])
+**Examples**:
+
+.. code-block:: python
+
+    >>> import intvalpy as ip
+    >>> f = ip.Interval([-3., -6., -2.], [0., 5., 6.])
+    >>> s = ip.Interval(-1, 10)
+    >>> ip.intersection(f, s)
+    interval(['[-1.0, 0.0]', '[-1.0, 5.0]', '[-1.0, 6.0]'])
+
+    >>> f = ip.Interval([-3., -6., -2.], [0., 5., 6.])
+    >>> s = -2
+    >>> ip.intersection(f, s)
+    interval(['[-2.0, -2.0]', '[-2.0, -2.0]', '[-2.0, -2.0]'])
+
+    >>> f = ip.Interval([-3., -6., -2.], [0., 5., 6.])
+    >>> s = ip.Interval([ 2., -8., -6.], [6., 7., 0.])
+    >>> ip.intersection(f, s)
+    interval(['[nan, nan]', '[-6.0, 5.0]', '[-2.0, 0.0]'])
 
 
 Distance
