@@ -39,6 +39,7 @@ setup(
     long_description=README,
     long_description_content_type='text/markdown',
     license='MIT License',
+    license_files=['LICENSE.txt'],
     keywords=[
         'interval',
         'machine learning',
