@@ -3,36 +3,29 @@ Using intervals
 
 This section gives an overview of the use of interval classes and examples of working with interval data.
 
-Run the following commands to connect the necessary modules
+Run the following commands to import the necessary modules
 
     >>> import numpy as np
-    >>> from intvalpy import Interval, precision
+    >>> from intvalpy import Interval
 
-It connects the interval function `Interval` from the implemented `IntvalPy` library, which was previously installed
+This imports the `Interval` class from the `IntvalPy` library, which was previously installed
 with the command `pip install intvalpy`.
 
 .. Contents::
 
-The class `Interval` was created in accordance with IEEE Standard 754-2008, where rounding occurs to the nearest even number.
-This allows significantly to accelerate the computational upper-level functions and reduce the computation time.
-However, in tasks where you need more precision, you can switch from the standard representation of the number as
-`double float` type to `mpf` type. To do this, run the following command:
+The `Interval` class is designed in accordance with the IEEE 754 standard for floating-point arithmetic
+and implements **directed rounding** (rounding downward and upward). This guarantees that the computed
+intervals always enclose the exact mathematical result, ensuring reliability in numerical computations
+and providing rigorous error bounds.
 
-    >>> precision.extendedPrecisionQ = True
+The IntvalPy library supports classical interval arithmetic and full Kaucher interval arithmetic.
+Each arithmetic operates with different types of intervals (for example, classical arithmetic considers 
+only "proper" intervals), which means that the arithmetic operations may differ between the two approaches. 
+Therefore, it was decided to implement two separate classes, one for each arithmetic.
 
-You can also set the working precision (after which decimal place rounding will take place):
-
-    >>> precision.dps(50)
-
-The default setting is increased accuracy to 36th decimal place.
-
-
-The IntvalPy library supports classical arithmetic and full Kaucher interval arithmetic.
-Each arithmetic has different types of intervals (for example, classical arithmetic considers only "correct" intervals),
-which means that the arithmetic operations can differ from each other. Therefore, it was decided to develop two different classes
-for each of the arithmetics. However, there are not few common characteristics that these classes could inherit
-from some third class. These could be the operations of taking the ends of an interval, the width or radius, and many other things.
-This is why the parent class ``BaseTools'' was made separately.
+However, there are many common characteristics that these classes can inherit from a shared base class,
+such as extracting the endpoints of an interval, computing its width or radius, and various other operations.
+This is why the parent class ``BaseTools`` was created separately.
 
 
 Basic сharacteristics
@@ -40,8 +33,8 @@ Basic сharacteristics
 
 **class BaseTools(left, right)**
 
-A parent class that contains methods that can be used to calculate the basic interval characteristics of any interval arithmetic.
-Used in the `ClassicalArithmetic` and `KaucherArithmetic` classes.
+A parent class that contains methods that can be used to calculate the basic interval characteristics 
+of any interval arithmetic. Used in the `ClassicalArithmetic` and `KaucherArithmetic` classes.
 
 **Parameters**:
 

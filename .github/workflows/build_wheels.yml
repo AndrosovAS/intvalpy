@@ -4,7 +4,7 @@ name: Build and upload to PyPI
 on:
 
   release:
-    types: [prereleased]
+    types: [published]
 
   # Allows manual triggering from GitHub interface
   workflow_dispatch:
@@ -61,9 +61,8 @@ jobs:
 
   upload_pypi:
     name: Upload to PyPI
-    needs: [build_wheels]  # Запускается только после успешной сборки
+    needs: [build_wheels]
     runs-on: ubuntu-latest
-    # Запускается только для релизов
     if: github.event_name == 'release' && github.event.action == 'published'
     
     steps:

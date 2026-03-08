@@ -91,16 +91,16 @@ def f(x):
     return -5.24 + x*np.sin(x)
     
 # Data generation
+np.random.seed(41)
 x = np.sort(np.random.uniform(0.1, 9.9, 100))
 y = f(x)
-const = np.ones(len(x))
 eps_x = noise_distribution(len(x), intensity=0.005, seed=42)
 eps_y = noise_distribution(len(x), intensity=1.75, seed=43)
 x_noisy = x + eps_x
 y_noisy = y + eps_y
 df = pd.DataFrame(
-    data = np.array([ const, x_noisy, y_noisy ]).T,
-    columns = ['const', 'x', 'y']
+    data = np.array([ x_noisy, y_noisy ]).T,
+    columns = ['x', 'y']
 )
 # Convert to interval uncertainty
 df['x'] = df['x'] + ip.Interval(-max(eps_x), max(eps_x))
@@ -109,30 +109,30 @@ df['y'] = df['y'] + ip.Interval(-max(eps_y), max(eps_y))
 # Training a polynomial model
 model = ip.ISPAE()
 model.fit(
-    X_train = df[['const', 'x']],
+    X_train = df[['x']],
     y_train = df['y'],
-    order = [1, 8],
+    order = 8,
     x0 = None,
     weight = None,
     objective = 'Uni',
     norm = 'inf',
+    bias = True
 )
 
 # Testing fitted model
 ox = np.linspace(0, 10, 1000)
-const = np.ones(len(ox))
-df_test = pd.DataFrame(data=np.array([const, ox]).T, columns=['const', 'x'])
-y_pred = ip.mid(model.predict(df_test[['const', 'x']]))
+df_test = pd.DataFrame(data=np.array([ox]).T, columns=['x'])
+y_pred = ip.mid(model.predict(df_test[['x']]))
 y_fact = f(ox)
 
 # Visualization results
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 3.5))
 x_plt = np.array([ip.inf(df['x']), ip.inf(df['x']), ip.sup(df['x']), ip.sup(df['x'])])
 y_plt = np.array([ip.inf(df['y']), ip.sup(df['y']), ip.sup(df['y']), ip.inf(df['y'])])
-ax.fill(x_plt, y_plt, color='black', alpha=0.15, fill=True, label='Interval uncertainty')
+ax.fill(x_plt, y_plt, color='lightgray', alpha=0.6, fill=True, label='Interval uncertainty')
 plt.scatter(x_noisy, y_noisy, alpha=0.7, color='black', s=8, label='Noisy data')
-plt.plot(ox, y_pred, color='red', ls='--', alpha=1, linewidth=1.5, label='Fitted fucntion')
-plt.plot(ox, y_fact, color='black', ls='-', alpha=0.7, linewidth=1.5, label='Original function')
+plt.plot(ox, y_pred, color='steelblue', ls='--', alpha=1, linewidth=2, label='Fitted fucntion')
+plt.plot(ox, y_fact, color='crimson', ls='-', alpha=0.7, linewidth=1.8, label='Original function')
 handles, labels = ax.get_legend_handles_labels()
 by_label = dict(zip(labels, handles))
 ax.legend(by_label.values(), by_label.keys(), loc='lower right')

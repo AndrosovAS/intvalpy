@@ -271,6 +271,7 @@ class ISPAE(object):
             weight=None,
             objective='Tol',
             norm='inf',
+            bias=True,
             **kwargs
     ):
         """
@@ -292,13 +293,19 @@ class ISPAE(object):
             Objective function type. Options: 'Tol', 'Uni' (default: 'Tol').
         norm : str, optional
             Norm type for the objective function. Options: 'inf', 'l1' (default: 'inf').
+        bias : bool, optional
+            Whether to include a bias term (intercept) in the model.
+            If True, a constant term is added to the polynomial (default: True).
         **kwargs : dict
             Additional arguments for the optimizer ralgb5.
         """
         # Initialize training data
         X_train = pd.DataFrame(X_train)
-        self.columns = X_train.columns
         n, m = X_train.shape
+        self.bias = bias
+        if self.bias:
+            X_train.insert(loc=0, column='bias', value=[1]*n)
+        self.columns = X_train.columns
 
         # Validate and set polynomial order
         if hasattr(order, '__iter__'):
@@ -306,6 +313,9 @@ class ISPAE(object):
         else:
             order = np.full(m, order)
         self.order = np.array(order)
+
+        if self.bias:
+            self.order = np.append([1], self.order)
 
         # Expand the dataframe with polynomial features
         X_expand = self._expand_dataframe(X_train)
@@ -377,4 +387,8 @@ class ISPAE(object):
         predictions : Interval
             Predicted target intervals.
         """
+        X_test = pd.DataFrame(X_test)
+        n, m = X_test.shape
+        if self.bias:
+            X_test.insert(loc=0, column='bias', value=[1]*n)
         return self._expand_dataframe(X_test) @ self.estimator['xr']
