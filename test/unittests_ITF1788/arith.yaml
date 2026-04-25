@@ -1,0 +1,105 @@
+name: intvalpy
+language: python
+version: 1.0.0
+
+imports: |
+    import intvalpy as ip
+    from intvalpy import Interval
+    import math
+preamble: |
+    from intvalpy import Interval
+
+    def _itf_is_empty_interval(x):
+        try:
+            return math.isnan(float(x.a)) and math.isnan(float(x.b))
+        except Exception:
+            return False
+
+    def _itf_convex_hull(x, y):
+        if _itf_is_empty_interval(x):
+            return y
+        if _itf_is_empty_interval(y):
+            return x
+        return Interval(min(x.a, y.a), max(x.b, y.b))
+
+
+# intervals
+empty_interval_double: Interval(ip.nan, ip.nan)
+entire_interval_double: Interval(-math.inf, math.inf)
+
+
+#
+# NaI constant for different data types.
+# Example: "I<double>::nai()" and "I<float>::nai()"
+#
+nai_interval_double: 
+nai_interval_float:
+nai_interval_long_double:
+
+# Конструктор интервала по inf и sup
+inf_sup_interval_double: Interval($ARG1, $ARG2)
+
+# Basic operations
+op_neg*: -($ARG1)
+op_add*: $ARG1 + $ARG2
+op_sub*: $ARG1 - $ARG2
+op_mul*: $ARG1 * $ARG2
+op_div*: $ARG1 / $ARG2
+
+# Set operations
+op_intersection*: ip.intersection($ARG1, $ARG2)
+op_convexHull*: _itf_convex_hull($ARG1, $ARG2)
+
+# Additional elementary / numeric operations supported by IntvalPy
+op_abs*: abs($ARG1)
+op_sqr*: $ARG1 * $ARG1
+op_sqrt*: ip.sqrt($ARG1)
+op_exp*: ip.exp($ARG1)
+op_log*: ip.log($ARG1)
+op_sin*: ip.sin($ARG1)
+op_cos*: ip.cos($ARG1)
+
+# Properties
+op_inf*: $ARG1.a
+op_sup*: $ARG1.b
+op_mid*: $ARG1.mid
+op_wid*: $ARG1.wid
+op_rad*: $ARG1.rad
+op_mag*: $ARG1.mag
+op_mig*: $ARG1.mig
+
+# Boolean functions of intervals
+op_equal*: $ARG1 == $ARG2
+op_subset*: $ARG1 in $ARG2
+
+
+# Decorated intervals are not supported
+#op_decorationPart*: '"$ARG1"'
+decorator_less_equals: |
+    # $ARG1 <= $ARG2
+decorator_greater_equals: |
+    # $ARG1 >= $ARG2
+decorated_empty_interval_double: '"[Empty]_$DEC"'
+decorated_entire_interval_double: '"[Entire]_$DEC"'
+decorated_inf_sup_interval_double: '"[$ARG1, $ARG2]_$DEC"'
+decorator_com: com
+decorator_def: def
+decorator_dac: dac
+decorator_ill: ill
+decorator_trv: trv
+
+
+#
+# Signaled exceptions 
+#
+exception_UndefinedOperation:
+exception_PossiblyUndefinedOperation:
+exception_InvalidOperand:
+exception_IntvlPartOfNaI:
+exception_IntvlOverflow:
+
+# Check for no exception
+exception_no_exception:
+
+# Cleanup any previous signaled exceptions
+clear_exceptions:
